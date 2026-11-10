@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0b151d">
+<title>熱の旅 — エアコンのしくみを、内側から。</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='10' fill='%230d202b'/%3E%3Cpath d='M10 25V15h20v10M15 30V20m10 10V20' fill='none' stroke='%237cdded' stroke-width='3'/%3E%3C/svg%3E">
+<style>
+:root{color-scheme:dark;--bg:#0b151d;--panel:#101e28;--line:#26353f;--muted:#8fa5b2;--white:#edf4f6;--accent:#7bd9e8;--orange:#ffa572;--gold:#e9cd7b;--blue:#659be9}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--white);font-family:"Noto Sans JP","Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;font-size:13px}button{font:inherit;cursor:pointer;color:inherit}button:focus-visible{outline:2px solid var(--accent);outline-offset:4px}button{touch-action:manipulation}header{height:92px;padding:0 30px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);gap:20px}.brand{display:flex;align-items:center;gap:15px}.brand-symbol{width:42px;height:42px;border:1px solid #4e727e;border-radius:12px;display:grid;place-items:center;color:var(--accent)}.brand-symbol svg{width:26px}.eyebrow{font-size:10px;letter-spacing:2.3px;color:var(--accent);font-weight:600}.brand h1{font-size:23px;letter-spacing:.08em;margin:5px 0 0;font-weight:600}.brand h1 span{color:#94a9b4;font-size:13px;font-weight:400;letter-spacing:.03em;margin-left:13px}.mode-area{display:flex;align-items:center;gap:18px}.mode-caption{font-size:11px;color:var(--muted);line-height:1.8;text-align:right}.mode-switch{display:flex;border:1px solid #34464f;background:#08131a;border-radius:10px;padding:4px;gap:4px}.mode-switch button{border:0;background:transparent;color:var(--muted);border-radius:6px;padding:10px 22px;min-width:95px;font-weight:600}.mode-switch button.active{background:#b8edf2;color:#122e39}.mode-switch button[data-mode=heat].active{background:#ffd1ac;color:#482c18}.mode-switch svg{height:15px;width:15px;vertical-align:-3px;margin-right:7px}.app{height:calc(100dvh - 92px);min-height:608px;display:grid;grid-template-rows:minmax(0,1fr) 151px 29px;padding:18px 24px 0;gap:14px}.main{display:grid;grid-template-columns:minmax(0,1fr) 292px;gap:16px;min-height:0}.stage{position:relative;overflow:hidden;border:1px solid #2b3b45;border-radius:14px;background:radial-gradient(ellipse at 48% 40%,#1b303d 0%,#11232f 45%,#0e1b25 85%);min-height:380px}#scene{display:block;width:100%;height:100%;outline:0}.stage-head{position:absolute;top:20px;left:22px;pointer-events:none}.stage-kicker{font-size:10px;letter-spacing:1.8px;color:#91adbc;display:flex;align-items:center;gap:7px}.live-dot{width:5px;height:5px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px #7bd9e877}.stage-head h2{margin:7px 0 5px;font-size:18px;font-weight:500;letter-spacing:.04em}.stage-head p{font-size:11px;color:#92a8b6;margin:0}.view-tools{position:absolute;right:16px;top:17px;display:flex;gap:5px}.view-tools button{border:1px solid #3a4c56;background:#13232be6;padding:7px 10px;border-radius:6px;font-size:11px;color:#b1c5ce}.view-tools button.active{border-color:#7bd9e877;color:var(--accent);background:#203b46}.unit-label{position:absolute;pointer-events:none;white-space:nowrap;transform:translate(-50%,-50%);display:flex;align-items:center;gap:9px;font-size:11px;color:#d9e6ed;text-shadow:0 2px 6px #08151a}.unit-label .unit-name{font-weight:600;letter-spacing:1px}.unit-label .thermal{border-left:1px solid #516370;padding-left:9px;color:var(--accent)}.unit-label small{font-size:10px;color:#8ca8b7;margin-left:5px}.marker{position:absolute;transform:translate(-50%,-50%);padding:0;width:23px;height:23px;display:grid;place-items:center;border-radius:50%;border:1px solid #a9dae0aa;background:#102934e8;color:#e1f5f5;font-size:10px;font-family:ui-monospace,monospace;box-shadow:0 2px 10px #00101880;transition:background .15s,box-shadow .15s}.marker.selected{background:#ace6ed;color:#102a34;box-shadow:0 0 0 5px #7bd9e819}.marker:hover{background:#dbf8fc;color:#102a34}.marker .tip{position:absolute;bottom:31px;left:50%;transform:translateX(-50%);padding:6px 9px;border:1px solid #4b6876;background:#10232e;border-radius:5px;white-space:nowrap;color:#dff2f7;display:none;font-family:inherit;font-size:11px}.marker:hover .tip,.marker:focus-visible .tip{display:block}.stage-bottom{position:absolute;bottom:15px;left:19px;right:17px;display:flex;justify-content:space-between;align-items:end;gap:12px;pointer-events:none}.navigation-hint{font-size:10px;color:#839eae;display:flex;gap:12px;align-items:center}.navigation-hint svg{width:15px;height:15px;vertical-align:middle;margin-right:3px}.playback{display:flex;gap:5px;pointer-events:auto}.playback button{border:1px solid #344c59;background:#10222ce8;border-radius:6px;color:#c6dce4;padding:7px 10px;font-size:11px;min-height:30px}.legend{position:absolute;left:20px;bottom:49px;display:flex;gap:13px;flex-wrap:wrap;font-size:9px;color:#9fb8c7;pointer-events:none}.legend span{display:flex;gap:5px;align-items:center}.legend i{height:5px;width:13px;border-radius:2px;background:var(--c)}.loading{position:absolute;inset:0;background:#11222f;display:grid;place-content:center;text-align:center;gap:12px;z-index:10;color:#b6d9e2;font-size:13px}.loading small{color:var(--muted)}.side{border:1px solid var(--line);background:var(--panel);border-radius:14px;padding:19px;display:flex;flex-direction:column;min-height:0;overflow:auto;scrollbar-width:thin}.section-label{font-size:10px;letter-spacing:1.5px;color:var(--muted);display:flex;align-items:center;justify-content:space-between}.section-label span{color:var(--accent);font-size:10px;letter-spacing:0}.part-heading{display:flex;gap:10px;align-items:center;margin:16px 0 11px}.part-no{color:#6b8b9d;font-size:28px;font-weight:300;line-height:1;font-family:ui-monospace,monospace}.part-heading h2{font-size:19px;font-weight:500;margin:0}.part-heading small{display:block;font-size:9px;color:#8ca8b6;margin-top:3px;letter-spacing:1.1px}.part-description{font-size:12px;line-height:1.9;margin:0;color:#b7c8d2;min-height:69px}.state-box{margin:12px 0 14px;padding:10px 11px;border:1px solid #375560;border-radius:7px;background:#17303b}.state-title{font-size:10px;color:var(--accent);margin-bottom:5px}.state-line{font-size:12px;color:#e1f1f5;display:flex;justify-content:space-between;gap:5px}.state-line small{font-size:10px;color:#a9cbd7;white-space:nowrap}.parts-title{font-size:10px;color:var(--muted);padding-top:12px;border-top:1px solid var(--line);margin-bottom:9px}.parts{display:grid;grid-template-columns:1fr 1fr;gap:6px}.parts button{border:1px solid #2a404d;background:#11232e;text-align:left;display:flex;gap:7px;align-items:center;padding:8px 7px;border-radius:6px;font-size:10px;white-space:nowrap;color:#a8beca}.parts button b{font-family:ui-monospace,monospace;font-size:10px;font-weight:400;color:#6f95a8}.parts button.active{border-color:#78bdca;background:#1d3a46;color:#d1f4f7}.parts button.active b{color:var(--accent)}.principle{margin-top:auto;padding-top:15px}.principle .energy{font-size:11px;color:#d7e6ec;display:flex;align-items:center;gap:7px}.principle .energy::before{content:'+';color:var(--orange);border:1px solid #795f4d;border-radius:50%;display:grid;place-items:center;width:17px;height:17px;flex-shrink:0}.principle p{font-size:10px;line-height:1.7;color:#869eac;margin:7px 0 0}.cycle{min-width:0}.cycle-top{display:flex;justify-content:space-between;align-items:center;margin:0 2px 10px}.cycle-top h2{font-size:12px;font-weight:400;letter-spacing:.06em;margin:0;color:#c0d2db}.cycle-top h2 b{font-size:10px;letter-spacing:1.8px;font-weight:500;margin-right:13px;color:#6c95a8}.cycle-top>span{font-size:10px;color:#7f9baa}.steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.step{border:1px solid var(--line);background:#101e28;border-radius:9px;padding:12px 15px 10px;position:relative;min-height:101px;text-align:left;transition:border-color .2s}.step:hover{border-color:#648696}.step:not(:last-child)::after{content:'›';position:absolute;right:-12px;top:38px;color:#6e8a9a;font-size:18px;z-index:1}.step-top{display:flex;gap:8px;align-items:center;margin-bottom:7px}.step .num{font-family:ui-monospace,monospace;color:var(--c);font-size:11px}.step .dot{background:var(--c);width:5px;height:5px;border-radius:50%}.step h3{font-size:13px;font-weight:500;margin:0;flex:1}.step .temp{font-size:10px;color:var(--c);white-space:nowrap}.step .name{font-size:10px;color:#93acba;margin:0 0 5px}.step .text{font-size:11px;line-height:1.5;color:#b3c6d1;margin:0}.footer{display:flex;justify-content:space-between;align-items:start;border-top:1px solid #22333e;padding-top:8px;font-size:9px;color:#647f90;gap:10px}.footer strong{font-weight:400;letter-spacing:1.2px;color:#83a2b1}.focus-note{position:absolute;left:22px;top:99px;font-size:11px;color:#b7d6df;display:none;max-width:220px;line-height:1.9;background:#10242bd9;border-left:2px solid #7bd9e8;padding:9px 11px;pointer-events:none}.focus-note b{font-weight:500;color:#e9f7f9}.focus-note span{color:#ffa572}.heat-mode{--accent:#ffc18d}.heat-mode .state-box{border-color:#665242;background:#302a26}.heat-mode .state-title{color:#ffc18d}.heat-mode .state-line small{color:#d5bdab}@media(min-width:1600px){header{height:108px;padding:0 40px}.app{height:calc(100dvh - 108px);padding:24px 32px 0;grid-template-rows:minmax(0,1fr) 166px 33px;gap:20px}.main{grid-template-columns:minmax(0,1fr) 330px;gap:20px}.side{padding:25px}.part-heading{margin-top:25px}.part-description{font-size:13px;line-height:2}.parts button{font-size:11px;padding:11px 9px}.parts-title{margin-top:10px}.state-box{padding:14px;margin:20px 0}.principle p{font-size:11px}.step{min-height:112px;padding:16px 20px}.step h3{font-size:15px}.step .text{font-size:12px}.step .name{font-size:11px}.stage-head{top:26px;left:28px}.stage-head h2{font-size:23px}.stage-head p{font-size:12px}.view-tools{top:25px;right:24px}.view-tools button{font-size:12px;padding:8px 13px}.legend{font-size:11px;gap:19px}.unit-label{font-size:13px}.marker{width:27px;height:27px;font-size:11px}.brand h1{font-size:27px}}@media(max-width:1000px){header{padding:0 18px}.brand h1 span,.mode-caption{display:none}.app{height:auto;min-height:calc(100dvh - 92px);grid-template-rows:auto auto 30px;padding:14px}.main{grid-template-columns:minmax(0,1fr) 252px}.stage{height:490px}.side{padding:14px}.part-heading h2{font-size:17px}.legend{max-width:220px;gap:6px 12px}.view-tools{top:auto;bottom:85px;right:12px;flex-direction:column}.stage-head h2{font-size:16px}.steps{gap:8px}.step{padding:11px}.step .temp{display:none}.step .text{font-size:10px}.navigation-hint{display:none}}@media(max-width:700px){header{height:106px;gap:9px}.brand-symbol{display:none}.brand h1{font-size:20px}.eyebrow{font-size:8px;letter-spacing:1px}.mode-switch button{min-width:59px;padding:10px}.mode-switch svg{display:none}.app{padding:10px;gap:16px}.main{display:flex;flex-direction:column}.stage{height:450px;min-height:450px}.side{overflow:visible}.parts{grid-template-columns:repeat(3,1fr)}.part-description{min-height:0}.principle{padding-top:15px}.steps{grid-template-columns:repeat(2,1fr)}.step:nth-child(2)::after{display:none}.cycle-top>span{display:none}.footer{font-size:8px}.footer strong{display:none}.unit-label small{display:none}}
+@media(min-width:1001px) and (max-height:800px){header{height:80px}.app{height:calc(100dvh - 80px);min-height:620px;padding-top:14px;grid-template-rows:minmax(0,1fr) 127px 23px;gap:12px}.side{padding:14px 16px}.part-heading{margin:10px 0 8px}.part-heading h2{font-size:17px}.part-heading small{font-size:8px}.part-no{font-size:25px}.part-description{font-size:11px;line-height:1.8;min-height:59px}.state-box{margin:9px 0 10px;padding:8px 9px}.state-line{font-size:11px}.state-line small{font-size:9px}.parts-title{padding-top:8px;margin-bottom:7px}.parts{gap:5px}.parts button{padding:6px 7px}.principle{padding-top:10px}.principle p{display:none}.principle .energy{font-size:10px}.step{padding:10px 13px;min-height:96px}.cycle-top{margin-bottom:8px}.footer{padding-top:6px}.stage-head{top:17px}.stage-head h2{font-size:17px}}
+@media(min-width:1600px){.focus-note{top:125px;font-size:12px}}
+</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}</script>
+</head>
+<body>
+<header>
+ <div class="brand"><div class="brand-symbol"><svg viewBox="0 0 30 30" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 18V8h20v10H5zM9 12h12M10 22v3m5-3v5m5-5v3"/><path d="M8 18v-3h14v3"/></svg></div><div><div class="eyebrow">THE SCIENCE OF EVERYDAY</div><h1>熱の旅<span>エアコンのしくみを、内側から。</span></h1></div></div>
+ <div class="mode-area"><div class="mode-caption">運転モードを切り替えて<br>熱の行き先を見てみよう</div><div class="mode-switch" role="group" aria-label="運転モード"><button data-mode="cool" aria-pressed="true" class="active"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M10 1v18M2.2 5.5l15.6 9M2.2 14.5l15.6-9M7 3l3 3 3-3M7 17l3-3 3 3"/></svg>冷房</button><button data-mode="heat" aria-pressed="false"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="10" cy="10" r="4"/><path d="M10 0v3m0 14v3M0 10h3m14 0h3M3 3l2 2m10 10 2 2M3 17l2-2M15 5l2-2"/></svg>暖房</button></div></div>
+</header>
+<div class="app">
+ <main class="main">
+  <section class="stage" aria-label="エアコンの立体断面模型">
+   <canvas id="scene" aria-label="マウスのドラッグで回転、ホイールで拡大できる3D模型"></canvas>
+   <div class="stage-head"><div class="stage-kicker"><i class="live-dot"></i>LIVE CUTAWAY / <span id="mode-english">COOLING</span></div><h2 id="scene-title">部屋の熱を、外へ運ぶ。</h2><p id="scene-subtitle">冷媒が熱を受け取り、配管を通って屋外へ。</p></div>
+   <div class="view-tools"><button id="overview" class="active">全体</button><button id="compressor-view">圧縮機を拡大</button><button id="cutaway" class="active" aria-pressed="true">断面 ON</button></div>
+   <div class="focus-note" id="focus-note"><b>ロータリー式圧縮機</b><br>偏心ローラーが回り、仕切り板で<br>分かれた空間が狭くなる。<br><span>橙の空間：閉じ込めた気体を圧縮</span><br>青の空間：低圧の気体を吸い込む<br><small>動きは観察用に減速しています。</small></div>
+   <div id="indoor-label" class="unit-label"><span class="unit-name">室内機<small>INDOOR</small></span><span class="thermal">部屋から吸熱</span></div>
+   <div id="outdoor-label" class="unit-label"><span class="unit-name">室外機<small>OUTDOOR</small></span><span class="thermal">屋外へ放熱</span></div>
+   <div id="markers"></div>
+   <div class="legend" aria-label="冷媒の色"><span><i style="--c:#ff9464"></i>高圧・高温の気体</span><span><i style="--c:#e9cd7b"></i>高圧の液体</span><span><i style="--c:#7bd9e8"></i>低圧の液＋気</span><span><i style="--c:#659be9"></i>低圧の気体</span></div>
+   <div class="stage-bottom"><div class="navigation-hint"><span><svg viewBox="0 0 20 20" fill="none" stroke="currentColor"><rect x="5" y="2" width="10" height="16" rx="5"/><path d="M10 2v5"/></svg>ドラッグで回転</span><span>スクロールで拡大</span><span>番号を押すと解説</span></div><div class="playback"><button id="pause" aria-label="アニメーションを一時停止">Ⅱ 一時停止</button><button id="reset" aria-label="視点をリセット">↺ 視点</button></div></div>
+   <div class="loading" id="loading"><span>模型を組み立てています…</span><small>three.js を読み込み中</small></div>
+  </section>
+  <aside class="side" aria-label="部品の説明">
+   <div class="section-label">INSIDE THE MACHINE <span>部品ガイド</span></div>
+   <div class="part-heading"><span id="part-no" class="part-no">01</span><div><h2 id="part-title">室内熱交換器</h2><small id="part-en">INDOOR HEAT EXCHANGER</small></div></div>
+   <p class="part-description" id="part-description"></p>
+   <div class="state-box" aria-live="polite"><div id="state-title" class="state-title"></div><div class="state-line"><span id="state-main"></span><small id="state-sub"></small></div></div>
+   <div class="parts-title">番号を選んで、しくみを探る</div>
+   <div class="parts"><button data-part="0" class="active"><b>01</b>室内熱交換器</button><button data-part="1"><b>02</b>室外熱交換器</button><button data-part="2"><b>03</b>圧縮機</button><button data-part="3"><b>04</b>電子膨張弁</button><button data-part="4"><b>05</b>四方弁</button><button data-part="5"><b>06</b>送風ファン</button></div>
+   <div class="principle"><div class="energy" id="energy">屋外の放熱 ＝ 室内の吸熱 ＋ 電気の仕事</div><p id="principle-text">冷媒は密閉された配管の中を循環します。室内と屋外の空気は混ざりません。</p></div>
+  </aside>
+ </main>
+ <section class="cycle" aria-label="冷媒の循環サイクル"><div class="cycle-top"><h2><b>REFRIGERANT CYCLE</b>冷媒とめぐる、4つのステップ</h2><span>光の粒が冷媒の進む向きを表します → 繰り返し</span></div><div class="steps">
+  <button class="step" data-step="0" style="--c:#ffa572"><div class="step-top"><span class="num">01</span><i class="dot"></i><h3>圧縮する</h3><span class="temp">約 70–90°C</span></div><p class="name">圧縮機 / 気体 → 気体</p><p class="text">電力で気体を圧縮。圧力と温度が上がる。</p></button>
+  <button class="step" data-step="1" style="--c:#e9cd7b"><div class="step-top"><span class="num">02</span><i class="dot"></i><h3>熱を放す</h3><span class="temp" id="cond-temp">約 45°C</span></div><p class="name" id="cond-name">室外熱交換器 / 気体 → 液体</p><p class="text" id="cond-text">外気より熱い冷媒が、熱を放して液化。</p></button>
+  <button class="step" data-step="2" style="--c:#7bd9e8"><div class="step-top"><span class="num">03</span><i class="dot"></i><h3>減圧する</h3><span class="temp" id="expand-temp">約 5°C</span></div><p class="name">電子膨張弁 / 液体 → 液体＋気体</p><p class="text">細いすき間で減圧。一部が蒸発し、低温に。</p></button>
+  <button class="step" data-step="3" style="--c:#659be9"><div class="step-top"><span class="num">04</span><i class="dot"></i><h3>熱を吸う</h3><span class="temp" id="evap-temp">約 5–10°C</span></div><p class="name" id="evap-name">室内熱交換器 / 液体＋気体 → 気体</p><p class="text" id="evap-text">室温より冷たい冷媒が熱を吸い、蒸発。</p></button>
+ </div></section>
+ <footer class="footer"><span>代表的なヒートポンプ式エアコンの断面。温度は例示／配管の太さ・間隔・回転数は見やすく調整。霜取り運転は省略。</span><strong>EXPLORE · UNDERSTAND · DISCOVER</strong></footer>
+</div>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+let mode=new URLSearchParams(location.search).get('mode')==='heat'?'heat':'cool',selected=0,paused=false,cutaway=true,focus=false,time=0;
+const canvas=$('#scene'),stage=$('.stage');
+let renderer;
+try{renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true,powerPreference:'high-performance'});}catch(e){$('#loading').innerHTML='<span>WebGL を利用できません。</span><small>Chrome のハードウェア アクセラレーションを有効にしてください。</small>';throw e;}
+renderer.setPixelRatio(Math.min(devicePixelRatio,1.7));renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.2;renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+const scene=new THREE.Scene();scene.fog=new THREE.FogExp2(0x10212b,.017);
+const camera=new THREE.PerspectiveCamera(37,1,.1,120);
+const controls=new OrbitControls(camera,canvas);controls.enableDamping=true;controls.dampingFactor=.07;controls.enablePan=true;controls.minDistance=3;controls.maxDistance=28;controls.maxPolarAngle=Math.PI*.88;
+scene.add(new THREE.HemisphereLight(0xcde8ff,0x3a4d5a,2.8));
+const key=new THREE.DirectionalLight(0xfff3dc,4.2);key.position.set(-4,9,9);key.castShadow=true;key.shadow.mapSize.set(2048,2048);Object.assign(key.shadow.camera,{left:-10,right:10,top:8,bottom:-8,near:.5,far:35});key.shadow.bias=-.0007;scene.add(key);
+const fill=new THREE.DirectionalLight(0x8dcbe5,2);fill.position.set(8,4,-4);scene.add(fill);
+const warm=new THREE.PointLight(0xffd5ae,20,18);warm.position.set(2,4,5);scene.add(warm);
+const mat=(color,metalness=0,roughness=.5,extra={})=>new THREE.MeshStandardMaterial({color,metalness,roughness,...extra});
+const white=mat(0xe7eeec,.12,.28),whiteEdge=mat(0xc7d8de,.4,.36),dark=mat(0x23303a,.5,.32),rubber=mat(0x101a20,.05,.65),copper=mat(0xbb7952,.72,.28),brass=mat(0xc4a267,.68,.25),silver=mat(0xa8c4ce,.75,.29),finmat=mat(0xa7bfc6,.65,.38,{side:THREE.DoubleSide}),blueMetal=mat(0x334d58,.6,.32);
+const outerMats=[],outers=[];
+function mesh(geometry,material,parent=scene,pos=[0,0,0]){const m=new THREE.Mesh(geometry,material);m.position.set(...pos);parent.add(m);m.castShadow=true;m.receiveShadow=true;return m;}
+function box(w,h,d,material,parent,pos){return mesh(new THREE.BoxGeometry(w,h,d),material,parent,pos)}
+function cyl(r,h,material,parent,pos,r2=r){return mesh(new THREE.CylinderGeometry(r,r2,h,40),material,parent,pos)}
+function tube(points,r,material,parent=scene){const curve=points instanceof THREE.Curve?points:new THREE.CatmullRomCurve3(points.map(p=>new THREE.Vector3(...p)),false,'centripetal');const m=mesh(new THREE.TubeGeometry(curve,Math.max(24,points.length?points.length*6:80),r,7,false),material,parent);return {mesh:m,curve};}
+function torus(r,t,material,parent,pos){return mesh(new THREE.TorusGeometry(r,t,7,64),material,parent,pos)}
+function skin(geo,parent,pos){const m=mat(0xdbe9ec,.15,.32,{transparent:true,opacity:.13,depthWrite:false,side:THREE.DoubleSide});outerMats.push(m);const o=mesh(geo,m,parent,pos);o.castShadow=false;outers.push(o);return o;}
+function instancedBoxes(n,geometry,material,parent,fn){const m=new THREE.InstancedMesh(geometry,material,n),o=new THREE.Object3D();for(let i=0;i<n;i++){o.position.set(0,0,0);o.rotation.set(0,0,0);fn(o,i);o.updateMatrix();m.setMatrixAt(i,o.matrix)}m.castShadow=true;m.receiveShadow=true;parent.add(m);return m;}
+function partTag(group,id){group.traverse(o=>{if(o.isMesh)o.userData.part=id})}
+// A wall-mounted indoor unit: wraparound fin pack above a tangential blower.
+const indoor=new THREE.Group();indoor.position.set(-3.25,2.18,0);scene.add(indoor);
+const wall=box(5.55,2.58,.12,mat(0x263c48,.1,.95),indoor,[0,.03,-.74]);wall.receiveShadow=true;
+box(4.8,1.64,.12,whiteEdge,indoor,[0,0,-.55]);
+box(4.72,.15,1.1,white,indoor,[0,-.76,.02]);
+for(const x of [-2.4,2.4]){box(.14,1.64,1.26,white,indoor,[x,0,.04]);box(.15,.12,.95,whiteEdge,indoor,[x,-.85,.04]);}
+skin(new THREE.BoxGeometry(4.72,.13,1.2),indoor,[0,.83,.04]);
+skin(new THREE.BoxGeometry(4.72,1.14,.12),indoor,[0,.17,.73]);
+// Filter mesh, visible through the removable face.
+const filterMat=mat(0x7b9caa,.3,.5,{transparent:true,opacity:.2,depthWrite:false});
+const filter=box(4.35,.015,.68,filterMat,indoor,[0,.85,-.02]);
+instancedBoxes(40,new THREE.BoxGeometry(.014,.025,.66),filterMat,indoor,(o,i)=>o.position.set(-2.13+i*.11,.87,-.02));
+instancedBoxes(7,new THREE.BoxGeometry(4.35,.018,.012),filterMat,indoor,(o,i)=>o.position.set(0,.87,-.32+i*.1));
+const inCoil=new THREE.Group();indoor.add(inCoil);
+const coilSegments=[[[.25,-.41],[.63,-.13]],[[.63,-.13],[.31,.46]],[[.31,.46],[-.08,.53]]];
+const indoorTubes=[];
+for(const [a,b] of coilSegments){const length=Math.hypot(b[0]-a[0],b[1]-a[1]);instancedBoxes(65,new THREE.BoxGeometry(.013,length,.16),finmat,inCoil,(o,i)=>{o.position.set(-2.1+i*4.2/64,(a[0]+b[0])/2,(a[1]+b[1])/2);o.rotation.x=Math.atan2(b[1]-a[1],b[0]-a[0]);});for(let j=0;j<2;j++){const t=(j+.5)/2;indoorTubes.push([a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t]);}}
+const inPoints=[];
+indoorTubes.forEach(([y,z],i)=>{const start=i%2?-2.19:2.19,end=-start;if(i)inPoints.push([start,y,z]);inPoints.push([start*.94,y,z],[end*.94,y,z],[end,y,z]);});
+// Condensate tray and drain leave the refrigeration circuit separate.
+box(4.42,.08,.25,whiteEdge,indoor,[0,-.24,.46]);tube([[-2.18,-.24,.47],[-2.3,-.38,.4],[-2.4,-.6,-.1],[-2.5,-1.3,-.28]],.035,whiteEdge,indoor);
+// Curved rear scroll guiding air into the long outlet.
+const scroll=mesh(new THREE.CylinderGeometry(.43,.43,4.3,36,1,true,Math.PI*.7,Math.PI*.83),blueMetal,indoor,[0,-.3,.1]);scroll.rotation.z=Math.PI/2;
+const indoorFan=new THREE.Group();indoorFan.position.set(0,-.32,.24);indoor.add(indoorFan);
+const bladeProfile=new THREE.Shape();bladeProfile.moveTo(.234,-.017);bladeProfile.quadraticCurveTo(.277,-.012,.294,.014);bladeProfile.lineTo(.285,.021);bladeProfile.quadraticCurveTo(.258,-.001,.234,-.009);bladeProfile.closePath();
+const bladeGeo=new THREE.ExtrudeGeometry(bladeProfile,{depth:4.24,bevelEnabled:false,curveSegments:4});bladeGeo.rotateY(Math.PI/2);bladeGeo.translate(-2.12,0,0);
+for(let i=0;i<34;i++){const b=mesh(bladeGeo,blueMetal,indoorFan);b.rotation.x=i*Math.PI*2/34;}
+for(let i=0;i<8;i++){const ring=torus(.277,.015,silver,indoorFan,[-2.12+i*4.24/7,0,0]);ring.rotation.y=Math.PI/2;}
+const inShaft=cyl(.045,4.55,silver,indoorFan);inShaft.rotation.z=Math.PI/2;
+for(const x of [-2.15,2.15]){const disk=cyl(.286,.035,blueMetal,indoorFan,[x,0,0]);disk.rotation.z=Math.PI/2;}
+const fanMotor=cyl(.23,.29,dark,indoor,[2.24,-.32,.24]);fanMotor.rotation.z=Math.PI/2;
+const louver=box(4.36,.065,.47,white,indoor,[0,-.68,.56]);louver.rotation.x=-.3;
+instancedBoxes(13,new THREE.BoxGeometry(.018,.18,.3),whiteEdge,indoor,(o,i)=>o.position.set(-2.0+i/12*4,-.58,.55));
+box(.37,.13,.03,dark,indoor,[1.76,.04,.81]);
+const displayCanvas=document.createElement('canvas');displayCanvas.width=128;displayCanvas.height=48;const dc=displayCanvas.getContext('2d');dc.fillStyle='#123142';dc.fillRect(0,0,128,48);dc.fillStyle='#b4e8ee';dc.font='30px monospace';dc.fillText('24°',24,36);const displayTex=new THREE.CanvasTexture(displayCanvas);mesh(new THREE.PlaneGeometry(.29,.11),new THREE.MeshBasicMaterial({map:displayTex}),indoor,[1.76,.04,.829]);
+partTag(inCoil,0);partTag(indoorFan,5);
+// Outdoor unit: L-shaped coil behind a front axial fan, compressor on the right.
+const outdoor=new THREE.Group();outdoor.position.set(2.57,-.63,.12);scene.add(outdoor);
+box(4.45,.14,1.88,whiteEdge,outdoor,[0,-1.44,0]);
+for(const x of [-1.53,1.53]){box(.56,.18,2.05,white,outdoor,[x,-1.58,.03]);for(const z of [-.65,.68])box(.39,.13,.3,rubber,outdoor,[x,-1.72,z]);}
+for(const x of [-2.16,2.16])for(const z of [-.82,.87])box(.075,2.88,.075,white,outdoor,[x,0,z]);
+skin(new THREE.BoxGeometry(4.42,.12,1.82),outdoor,[0,1.46,0]);
+skin(new THREE.BoxGeometry(.1,2.82,1.82),outdoor,[2.2,0,0]);
+skin(new THREE.BoxGeometry(1.02,2.82,.1),outdoor,[1.64,0,.94]);
+const frontShape=new THREE.Shape();frontShape.moveTo(-2.17,-1.39);frontShape.lineTo(1.11,-1.39);frontShape.lineTo(1.11,1.39);frontShape.lineTo(-2.17,1.39);frontShape.closePath();const hole=new THREE.Path();hole.absarc(-.54,0,1.14,0,Math.PI*2,true);frontShape.holes.push(hole);
+const front=skin(new THREE.ExtrudeGeometry(frontShape,{depth:.08,bevelEnabled:false}),outdoor,[0,0,.87]);
+for(let i=0;i<7;i++)box(.48,.015,.035,whiteEdge,outdoor,[1.72,-.88+i*.1,1.01]);
+const outCoil=new THREE.Group();outdoor.add(outCoil);
+instancedBoxes(69,new THREE.BoxGeometry(.014,2.55,.19),finmat,outCoil,(o,i)=>o.position.set(-2.04+i*3.12/68,0,-.71));
+instancedBoxes(26,new THREE.BoxGeometry(.19,2.55,.014),finmat,outCoil,(o,i)=>o.position.set(-2.04,0,-.69+i*1.42/25));
+const outPoints=[];
+for(let i=0;i<8;i++){const y=1.12-i*.315;const line=[[-2.04,y,.63],[-2.04,y,-.58],[-1.91,y,-.71],[.96,y,-.71]];if(i%2)line.reverse();outPoints.push(...line);}
+const outdoorFan=new THREE.Group();outdoorFan.position.set(-.54,0,.78);outdoor.add(outdoorFan);
+const axialShape=new THREE.Shape();axialShape.moveTo(.13,-.06);axialShape.bezierCurveTo(.35,-.24,.77,-.37,1.04,-.13);axialShape.bezierCurveTo(1.19,.1,.87,.5,.63,.63);axialShape.bezierCurveTo(.51,.66,.47,.42,.3,.27);axialShape.lineTo(.14,.14);axialShape.closePath();
+const axialGeo=new THREE.ExtrudeGeometry(axialShape,{depth:.032,bevelEnabled:true,bevelThickness:.015,bevelSize:.02,bevelSegments:2,steps:1,curveSegments:16});
+for(let i=0;i<3;i++){const g=new THREE.Group();g.rotation.z=i*Math.PI*2/3;outdoorFan.add(g);const b=mesh(axialGeo,mat(0x374c58,.38,.37),g);b.rotation.x=.17;}
+const hub=cyl(.225,.25,whiteEdge,outdoorFan,[0,0,.07]);hub.rotation.x=Math.PI/2;
+const hubcap=mesh(new THREE.SphereGeometry(.222,32,16),whiteEdge,outdoorFan,[0,0,.21]);hubcap.scale.z=.35;
+const outMotor=cyl(.22,.52,dark,outdoor,[-.54,0,.29]);outMotor.rotation.x=Math.PI/2;
+for(const sign of [-1,1]){const strut=box(.045,2.28,.045,blueMetal,outdoor,[-.54,0,.48]);strut.rotation.z=sign*.64;}
+const grille=new THREE.Group();grille.position.set(-.54,0,1.03);outdoor.add(grille);
+const grilleMat=mat(0x9aafb8,.65,.37,{transparent:true,opacity:.66});
+for(let i=0;i<9;i++)torus(.3+i*.103,.009,grilleMat,grille);
+for(let i=0;i<16;i++){const a=i*Math.PI/8;tube([[.25*Math.cos(a),.25*Math.sin(a),0],[1.135*Math.cos(a),1.135*Math.sin(a),0]],.009,grilleMat,grille);}
+partTag(outCoil,1);partTag(outdoorFan,5);
+// Hermetic rolling-piston compressor, sliced open along the front half.
+const compressor=new THREE.Group();compressor.position.set(1.42,-.26,.14);outdoor.add(compressor);
+const shellMat=mat(0x2a3e49,.65,.3,{side:THREE.DoubleSide});
+mesh(new THREE.CylinderGeometry(.48,.48,1.98,48,1,true,Math.PI/2,Math.PI),shellMat,compressor);
+const compFront=skin(new THREE.CylinderGeometry(.48,.48,1.98,40,1,true,-Math.PI/2,Math.PI),compressor,[0,0,0]);
+cyl(.49,.09,blueMetal,compressor,[0,-1,0]);const cap=mesh(new THREE.SphereGeometry(.48,40,20,0,Math.PI*2,0,Math.PI/2),shellMat,compressor,[0,.99,0]);cap.scale.y=.25;
+for(const x of [-.34,.34]){box(.22,.07,.8,dark,compressor,[x,-1.08,0]);for(const z of [-.3,.3])cyl(.056,.08,silver,compressor,[x,-1.04,z]);}
+// Stator and copper windings around a motor rotor.
+const stator=mesh(new THREE.CylinderGeometry(.413,.413,.64,40,1,true,Math.PI/2,Math.PI),silver,compressor,[0,.4,0]);
+for(let i=0;i<10;i++){const a=i/10*Math.PI*2;const coil=cyl(.067,.67,copper,compressor,[.35*Math.sin(a),.4,.35*Math.cos(a)]);if(Math.cos(a)>.4)coil.material=mat(0xc78a51,.6,.32,{transparent:true,opacity:.32,depthWrite:false});}
+const rotor=new THREE.Group();compressor.add(rotor);cyl(.255,.62,dark,rotor,[0,.4,0]);
+for(let i=0;i<13;i++){const a=i/13*Math.PI*2;box(.018,.55,.018,silver,rotor,[.257*Math.sin(a),.4,.257*Math.cos(a)]);}
+cyl(.061,1.57,silver,rotor,[0,.02,0]);
+const chamberY=-.57;
+const chamberRing=mesh(new THREE.CylinderGeometry(.42,.42,.26,64,1,true),silver,compressor,[0,chamberY,0]);
+// Annular top rim, open so the changing gas chambers can be observed.
+const rim=mesh(new THREE.RingGeometry(.375,.435,72),silver,compressor,[0,chamberY+.135,0]);rim.rotation.x=-Math.PI/2;rim.material=mat(0xb7cbd0,.7,.3,{side:THREE.DoubleSide});
+cyl(.421,.035,dark,compressor,[0,chamberY-.145,0]);
+const piston=new THREE.Group();piston.position.y=chamberY;compressor.add(piston);
+const rollerRing=new THREE.Shape();rollerRing.absarc(0,0,.255,0,Math.PI*2,false);const rollerHole=new THREE.Path();rollerHole.absarc(0,0,.115,0,Math.PI*2,true);rollerRing.holes.push(rollerHole);const rollerGeo=new THREE.ExtrudeGeometry(rollerRing,{depth:.252,bevelEnabled:false,curveSegments:32});rollerGeo.rotateX(Math.PI/2);mesh(rollerGeo,silver,piston,[0,.126,0]);
+cyl(.112,.29,brass,piston);
+const eccentric=tube([[0,chamberY-.19,0],[.12,chamberY-.19,0]],.062,silver,rotor);
+const vane=box(.2,.245,.043,brass,compressor,[.33,chamberY,0]);
+const springPoints=[];for(let i=0;i<100;i++){const a=i/99*Math.PI*14;springPoints.push([.4+i/99*.25,chamberY+.035*Math.cos(a),.035*Math.sin(a)])}tube(springPoints,.008,silver,compressor);box(.06,.3,.17,dark,compressor,[.68,chamberY,0]);
+const gasMaterials=[new THREE.MeshBasicMaterial({color:0x71c5ef,side:THREE.DoubleSide,transparent:true,opacity:.8}),new THREE.MeshBasicMaterial({color:0xffa46e,side:THREE.DoubleSide,transparent:true,opacity:.9})];
+const gasMeshes=[];for(let i=0;i<2;i++){const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(new Float32Array(72*6*3),3));gasMeshes.push(mesh(g,gasMaterials[i],compressor));}
+// Suction and discharge ports beside the fixed sliding vane.
+tube([[.36,chamberY,.09],[.56,chamberY,.16],[.57,-.12,.25]],.036,mat(0x659be9,.4,.3),compressor);
+tube([[.36,chamberY,-.09],[.52,chamberY,-.15],[.37,.92,-.1]],.032,copper,compressor);
+partTag(compressor,2);
+// Four-way valve and electronic expansion valve sit in the outdoor service bay.
+const valve=new THREE.Group();valve.position.set(1.27,1.17,-.05);outdoor.add(valve);
+const valveBody=skin(new THREE.CylinderGeometry(.145,.145,.86,32),valve,[0,0,0]);valveBody.rotation.z=Math.PI/2;valveBody.material.color.set(0xbca065);valveBody.material.opacity=.36;
+for(const x of [-.45,.45]){const c=cyl(.147,.04,brass,valve,[x,0,0]);c.rotation.z=Math.PI/2;}
+const spool=cyl(.105,.25,silver,valve,[0,0,0]);spool.rotation.z=Math.PI/2;
+box(.17,.23,.19,dark,valve,[.34,.19,-.02]);
+const exp=new THREE.Group();exp.position.set(1.28,-1.14,.78);outdoor.add(exp);cyl(.15,.29,silver,exp,[0,.16,0]);cyl(.185,.17,dark,exp,[0,.34,0]);box(.43,.12,.14,brass,exp);const needle=cyl(.055,.21,brass,exp,[0,.02,0],.006);tube([[.1,.39,0],[.3,.5,-.12],[.55,.5,-.1]],.012,rubber,exp);partTag(exp,3);partTag(valve,4);
+const accumulator=new THREE.Group();accumulator.position.set(1.96,-.24,-.33);outdoor.add(accumulator);cyl(.17,.95,dark,accumulator);mesh(new THREE.SphereGeometry(.17,20,12),dark,accumulator,[0,.47,0]);
+const V=p=>new THREE.Vector3(...p),toWorld=(g,p)=>g.localToWorld(V(p)).toArray();scene.updateMatrixWorld(true);
+const ip=p=>toWorld(indoor,p),op=p=>toWorld(outdoor,p),cp=p=>toWorld(compressor,p),vp=p=>toWorld(valve,p),ep=p=>toWorld(exp,p);
+const colors={hot:new THREE.Color('#ff9464'),liquid:new THREE.Color('#e9cd7b'),mix:new THREE.Color('#7bd9e8'),gas:new THREE.Color('#659be9')};
+const flows=[];const beadGeo=new THREE.SphereGeometry(.052,8,6);
+function flow(points,r=.035,count=12){const curve=new THREE.CatmullRomCurve3(points.map(V),false,'centripetal'),n=Math.max(80,points.length*8);const geo=new THREE.TubeGeometry(curve,n,r,8,false);const attribute=new THREE.Float32BufferAttribute(new Float32Array(geo.attributes.position.count*3),3);geo.setAttribute('color',attribute);const m=mesh(geo,new THREE.MeshStandardMaterial({vertexColors:true,metalness:.25,roughness:.35,transparent:true,opacity:.7,emissive:0x28404b,emissiveIntensity:.3}));m.castShadow=false;const sleeve=tube(curve,r*1.45,mat(0xd4ab88,.55,.25,{transparent:true,opacity:.13,depthWrite:false})).mesh;sleeve.castShadow=false;const beads=new THREE.InstancedMesh(beadGeo,new THREE.MeshBasicMaterial({color:0xffffff}),count);beads.frustumCulled=false;scene.add(beads);const f={curve,mesh:m,geo,beads,count,dir:1,a:colors.gas,b:colors.gas,n,length:curve.getLength()};flows.push(f);return f;}
+function configure(f,a,b=a,dir=1){f.a=colors[a];f.b=colors[b];f.dir=dir;const attr=f.geo.attributes.color,c=new THREE.Color();for(let i=0;i<=f.n;i++){let t=i/f.n;if(dir<0)t=1-t;const ratio=THREE.MathUtils.smoothstep(t,.1,.9);c.copy(f.a).lerp(f.b,ratio);for(let j=0;j<=8;j++)attr.setXYZ(i*9+j,c.r,c.g,c.b)}attr.needsUpdate=true;}
+const D=vp([0,.2,0]),O=vp([-.28,-.19,0]),S=vp([0,-.19,0]),I=vp([.28,-.19,0]);
+const inWorld=inPoints.map(ip),outWorld=outPoints.map(op);
+const discharge=flow([cp([.22,1.06,0]),cp([.22,1.25,0]),op([1.5,1.6,-.03]),op([1.27,1.53,-.05]),D],.037,5);
+const outLink=flow([O,op([.8,.87,-.1]),op([.55,1.42,-.3]),op([-2.04,1.43,.63]),outWorld[0]],.038,9);
+const outsideCoil=flow(outWorld,.029,26);
+const outLiquid=flow([outWorld.at(-1),op([-2.04,-1.3,.67]),op([.5,-1.3,.67]),ep([-.24,0,0])],.028,9);
+const expansionFlow=flow([ep([-.24,0,0]),ep([0,0,0]),ep([.24,0,0])],.027,3);
+const liquidLink=flow([ep([.24,0,0]),op([1.77,-1.15,.77]),op([2.43,-1.1,.53]),[5.03,-1.28,-.56],[.08,-1.28,-.56],[-.55,-.78,-.55],[-.55,2.62,-.4],ip([2.33,.7,-.28]),inWorld[0]],.03,18);
+const insideCoil=flow(inWorld,.029,25);
+const gasLink=flow([inWorld.at(-1),ip([2.39,-.09,.54]),[-.53,2.0,.28],[-.24,1.67,.3],[-.24,-.65,-.21],[.13,-.91,-.25],[5.35,-.91,-.25],op([2.71,.76,-.15]),op([1.86,.83,-.05]),I],.049,20);
+const suction=flow([S,op([1.28,.66,-.17]),op([1.96,.48,-.33]),op([1.96,.28,-.33]),op([1.96,-.11,-.33]),op([1.99,-.32,.34]),cp([.57,-.12,.25])],.047,10);
+const coolValves=[flow([D,vp([-.12,.04,.09]),O],.035,3),flow([I,vp([.17,-.04,.09]),S],.035,3)];
+const heatValves=[flow([D,vp([.14,.04,.09]),I],.035,3),flow([O,vp([-.15,-.04,.09]),S],.035,3)];
+// Air is a separate circuit: room air recirculates; outdoor air never enters the room.
+const airFlows=[],arrowGeo=new THREE.ConeGeometry(.044,.15,7);arrowGeo.rotateX(Math.PI/2);
+function air(points,kind,index){const curve=new THREE.CatmullRomCurve3(points.map(V));const m=tube(curve,.009,new THREE.MeshBasicMaterial({color:0x7bd9e8,transparent:true,opacity:.11,depthWrite:false})).mesh;m.castShadow=false;const arrows=new THREE.InstancedMesh(arrowGeo,new THREE.MeshBasicMaterial({color:0x7bd9e8,transparent:true,opacity:.7,depthWrite:false}),3);arrows.frustumCulled=false;scene.add(arrows);airFlows.push({curve,m,arrows,kind,index});}
+for(let i=0;i<9;i++){const x=-1.75+i*.4375;air([ip([x,1.55,-.1]),ip([x,.97,-.05]),ip([x,.48,.12]),ip([x,-.29,.28]),ip([x,-.65,.8]),ip([x,-1.15,1.65]),ip([x,-1.55,2.7])],'indoor',i);}
+for(let i=0;i<10;i++){const a=i*Math.PI*2/10,x=-.54+Math.cos(a)*.67,y=Math.sin(a)*.67;air([op([x,y,-2.1]),op([x,y,-.83]),op([x,y,.05]),op([x,y,1.18]),op([x*1.15,y*1.35,2.12]),op([x*1.3,y*1.6,3])],'outdoor',i);}
+// Ground, technical grid, and mounting context.
+const ground=mesh(new THREE.PlaneGeometry(200,200),mat(0x10222e,.08,.8),scene,[0,-2.45,0]);ground.rotation.x=-Math.PI/2;ground.receiveShadow=true;
+const grid=new THREE.GridHelper(28,56,0x294754,0x1d3543);grid.position.y=-2.439;grid.material.transparent=true;grid.material.opacity=.34;scene.add(grid);
+const names=['室内熱交換器','室外熱交換器','圧縮機','電子膨張弁','四方弁','送風ファン'];
+const english=['INDOOR HEAT EXCHANGER','OUTDOOR HEAT EXCHANGER','ROTARY COMPRESSOR','ELECTRONIC EXPANSION VALVE','FOUR-WAY REVERSING VALVE','CROSS-FLOW & AXIAL FAN'];
+const anchors=[ip([-1.8,.51,.53]),op([-1.98,.9,.78]),cp([.47,.05,.47]),ep([.18,.22,.1]),vp([.06,.19,.05]),ip([.3,-.39,.6])];
+const markers=anchors.map((p,i)=>{const el=document.createElement('button');el.className='marker';el.dataset.part=i;el.setAttribute('aria-label',names[i]);el.innerHTML=String(i+1).padStart(2,'0')+'<span class="tip">'+names[i]+'</span>';el.addEventListener('click',()=>select(i));$('#markers').append(el);return {el,point:V(p)};});
+const labelAnchors=[{el:$('#indoor-label'),p:V(ip([-.5,1.22,0]))},{el:$('#outdoor-label'),p:V(op([-.1,-1.97,.7]))}];
+function select(n){selected=n;$('#part-no').textContent=String(n+1).padStart(2,'0');$('#part-title').textContent=names[n];$('#part-en').textContent=english[n];$$('.parts button').forEach(b=>b.classList.toggle('active',+b.dataset.part===n));markers.forEach((m,i)=>m.el.classList.toggle('selected',i===n));updateDescription();}
+function updateDescription(){const cool=mode==='cool';const descriptions=[cool?'薄いアルミのフィンに空気を通し、銅管の中の冷媒へ熱を渡します。冷媒は蒸発し、部屋の空気が冷えます。':'銅管の中の熱い冷媒から、フィンを通して室内の空気へ熱を渡します。冷媒は凝縮し、液体になります。',cool?'背面と側面に曲げたフィン付きの銅管です。外気より熱い冷媒が熱を捨て、気体から液体に変わります。':'冷媒を外気より低温にして、屋外の空気から熱を吸います。寒い日も、外気には取り出せる熱があります。','モーターで偏心ローラーを回します。ばね付きの仕切り板で分けた空間が狭まり、気体の圧力と温度が上がります。','針で流路を絞り、冷媒の流量を調整します。減圧で沸点が下がり、一部が蒸発。残りの液体も冷えます。','圧縮機の出口をどちらの熱交換器につなぐかを切り替えます。圧縮機の吸入・吐出の向きは変わりません。','室内は横長のクロスフローファン、室外はプロペラ形の軸流ファン。フィンに空気を通し、熱交換を助けます。'];const states=[cool?['冷房では「蒸発器」として働く','液体＋気体 → 気体','低圧 / 約 5–10°C']:['暖房では「凝縮器」として働く','気体 → 液体','高圧 / 約 40°C'],cool?['冷房では「凝縮器」として働く','気体 → 液体','高圧 / 約 45°C']:['暖房では「蒸発器」として働く','液体＋気体 → 気体','低圧 / 約 0–5°C'],['気体だけを圧縮する','低圧 → 高圧','吐出 約 70–90°C'],['仕事を取り出さない、絞り膨張','高圧の液体 → 低圧の混合','温度が下がる'],[cool?'吐出 → 室外 / 室内 → 吸入':'吐出 → 室内 / 室外 → 吸入','2本の接続を同時に切替','熱の向きが逆転'],['空気と冷媒は混ざらない','空気を動かして熱を運ぶ','室内・室外は別系統']];$('#part-description').textContent=descriptions[selected];$('#state-title').textContent=states[selected][0];$('#state-main').textContent=states[selected][1];$('#state-sub').textContent=states[selected][2];}
+function setMode(next,updateURL=false){mode=next;const cool=mode==='cool';document.body.classList.toggle('heat-mode',!cool);$$('[data-mode]').forEach(b=>{b.classList.toggle('active',b.dataset.mode===mode);b.setAttribute('aria-pressed',String(b.dataset.mode===mode));});$('#mode-english').textContent=cool?'COOLING':'HEATING';$('#scene-title').textContent=cool?'部屋の熱を、外へ運ぶ。':'外の熱を、部屋へ迎える。';$('#scene-subtitle').textContent=cool?'冷媒が熱を受け取り、配管を通って屋外へ。':'四方弁で流れを切り替え、屋外の熱を室内へ。';$('#indoor-label .thermal').textContent=cool?'部屋から吸熱':'部屋へ放熱';$('#outdoor-label .thermal').textContent=cool?'屋外へ放熱':'外気から吸熱';$('#indoor-label .thermal').style.color=cool?'#7bd9e8':'#ffba8a';$('#outdoor-label .thermal').style.color=cool?'#ffba8a':'#7bd9e8';$('#energy').textContent=cool?'屋外の放熱 ＝ 室内の吸熱 ＋ 電気の仕事':'室内の放熱 ＝ 外気の吸熱 ＋ 電気の仕事';$('#cond-name').textContent=(cool?'室外':'室内')+'熱交換器 / 気体 → 液体';$('#cond-text').textContent=cool?'外気より熱い冷媒が、熱を放して液化。':'室温より熱い冷媒が、熱を放して液化。';$('#evap-name').textContent=(cool?'室内':'室外')+'熱交換器 / 液体＋気体 → 気体';$('#evap-text').textContent=cool?'室温より冷たい冷媒が熱を吸い、蒸発。':'外気より冷たい冷媒が熱を吸い、蒸発。';$('#cond-temp').textContent=cool?'約 45°C':'約 40°C';$('#expand-temp').textContent=cool?'約 5°C':'約 0°C';$('#evap-temp').textContent=cool?'約 5–10°C':'約 0–5°C';
+configure(discharge,'hot');configure(suction,'gas');configure(outLink,cool?'hot':'gas',cool?'hot':'gas',cool?1:-1);configure(outsideCoil,cool?'hot':'mix',cool?'liquid':'gas',cool?1:-1);configure(outLiquid,cool?'liquid':'mix',cool?'liquid':'mix',cool?1:-1);configure(expansionFlow,'liquid','mix',cool?1:-1);configure(liquidLink,cool?'mix':'liquid',cool?'mix':'liquid',cool?1:-1);configure(insideCoil,cool?'mix':'hot',cool?'gas':'liquid',cool?1:-1);configure(gasLink,cool?'gas':'hot',cool?'gas':'hot',cool?1:-1);coolValves.forEach((f,i)=>{configure(f,i?'gas':'hot');f.mesh.visible=f.beads.visible=cool;});heatValves.forEach((f,i)=>{configure(f,i?'gas':'hot');f.mesh.visible=f.beads.visible=!cool;});spool.position.x=cool?-.13:.13;
+airFlows.forEach(f=>{const warm=(f.kind==='indoor')!==cool;const color=warm?0xffac7d:0x86daec;f.exitColor=new THREE.Color(color);f.m.material.color.setHex(color);f.arrows.material.color.setHex(0xffffff);});updateDescription();if(updateURL){try{const u=new URL(location.href);u.searchParams.set('mode',mode);history.replaceState(null,'',u);}catch{ /* file URLs may restrict history updates; the selected mode still works. */ }} }
+$$('[data-mode]').forEach(b=>b.addEventListener('click',()=>setMode(b.dataset.mode,true)));$$('.parts button').forEach(b=>b.addEventListener('click',()=>select(+b.dataset.part)));$$('[data-step]').forEach(b=>b.addEventListener('click',()=>{const ids=mode==='cool'?[2,1,3,0]:[2,0,3,1];select(ids[+b.dataset.step]);if(+b.dataset.step===0)setFocus(true);}));
+let cameraTween=null;
+function overviewPosition(){const aspect=stage.clientWidth/stage.clientHeight;const dist=aspect>1.8?14.8:19;return new THREE.Vector3(6.2,5.4,dist);}
+function setFocus(on,instant=false){focus=on;$('#overview').classList.toggle('active',!on);$('#compressor-view').classList.toggle('active',on);$('#focus-note').style.display=on?'block':'none';let target,pos;if(on){select(2);if(!cutaway)setCutaway(true);target=V(cp([.03,-.19,.05]));pos=target.clone().add(new THREE.Vector3(2.1,2.6,4.1));}else{target=new THREE.Vector3(-.2,.34,.25);pos=overviewPosition();}cameraTween={start:camera.position.clone(),end:pos,from:controls.target.clone(),target,t:instant?1:0};if(instant){camera.position.copy(pos);controls.target.copy(target);controls.update();cameraTween=null;}}
+function setCutaway(on){cutaway=on;outerMats.forEach(m=>{m.opacity=on?.13:.97;m.depthWrite=!on;});valveBody.material.opacity=on?.36:.98;grilleMat.opacity=on?.66:1;$('#cutaway').classList.toggle('active',on);$('#cutaway').setAttribute('aria-pressed',String(on));$('#cutaway').textContent='断面 '+(on?'ON':'OFF');}
+$('#overview').onclick=()=>setFocus(false);$('#compressor-view').onclick=()=>setFocus(true);$('#reset').onclick=()=>setFocus(false);$('#cutaway').onclick=()=>setCutaway(!cutaway);$('#pause').onclick=()=>{paused=!paused;$('#pause').textContent=paused?'▶ 再生':'Ⅱ 一時停止';$('#pause').setAttribute('aria-label',paused?'アニメーションを再生':'アニメーションを一時停止');};controls.addEventListener('start',()=>{cameraTween=null;});
+// Click the physical parts as well as their numbered markers.
+const raycaster=new THREE.Raycaster();let pointerDown=null;canvas.addEventListener('pointerdown',e=>{pointerDown=[e.clientX,e.clientY]});canvas.addEventListener('pointerup',e=>{if(!pointerDown||Math.hypot(e.clientX-pointerDown[0],e.clientY-pointerDown[1])>5)return;const r=canvas.getBoundingClientRect();raycaster.setFromCamera(new THREE.Vector2((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1),camera);const hits=raycaster.intersectObjects(scene.children,true);const hit=hits.find(h=>h.object.userData.part!==undefined);if(hit)select(hit.object.userData.part);});
+const dummy=new THREE.Object3D(),c=new THREE.Color(),tmp=new THREE.Vector3(),forward=new THREE.Vector3(0,0,1),quat=new THREE.Quaternion();
+function updateCompressor(t){const a=(t*.98)%(Math.PI*2),cx=.12*Math.cos(a),cz=.12*Math.sin(a);piston.position.set(cx,chamberY,cz);piston.rotation.y=a*.12/.255;rotor.rotation.y=-a;const tip=cx+Math.sqrt(.255**2-cz**2);vane.position.x=(tip+.53)/2;vane.scale.x=(.53-tip)/.2;for(let s=0;s<2;s++){const start=s?a:0,end=s?Math.PI*2:a,attr=gasMeshes[s].geometry.attributes.position;let k=0;const pt=(phi,r)=>[r*Math.cos(phi),chamberY+.13,r*Math.sin(phi)];for(let j=0;j<72;j++){const p=start+(end-start)*j/72,q=start+(end-start)*(j+1)/72;const radius=phi=>.12*Math.cos(phi-a)+Math.sqrt(.255**2-.12**2*Math.sin(phi-a)**2);const A=pt(p,radius(p)),B=pt(p,.374),C=pt(q,.374),D=pt(q,radius(q));for(const v of [A,B,C,A,C,D])attr.setXYZ(k++,...v)}attr.needsUpdate=true;gasMeshes[s].geometry.computeBoundingSphere();}gasMaterials[1].color.setHSL(.07-.04*(a/(Math.PI*2)),.95,.66-.13*(a/(Math.PI*2)));}
+let last=performance.now();
+function animate(now){requestAnimationFrame(animate);const dt=THREE.MathUtils.clamp((now-last)/1000,0,.05);last=now;if(!paused)time+=dt;if(cameraTween){cameraTween.t=Math.min(1,cameraTween.t+dt*1.4);const k=cameraTween.t*cameraTween.t*(3-2*cameraTween.t);camera.position.lerpVectors(cameraTween.start,cameraTween.end,k);controls.target.lerpVectors(cameraTween.from,cameraTween.target,k);if(cameraTween.t===1)cameraTween=null;}controls.update();indoorFan.rotation.x=-time*4.4;outdoorFan.rotation.z=-time*2.4;updateCompressor(time);
+for(const f of flows){if(!f.beads.visible)continue;for(let i=0;i<f.count;i++){let u=(i/f.count+time*1.05/f.length)%1;if(f.dir<0)u=1-u;dummy.position.copy(f.curve.getPointAt(u));dummy.scale.setScalar(1);dummy.updateMatrix();f.beads.setMatrixAt(i,dummy.matrix);const t=f.dir>0?u:1-u;c.copy(f.a).lerp(f.b,THREE.MathUtils.smoothstep(t,.1,.9));f.beads.setColorAt(i,c);}f.beads.instanceMatrix.needsUpdate=true;if(f.beads.instanceColor)f.beads.instanceColor.needsUpdate=true;}
+for(const f of airFlows){for(let i=0;i<3;i++){const u=(time*.23+i/3+f.index*.061)%1;dummy.position.copy(f.curve.getPointAt(u));tmp.copy(f.curve.getTangentAt(u));quat.setFromUnitVectors(forward,tmp);dummy.quaternion.copy(quat);dummy.scale.setScalar(.7+.45*Math.sin(u*Math.PI));dummy.updateMatrix();f.arrows.setMatrixAt(i,dummy.matrix);c.setHex(0xa3b9c5).lerp(f.exitColor,THREE.MathUtils.smoothstep(u,.27,.63));f.arrows.setColorAt(i,c);}f.arrows.instanceMatrix.needsUpdate=true;if(f.arrows.instanceColor)f.arrows.instanceColor.needsUpdate=true;}
+const w=stage.clientWidth,h=stage.clientHeight;for(const m of markers){tmp.copy(m.point).project(camera);const x=(tmp.x*.5+.5)*w,y=(-tmp.y*.5+.5)*h;m.el.style.left=x+'px';m.el.style.top=y+'px';m.el.style.display=(!focus&&tmp.z<1&&x>20&&x<w-20&&y>90&&y<h-80)?'grid':'none';}
+for(const l of labelAnchors){tmp.copy(l.p).project(camera);let x=(tmp.x*.5+.5)*w,y=(-tmp.y*.5+.5)*h+(l.el.id==='indoor-label'?-24:18);l.el.style.left=THREE.MathUtils.clamp(x,125,w-125)+'px';l.el.style.top=THREE.MathUtils.clamp(y,94,h-78)+'px';l.el.style.display=focus?'none':'flex';}
+if(!focus){const occupied=$$('.stage-head,.view-tools,.unit-label,.legend,.stage-bottom').map(e=>e.getBoundingClientRect());const order=[markers[selected],...markers.filter((m,i)=>i!==selected)];for(const m of order){if(m.el.style.display==='none')continue;const r=m.el.getBoundingClientRect();if(occupied.some(b=>r.left<b.right+3&&r.right>b.left-3&&r.top<b.bottom+3&&r.bottom>b.top-3))m.el.style.display='none';else occupied.push(r);}}
+renderer.render(scene,camera);
+window.__aircon={mode,paused,focus,time,drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,compressorAngle:rotor.rotation.y,fanAngle:outdoorFan.rotation.z,flows:flows.filter(f=>f.mesh.visible).map(f=>({direction:f.dir,from:f.a.getHexString(),to:f.b.getHexString()}))};
+}
+new ResizeObserver(()=>{const w=stage.clientWidth,h=stage.clientHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();}).observe(stage);
+setMode(mode);select(0);setFocus(false,true);$('#loading').remove();requestAnimationFrame(animate);
+</script>
+<script>window.addEventListener('error',function(e){var l=document.getElementById('loading');if(l)l.innerHTML='<span>3D の読み込みに失敗しました。</span><small>インターネット接続と WebGL の設定をご確認ください。</small>';});</script>
+</body>
+</html>

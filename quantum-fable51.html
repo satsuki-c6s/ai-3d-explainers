@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>超伝導量子コンピューターのしくみ — 3D アニメーション</title>
+<link rel="icon" href="data:,">
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #0a0e18; color: #e8ecf4;
+    font-family: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans CJK JP", "Noto Sans JP", "Yu Gothic UI", "Meiryo", system-ui, sans-serif; }
+  #c { position: fixed; inset: 0; display: block; z-index: 0; }
+  #labels { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 2; }
+  .lbl { position: absolute; left: 0; top: 0; white-space: nowrap; font-size: 12px; line-height: 1.3; padding: 3px 7px;
+    border-radius: 4px; background: rgba(8, 12, 24, .8); border: 1px solid rgba(255, 255, 255, .22); color: #e8ecf4; display: none; }
+  .lbl .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; }
+  .lbl.active { border-color: #ffd166; color: #fff3c4; background: rgba(70, 52, 10, .92); font-weight: bold; }
+  .lbl.axis { font-size: 13px; padding: 1px 5px; background: rgba(8, 12, 24, .6); border-color: rgba(255, 255, 255, .12); }
+  .lbl.title { font-size: 13px; font-weight: bold; border-color: rgba(120, 170, 255, .5); }
+  .lbl.ent { color: #ffb3f0; border-color: rgba(255, 120, 230, .6); font-weight: bold; }
+
+  .panel { position: fixed; top: 14px; z-index: 3; background: rgba(10, 14, 26, .88); border: 1px solid rgba(255, 255, 255, .14);
+    border-radius: 10px; box-sizing: border-box; backdrop-filter: blur(4px); }
+  #left { left: 14px; width: 240px; padding: 14px 14px 12px; max-height: calc(100vh - 28px); overflow-y: auto; }
+  #right { right: 14px; width: 350px; padding: 14px 16px 14px; max-height: calc(100vh - 28px); overflow-y: auto; }
+  h1 { font-size: 16px; margin: 0 0 4px; line-height: 1.4; color: #ffd166; }
+  .sub { font-size: 11.5px; color: #aab4c8; margin-bottom: 10px; line-height: 1.4; }
+  #steps { list-style: none; margin: 0; padding: 0; }
+  #steps li { font-size: 12.5px; padding: 4px 8px; margin: 2px 0; border-radius: 5px; cursor: pointer; color: #b8c2d6; display: flex; align-items: center; line-height: 1.3; }
+  #steps li:hover { background: rgba(255, 255, 255, .06); }
+  #steps li .n { display: inline-block; width: 18px; height: 18px; border-radius: 50%; background: #2a3550; color: #cfd8ea; font-size: 10.5px;
+    text-align: center; line-height: 18px; margin-right: 8px; flex: none; }
+  #steps li.on { background: rgba(255, 209, 102, .16); color: #fff; font-weight: bold; }
+  #steps li.on .n { background: #ffd166; color: #221a00; }
+  #steps li.done .n { background: #3f6d3f; }
+  .ctrl { display: flex; gap: 6px; margin: 10px 0 8px; }
+  button { flex: 1; background: #1e2a44; color: #e8ecf4; border: 1px solid rgba(255, 255, 255, .2); border-radius: 6px; padding: 6px 4px;
+    font-size: 12.5px; cursor: pointer; font-family: inherit; }
+  button:hover { background: #2b3b5e; }
+  .chk { font-size: 12px; color: #c4cde0; display: block; margin: 4px 0; }
+  .hint { font-size: 11px; color: #8d99b4; margin-top: 8px; line-height: 1.5; }
+
+  .step { font-size: 11.5px; color: #aab4c8; letter-spacing: .04em; }
+  #phTitle { font-size: 16px; margin: 3px 0 8px; line-height: 1.4; color: #ffd166; }
+  .bar { height: 4px; background: rgba(255, 255, 255, .12); border-radius: 2px; overflow: hidden; margin-bottom: 10px; }
+  #phProg { height: 100%; width: 0; background: #ffd166; }
+  #phText { font-size: 13px; line-height: 1.65; }
+  #phText p { margin: 0 0 7px; }
+  #phText b { color: #ffe08a; font-weight: bold; }
+  ul.stg { list-style: none; margin: 0 0 8px; padding: 0; }
+  ul.stg li { font-size: 12.5px; padding: 3px 6px; border-radius: 4px; margin: 1px 0; color: #c4cde0; line-height: 1.45; }
+  ul.stg li.on { background: rgba(255, 209, 102, .16); color: #fff; }
+  ul.stg li .t { display: inline-block; min-width: 54px; font-weight: bold; }
+  ul.stg li .sw { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; }
+  .dyn { margin-top: 6px; padding: 6px 8px; background: rgba(255, 255, 255, .06); border-radius: 6px; font-size: 13px; min-height: 18px; }
+
+  #qc { margin-top: 10px; border-top: 1px solid rgba(255, 255, 255, .12); padding-top: 8px; }
+  #qc.hidden { display: none; }
+  #circuit { width: 100%; height: auto; display: block; }
+  #circuit .w { stroke: #8f9bb3; stroke-width: 2; }
+  #circuit .qn { fill: #c4cde0; font-size: 13px; }
+  #circuit .g rect { fill: #1b2234; stroke: #8899bb; stroke-width: 2; }
+  #circuit .g text { fill: #fff; font-size: 16px; font-weight: bold; }
+  #circuit .g .cl { stroke: #8899bb; stroke-width: 2; }
+  #circuit .g .dotc { fill: #8899bb; }
+  #circuit .g .xo { fill: #1b2234; stroke: #8899bb; stroke-width: 2; }
+  #circuit .g .arc { fill: none; stroke: #c4cde0; stroke-width: 2; }
+  #circuit .g.on rect, #circuit .g.on .xo { stroke: #ffd166; fill: #4a3a10; }
+  #circuit .g.on .cl { stroke: #ffd166; }
+  #circuit .g.on .dotc { fill: #ffd166; }
+  #circuit .g.done rect, #circuit .g.done .xo { stroke: #7ee07e; }
+  #circuit .g.done .cl { stroke: #7ee07e; }
+  #circuit .g.done .dotc { fill: #7ee07e; }
+  #stateTxt { font-size: 14px; margin: 6px 0 2px; color: #fff; font-family: "Cambria Math", "STIX Two Math", "Times New Roman", serif; }
+  #lenTxt { font-size: 11.5px; color: #aab4c8; margin-bottom: 6px; }
+  #chartTitle { font-size: 12px; color: #c4cde0; margin: 6px 0 4px; }
+  .row { display: flex; align-items: center; font-size: 12px; margin: 3px 0; }
+  .row .k { width: 24px; font-family: Consolas, Menlo, monospace; color: #fff; }
+  .row .bw { flex: 1; height: 14px; background: rgba(255, 255, 255, .08); border-radius: 3px; overflow: hidden; margin: 0 8px; }
+  .row .bw div { height: 100%; width: 0; background: #4cc9f0; transition: width .15s; }
+  .row .v { width: 58px; text-align: right; color: #c4cde0; font-variant-numeric: tabular-nums; }
+  #shotLog { font-family: Consolas, Menlo, monospace; font-size: 11.5px; color: #aab4c8; margin-top: 6px; word-break: break-all; line-height: 1.5; min-height: 16px; }
+
+  #bottomBar { position: fixed; left: 0; right: 0; bottom: 0; height: 5px; background: rgba(255, 255, 255, .08); z-index: 3; }
+  #bottomProg { height: 100%; width: 0; background: linear-gradient(90deg, #4cc9f0, #ffd166); }
+  @media (max-height: 760px) {
+    #phText { font-size: 12.5px; line-height: 1.6; }
+    ul.stg li { font-size: 12px; }
+  }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="labels"></div>
+
+<div id="left" class="panel">
+  <h1>超伝導量子コンピューターのしくみ</h1>
+  <div class="sub">希釈冷凍機の中身と、2 つの量子ビットの計算を 3D アニメーションで見る (約 58 秒で 1 周・自動で進みます)</div>
+  <ol id="steps"></ol>
+  <div class="ctrl"><button id="btnPause">一時停止</button><button id="btnNext">次へ ▶</button></div>
+  <label class="chk"><input type="checkbox" id="chkShield" checked> 真空容器・熱シールドを表示</label>
+  <div class="hint">マウス: ドラッグで回転 / ホイールで拡大 / 右ドラッグで移動<br>ステップ名をクリックするとそこへ移動します</div>
+</div>
+
+<div id="right" class="panel">
+  <div class="step">ステップ <span id="stepNum">1</span> / 10</div>
+  <h2 id="phTitle"></h2>
+  <div class="bar"><div id="phProg"></div></div>
+  <div id="phText"></div>
+  <div id="qc" class="hidden">
+    <svg id="circuit" viewBox="0 0 300 104" aria-label="量子回路">
+      <text x="2" y="36" class="qn">q1</text><line x1="26" y1="31" x2="298" y2="31" class="w"/>
+      <text x="2" y="81" class="qn">q2</text><line x1="26" y1="76" x2="298" y2="76" class="w"/>
+      <text x="30" y="20" class="qn" style="font-size:11px">|0⟩</text>
+      <text x="30" y="65" class="qn" style="font-size:11px">|0⟩</text>
+      <g id="gH" class="g"><rect x="66" y="16" width="30" height="30" rx="4"/><text x="81" y="37" text-anchor="middle">H</text></g>
+      <g id="gCX" class="g">
+        <line x1="160" y1="31" x2="160" y2="76" class="cl"/>
+        <circle cx="160" cy="31" r="6" class="dotc"/>
+        <circle cx="160" cy="76" r="11" class="xo"/>
+        <line x1="160" y1="65" x2="160" y2="87" class="cl"/><line x1="149" y1="76" x2="171" y2="76" class="cl"/>
+      </g>
+      <g id="gM" class="g">
+        <rect x="230" y="16" width="36" height="30" rx="4"/><path d="M238 41 a10 10 0 0 1 20 0" class="arc"/><line x1="248" y1="41" x2="257" y2="27" class="cl"/>
+        <rect x="230" y="61" width="36" height="30" rx="4"/><path d="M238 86 a10 10 0 0 1 20 0" class="arc"/><line x1="248" y1="86" x2="257" y2="72" class="cl"/>
+      </g>
+      <text x="63" y="100" class="qn" style="font-size:10.5px">H ゲート</text>
+      <text x="136" y="100" class="qn" style="font-size:10.5px">CNOT</text>
+      <text x="236" y="100" class="qn" style="font-size:10.5px">測定</text>
+    </svg>
+    <div id="stateTxt"></div>
+    <div id="lenTxt"></div>
+    <div id="chartTitle"></div>
+    <div id="chart"></div>
+    <div id="shotLog"></div>
+  </div>
+</div>
+<div id="bottomBar"><div id="bottomProg"></div></div>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+// ---------------------------------------------------------------- renderer / scene
+const canvas = document.getElementById('c');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.1;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0a0e18);
+scene.fog = new THREE.Fog(0x0a0e18, 60, 140);
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+
+const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 400);
+camera.position.set(11, 8, 15.2);
+const controls = new OrbitControls(camera, canvas);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.minDistance = 1.0;
+controls.maxDistance = 90;
+controls.maxPolarAngle = Math.PI * 0.92;
+controls.autoRotateSpeed = 0.7;
+controls.target.set(0, 5, 0);
+
+scene.add(new THREE.HemisphereLight(0xcfd8ff, 0x1a1a24, 0.45));
+const dirL = new THREE.DirectionalLight(0xffffff, 1.5); dirL.position.set(8, 14, 10); scene.add(dirL);
+const dirL2 = new THREE.DirectionalLight(0xffe2b8, 0.6); dirL2.position.set(-10, 6, -8); scene.add(dirL2);
+
+const grid = new THREE.GridHelper(60, 30, 0x24304a, 0x18213a);
+grid.position.y = -0.6;
+scene.add(grid);
+
+// ---------------------------------------------------------------- materials
+const M = {
+  gold: new THREE.MeshStandardMaterial({ color: 0xd9a84a, metalness: 0.9, roughness: 0.28 }),
+  goldDark: new THREE.MeshStandardMaterial({ color: 0xb8862e, metalness: 0.9, roughness: 0.35 }),
+  steel: new THREE.MeshStandardMaterial({ color: 0xb8bcc6, metalness: 0.9, roughness: 0.35 }),
+  copper: new THREE.MeshStandardMaterial({ color: 0xc87a45, metalness: 0.9, roughness: 0.35 }),
+  dark: new THREE.MeshStandardMaterial({ color: 0x2a2e38, metalness: 0.6, roughness: 0.5 }),
+  silicon: new THREE.MeshStandardMaterial({ color: 0x161a28, metalness: 0.5, roughness: 0.35 }),
+  alum: new THREE.MeshStandardMaterial({ color: 0xe8eef8, metalness: 0.9, roughness: 0.25 }),
+  cableIn: new THREE.MeshStandardMaterial({ color: 0xd0d4da, metalness: 0.8, roughness: 0.4 }),
+  cableOut: new THREE.MeshStandardMaterial({ color: 0x7f8fc0, metalness: 0.8, roughness: 0.4 }),
+  isolator: new THREE.MeshStandardMaterial({ color: 0x334a8a, metalness: 0.7, roughness: 0.4 }),
+  hemt: new THREE.MeshStandardMaterial({ color: 0x3a3f4a, metalness: 0.7, roughness: 0.45 }),
+  shield: new THREE.MeshStandardMaterial({ color: 0xd8c080, metalness: 0.8, roughness: 0.3, transparent: true, opacity: 0.09, depthWrite: false, side: THREE.DoubleSide }),
+  ovc: new THREE.MeshStandardMaterial({ color: 0xaab4c8, metalness: 0.8, roughness: 0.3, transparent: true, opacity: 0.07, depthWrite: false, side: THREE.DoubleSide }),
+  mag: new THREE.MeshStandardMaterial({ color: 0x6a7080, metalness: 0.8, roughness: 0.4, transparent: true, opacity: 0.16, depthWrite: false, side: THREE.DoubleSide }),
+};
+
+const Y = new THREE.Vector3(0, 1, 0);
+function cyl(r, h, mat, seg = 32) { return new THREE.Mesh(new THREE.CylinderGeometry(r, r, h, seg), mat); }
+function box(w, h, d, mat) { return new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat); }
+function at(mesh, x, y, z) { mesh.position.set(x, y, z); return mesh; }
+function cylBetween(a, b, r, mat, seg = 12) {
+  const d = new THREE.Vector3().subVectors(b, a);
+  const len = d.length();
+  const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, len, seg), mat);
+  m.position.copy(a).addScaledVector(d, 0.5);
+  m.quaternion.setFromUnitVectors(Y, d.clone().normalize());
+  return m;
+}
+
+// ---------------------------------------------------------------- dilution refrigerator
+const fridge = new THREE.Group();
+scene.add(fridge);
+
+const stages = [
+  { name: '室温プレート', temp: '300 K', y: 9.0, r: 3.2, th: 0.25, color: 0xff5a3c },
+  { name: '50 K ステージ', temp: '約 50 K', y: 7.4, r: 3.0, th: 0.12, color: 0xff9a3c },
+  { name: '4 K ステージ', temp: '約 4 K', y: 5.8, r: 2.9, th: 0.12, color: 0xffd23c },
+  { name: 'スティル', temp: '約 0.8 K', y: 4.4, r: 2.7, th: 0.12, color: 0x7ee07e },
+  { name: 'コールドプレート', temp: '約 0.1 K', y: 3.2, r: 2.6, th: 0.12, color: 0x4cc9f0 },
+  { name: '混合器 (MXC)', temp: '約 0.01 K', y: 2.0, r: 2.5, th: 0.12, color: 0x8c9bff },
+];
+const haloMats = [];
+stages.forEach((s, i) => {
+  const plate = cyl(s.r, s.th, M.gold, 96);
+  plate.position.y = s.y;
+  s.plate = plate;
+  fridge.add(plate);
+  // temperature halo ring
+  const hm = new THREE.MeshBasicMaterial({ color: s.color, transparent: true, opacity: 0.5 });
+  const halo = new THREE.Mesh(new THREE.TorusGeometry(s.r + 0.06, 0.028, 8, 128), hm);
+  halo.rotation.x = Math.PI / 2;
+  halo.position.y = s.y;
+  s.halo = halo; haloMats.push(hm);
+  fridge.add(halo);
+  // support rods to next stage
+  if (i < stages.length - 1) {
+    const n = stages[i + 1];
+    const rr = Math.min(s.r, n.r) - 0.28;
+    for (let k = 0; k < 6; k++) {
+      const a = (k / 6) * Math.PI * 2 + Math.PI / 6;
+      const rod = cyl(0.055, s.y - n.y, M.steel, 12);
+      rod.position.set(Math.cos(a) * rr, (s.y + n.y) / 2, Math.sin(a) * rr);
+      fridge.add(rod);
+    }
+  }
+});
+
+// shields / vacuum can
+const shieldGroup = new THREE.Group();
+fridge.add(shieldGroup);
+function addShield(stage, bottomY, mat, extra) {
+  const top = stage.y - stage.th / 2 - 0.01;
+  const h = top - bottomY;
+  const s = cyl(stage.r + extra, h, mat, 96);
+  s.position.y = bottomY + h / 2;
+  shieldGroup.add(s);
+}
+addShield(stages[0], -0.35, M.ovc, 0.18);
+addShield(stages[1], 0.0, M.shield, 0.12);
+addShield(stages[2], 0.3, M.shield, 0.12);
+addShield(stages[3], 0.6, M.shield, 0.12);
+
+// top plate ports and feedthroughs
+for (let k = 0; k < 10; k++) {
+  const a = (k / 10) * Math.PI * 2;
+  const p = cyl(0.11, 0.18, M.steel, 16);
+  p.position.set(Math.cos(a) * 2.75, 9.0 + 0.125 + 0.09, Math.sin(a) * 2.75);
+  fridge.add(p);
+}
+
+// pulse tube cryocooler (cools 50 K / 4 K stages)
+const PT = { x: -1.5, z: -1.0 };
+fridge.add(at(cyl(0.3, 1.05, M.steel), PT.x, 9.0 + 0.525, PT.z));
+fridge.add(at(cyl(0.52, 0.7, M.dark), PT.x, 10.4, PT.z));
+fridge.add(at(box(0.5, 0.35, 0.5, M.steel), PT.x, 10.92, PT.z));
+fridge.add(at(cyl(0.26, 9.0 - 5.8, M.steel), PT.x, (9.0 + 5.8) / 2, PT.z));
+fridge.add(at(cyl(0.5, 0.36, M.copper), PT.x, 7.4 - 0.06 - 0.18, PT.z));
+fridge.add(at(cyl(0.46, 0.32, M.copper), PT.x, 5.8 - 0.06 - 0.16, PT.z));
+
+// dilution unit: still pumping line, still, heat exchangers, mixing chamber
+const DU = { x: 1.0, z: -1.4 };
+fridge.add(at(cyl(0.16, 9.0 - 4.4, M.steel), DU.x, (9.0 + 4.4) / 2, DU.z));
+fridge.add(at(cyl(0.42, 0.5, M.goldDark), DU.x, 4.4 - 0.06 - 0.25, DU.z));
+fridge.add(at(cyl(0.05, 4.4 - 1.6, M.steel, 10), DU.x, (4.4 + 1.6) / 2, DU.z));
+[3.72, 3.52, 2.92, 2.72, 2.52, 2.32].forEach(y => fridge.add(at(cyl(0.22, 0.1, M.copper, 24), DU.x, y, DU.z)));
+fridge.add(at(cyl(0.34, 0.4, M.goldDark), DU.x, 2.0 - 0.06 - 0.2, DU.z));
+
+// signal lines (coax)
+const LINES = {
+  in1: { x: -1.7, z: 0.9 }, in2: { x: -1.1, z: 1.6 }, roIn: { x: 0.5, z: 1.9 }, roOut: { x: 1.8, z: 1.0 },
+};
+function vline(L, y0, y1, mat, r = 0.035) {
+  fridge.add(cylBetween(new THREE.Vector3(L.x, y0, L.z), new THREE.Vector3(L.x, y1, L.z), r, mat, 10));
+}
+function connector(L) { fridge.add(at(box(0.16, 0.16, 0.16, M.steel), L.x, 9.0 + 0.125 + 0.08, L.z)); }
+const chipTop = 0.95;
+// input lines with attenuators at 4 K, still, MXC
+[LINES.in1, LINES.in2, LINES.roIn].forEach((L, idx) => {
+  connector(L);
+  vline(L, 9.35, 1.9, M.cableIn);
+  [5.8, 4.4, 2.0].forEach((py, j) => {
+    const h = j === 1 ? 0.22 : 0.32;
+    const a = cyl(0.09, h, M.goldDark, 16);
+    a.position.set(L.x, py - 0.06 - h / 2 - 0.02, L.z);
+    fridge.add(a);
+  });
+  const end = new THREE.Vector3((idx - 1) * 0.22 - 0.1, chipTop, 0.28);
+  fridge.add(cylBetween(new THREE.Vector3(L.x, 1.9, L.z), end, 0.03, M.cableIn, 8));
+});
+// output line: chip -> isolators (MXC) -> HEMT (4 K) -> top
+connector(LINES.roOut);
+const outStart = new THREE.Vector3(0.16, chipTop, 0.28);
+fridge.add(cylBetween(outStart, new THREE.Vector3(LINES.roOut.x, 1.9, LINES.roOut.z), 0.03, M.cableOut, 8));
+vline(LINES.roOut, 1.9, 9.35, M.cableOut);
+[2.2, 2.46].forEach(y => fridge.add(at(cyl(0.13, 0.22, M.isolator, 20), LINES.roOut.x, y, LINES.roOut.z)));
+fridge.add(at(box(0.3, 0.42, 0.24, M.hemt), LINES.roOut.x, 5.8 + 0.06 + 0.21, LINES.roOut.z));
+fridge.add(at(box(0.26, 0.3, 0.2, M.hemt), LINES.roOut.x, 9.0 + 0.125 + 0.15 + 0.16, LINES.roOut.z)); // room-temp amp box on top
+
+// qubit chip assembly under the mixing-chamber plate
+fridge.add(at(cyl(0.08, 2.0 - 0.06 - 0.93, M.copper, 16), 0, (1.94 + 0.93) / 2, 0));
+fridge.add(at(box(0.7, 0.22, 0.7, M.gold), 0, 0.82, 0));
+fridge.add(at(box(0.42, 0.02, 0.42, M.silicon), 0, 0.94, 0));
+const chipY = 0.9505;
+function feature(x, z, w, d, mat = M.alum) { fridge.add(at(box(w, 0.004, d, mat), x, chipY, z)); }
+// two transmons: pads + junction gap, coupler bus between them
+[-0.13, 0.13].forEach(cx => {
+  feature(cx - 0.035, -0.09, 0.05, 0.05);
+  feature(cx + 0.035, -0.09, 0.05, 0.05);
+  feature(cx, -0.09, 0.012, 0.004);
+});
+feature(0, -0.09, 0.14, 0.006);
+// readout resonators (meanders) from each transmon up to the feedline
+function meander(x0, zStart, zEnd, n, w) {
+  const dz = (zEnd - zStart) / n;
+  for (let i = 0; i < n; i++) {
+    const z = zStart + dz * (i + 0.5);
+    feature(x0, z, w, 0.005);
+    feature(x0 + (i % 2 ? -w / 2 : w / 2), z + dz / 2, 0.005, dz);
+  }
+}
+meander(-0.13, -0.05, 0.11, 6, 0.07);
+meander(0.13, -0.05, 0.11, 6, 0.07);
+feature(0, 0.14, 0.4, 0.008); // feedline
+feature(-0.2, 0.14, 0.03, 0.03); feature(0.2, 0.14, 0.03, 0.03); // launch pads
+// magnetic shield around the chip
+const magShield = cyl(0.65, 1.93 - 0.35, M.mag, 64);
+magShield.position.y = (1.93 + 0.35) / 2;
+fridge.add(magShield);
+
+// signal pulses (animated glow spheres)
+function polyline(pts) {
+  const segs = []; let total = 0;
+  for (let i = 0; i < pts.length - 1; i++) { const l = pts[i].distanceTo(pts[i + 1]); segs.push({ a: pts[i], b: pts[i + 1], l, s: total }); total += l; }
+  return (t) => {
+    const d = Math.max(0, Math.min(1, t)) * total;
+    for (const sg of segs) if (d <= sg.s + sg.l) return sg.a.clone().lerp(sg.b, (d - sg.s) / sg.l);
+    return pts[pts.length - 1].clone();
+  };
+}
+const pathIn = polyline([new THREE.Vector3(LINES.in1.x, 9.6, LINES.in1.z), new THREE.Vector3(LINES.in1.x, 1.9, LINES.in1.z), new THREE.Vector3(-0.32, chipTop, 0.28)]);
+const pathOut = polyline([new THREE.Vector3(0.16, chipTop, 0.28), new THREE.Vector3(LINES.roOut.x, 1.9, LINES.roOut.z), new THREE.Vector3(LINES.roOut.x, 9.6, LINES.roOut.z)]);
+const pulseIn = new THREE.Mesh(new THREE.SphereGeometry(0.11, 16, 12), new THREE.MeshBasicMaterial({ color: 0x5fe3ff }));
+const pulseOut = new THREE.Mesh(new THREE.SphereGeometry(0.11, 16, 12), new THREE.MeshBasicMaterial({ color: 0xffa040 }));
+const pulseLightIn = new THREE.PointLight(0x5fe3ff, 2.5, 3); pulseIn.add(pulseLightIn);
+const pulseLightOut = new THREE.PointLight(0xffa040, 2.5, 3); pulseOut.add(pulseLightOut);
+pulseIn.visible = pulseOut.visible = false;
+scene.add(pulseIn, pulseOut);
+
+// ---------------------------------------------------------------- Bloch spheres
+const BX = 26, BY = 5, BR = 1.5, BSEP = 2.3;
+const blochGroup = new THREE.Group();
+blochGroup.position.set(BX, BY, 0);
+scene.add(blochGroup);
+
+function circleLine(r, axis, color, op = 0.5) {
+  const pts = [];
+  for (let i = 0; i <= 96; i++) {
+    const a = (i / 96) * Math.PI * 2;
+    if (axis === 'y') pts.push(new THREE.Vector3(Math.cos(a) * r, 0, Math.sin(a) * r));
+    else if (axis === 'z') pts.push(new THREE.Vector3(Math.cos(a) * r, Math.sin(a) * r, 0));
+    else pts.push(new THREE.Vector3(0, Math.sin(a) * r, Math.cos(a) * r));
+  }
+  return new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color, transparent: true, opacity: op }));
+}
+function makeBloch(px) {
+  const g = new THREE.Group();
+  g.position.x = px;
+  const sphMat = new THREE.MeshStandardMaterial({ color: 0x6fa8ff, transparent: true, opacity: 0.14, roughness: 0.3, metalness: 0.1, depthWrite: false, emissive: 0x000000 });
+  const sph = new THREE.Mesh(new THREE.SphereGeometry(BR, 48, 32), sphMat);
+  g.add(sph);
+  g.add(circleLine(BR, 'y', 0x9fb8ff, 0.7));
+  g.add(circleLine(BR, 'z', 0x9fb8ff, 0.35));
+  g.add(circleLine(BR, 'x', 0x9fb8ff, 0.35));
+  [0.5, -0.5].forEach(k => { const c = circleLine(Math.sqrt(1 - k * k) * BR, 'y', 0x9fb8ff, 0.2); c.position.y = k * BR; g.add(c); });
+  const axMat = new THREE.LineBasicMaterial({ color: 0xc4cde0, transparent: true, opacity: 0.5 });
+  const axPts = [new THREE.Vector3(-BR, 0, 0), new THREE.Vector3(BR, 0, 0), new THREE.Vector3(0, -BR, 0), new THREE.Vector3(0, BR, 0), new THREE.Vector3(0, 0, -BR), new THREE.Vector3(0, 0, BR)];
+  g.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(axPts), axMat));
+  // arrow
+  const arrow = new THREE.Group();
+  const arrowMat = new THREE.MeshStandardMaterial({ color: 0xff6b6b, emissive: 0x661111, roughness: 0.4, metalness: 0.2 });
+  const shaftGeo = new THREE.CylinderGeometry(0.04, 0.04, 1, 12); shaftGeo.translate(0, 0.5, 0);
+  const shaft = new THREE.Mesh(shaftGeo, arrowMat);
+  const coneH = 0.26;
+  const coneGeo = new THREE.ConeGeometry(0.11, coneH, 16); coneGeo.translate(0, coneH / 2, 0);
+  const cone = new THREE.Mesh(coneGeo, arrowMat);
+  arrow.add(shaft, cone);
+  g.add(arrow);
+  const centerDot = new THREE.Mesh(new THREE.SphereGeometry(0.1, 16, 12), new THREE.MeshStandardMaterial({ color: 0xff8ad8, emissive: 0xff3cc8, emissiveIntensity: 1.0 }));
+  centerDot.visible = false;
+  g.add(centerDot);
+  const trailPts = [];
+  const trailGeo = new THREE.BufferGeometry().setFromPoints(new Array(64).fill(0).map(() => new THREE.Vector3(0, BR, 0)));
+  const trail = new THREE.Line(trailGeo, new THREE.LineBasicMaterial({ color: 0xffb080, transparent: true, opacity: 0.8 }));
+  g.add(trail);
+  blochGroup.add(g);
+  return { g, sph, sphMat, arrow, shaft, cone, coneH, centerDot, trail, trailPts, disp: new THREE.Vector3(0, 1, 0), flash: 0 };
+}
+const B1 = makeBloch(-BSEP), B2 = makeBloch(BSEP);
+// entanglement link
+const linkMat = new THREE.MeshStandardMaterial({ color: 0xff5fd0, emissive: 0xff3cc8, emissiveIntensity: 1.2, transparent: true, opacity: 0 });
+const link = cyl(0.06, BSEP * 2 - BR * 2 + 0.2, linkMat, 16);
+link.rotation.z = Math.PI / 2;
+blochGroup.add(link);
+const linkRings = [];
+for (let i = 0; i < 3; i++) {
+  const r = new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.03, 8, 32), linkMat);
+  r.rotation.y = Math.PI / 2;
+  blochGroup.add(r); linkRings.push(r);
+}
+
+// ---------------------------------------------------------------- quantum state simulation (exact 2-qubit state vector)
+// amplitudes [re, im]; index = q1*2 + q2  (q1 = first/control qubit, q2 = second/target qubit)
+const SQ = Math.SQRT1_2;
+const zeroState = () => [[1, 0], [0, 0], [0, 0], [0, 0]];
+function applyH1(p) { // Hadamard on qubit 1
+  const o = [];
+  for (let q2 = 0; q2 < 2; q2++) {
+    const a = p[q2], b = p[2 + q2];
+    o[q2] = [(a[0] + b[0]) * SQ, (a[1] + b[1]) * SQ];
+    o[2 + q2] = [(a[0] - b[0]) * SQ, (a[1] - b[1]) * SQ];
+  }
+  return o;
+}
+function applyCNOT(p) { return [p[0], p[1], p[3], p[2]].map(a => [a[0], a[1]]); } // control q1, target q2
+// Partial gate: G² = I  =>  G(t) = exp(-iπt·P), P = (I - G)/2 ; G(1) = G exactly, G(0) = I
+function partial(p, G, t) {
+  const g = G(p), cr = Math.cos(Math.PI * t) - 1, ci = -Math.sin(Math.PI * t);
+  return p.map((a, i) => {
+    const dr = (a[0] - g[i][0]) / 2, di = (a[1] - g[i][1]) / 2;
+    return [a[0] + cr * dr - ci * di, a[1] + cr * di + ci * dr];
+  });
+}
+// reduced Bloch vector of qubit q (0 = q1, 1 = q2): r = (2Re ρ01, -2Im ρ01, ρ00 - ρ11)
+function blochVec(p, q) {
+  let r00 = 0, r11 = 0, cr = 0, ci = 0;
+  for (let c = 0; c < 2; c++) {
+    const i0 = q === 0 ? c : c * 2, i1 = q === 0 ? 2 + c : c * 2 + 1;
+    const a = p[i0], b = p[i1];
+    r00 += a[0] * a[0] + a[1] * a[1];
+    r11 += b[0] * b[0] + b[1] * b[1];
+    cr += a[0] * b[0] + a[1] * b[1];
+    ci += a[1] * b[0] - a[0] * b[1];
+  }
+  return new THREE.Vector3(2 * cr, -2 * ci, r00 - r11);
+}
+const probs = p => p.map(a => a[0] * a[0] + a[1] * a[1]);
+function sample(p) {
+  const pr = probs(p), r = Math.random(); let acc = 0;
+  for (let i = 0; i < 4; i++) { acc += pr[i]; if (r < acc) return i; }
+  return 3;
+}
+function basis(i) { const p = [[0, 0], [0, 0], [0, 0], [0, 0]]; p[i] = [1, 0]; return p; }
+const bitstr = i => ((i >> 1) & 1) + '' + (i & 1);
+const BELL = applyCNOT(applyH1(zeroState()));
+
+// ---------------------------------------------------------------- phases
+const S = stages;
+const phases = [
+  { id: 'overview', name: '全体像', dur: 5, cam: { pos: [11, 8, 15.2], tgt: [0, 5, 0] }, labels: 'overview', rotate: true,
+    title: '全体像 — 希釈冷凍機と量子ビット',
+    html: `<p>超伝導量子コンピューターの本体は、<b>量子ビットのチップ</b>と、それを絶対零度の近くまで冷やす<b>希釈冷凍機</b>です。金色の円板は金めっきした銅の板で、下の板ほど冷たくなります。</p>
+<p>いちばん下の板は約 <b>10 mK</b> (0.01 K)。宇宙空間 (約 3 K) の 300 分の 1 ほどの温度です。チップはこの板の下にぶら下がっています。</p>
+<p>真空容器と熱シールド (うすく表示) で、外からの熱をさえぎります。</p>` },
+  { id: 'stages', name: '冷凍機の段と温度', dur: 8, cam: { pos: [3.5, 5.6, 18.7], tgt: [0, 5, 0] }, labels: 'stages',
+    title: '冷凍機の段と温度',
+    html: `<ul class="stg">
+<li data-s="0"><span class="sw" style="background:#ff5a3c"></span><span class="t">300 K</span>室温プレート: 外の電子機器とつなぐ、いちばん上の板</li>
+<li data-s="1"><span class="sw" style="background:#ff9a3c"></span><span class="t">50 K</span>パルス管冷凍機の 1 段目で冷やす</li>
+<li data-s="2"><span class="sw" style="background:#ffd23c"></span><span class="t">4 K</span>パルス管冷凍機の 2 段目。液体ヘリウムの温度</li>
+<li data-s="3"><span class="sw" style="background:#7ee07e"></span><span class="t">0.8 K</span>スティル: 希釈ユニットの ³He をくみ出す部分</li>
+<li data-s="4"><span class="sw" style="background:#4cc9f0"></span><span class="t">0.1 K</span>コールドプレート: 熱交換器で混合液をさらに冷やす</li>
+<li data-s="5"><span class="sw" style="background:#8c9bff"></span><span class="t">0.01 K</span>混合器: ³He が ⁴He に溶けこむ (希釈) ときに熱を吸う。チップはこの下</li>
+</ul>
+<p><b>なぜここまで冷やす?</b> 回路が超伝導になるため (アルミニウムは 1.2 K 以下で超伝導) と、熱のゆらぎで量子ビットが勝手に変わらないようにするためです。|0⟩ と |1⟩ のエネルギー差は約 5 GHz のマイクロ波 1 個分、温度にすると約 0.24 K。それよりずっと低い 0.01 K まで冷やします。</p>` },
+  { id: 'signal', name: '信号の通り道', dur: 6, cam: { pos: [-7, 6.5, 17.6], tgt: [0, 5, 0] }, labels: 'signal',
+    title: '信号の通り道',
+    html: `<p>量子ビットへの命令は、室温の電子機器が作る<b>マイクロ波パルス</b> (約 5 GHz) です。同軸ケーブルで上から下へ送り (水色の光)、各段の<b>減衰器</b>で室温から入ってくる熱雑音を弱めます。</p>
+<p>測定の信号 (オレンジの光) は逆にチップから上へ。とても弱いので、4 K 段の <b>HEMT 低雑音アンプ</b>と室温のアンプで増幅します。<b>アイソレーター</b>はアンプ側の雑音がチップへ逆流するのを防ぎます。</p>` },
+  { id: 'chip', name: '量子ビットチップ', dur: 5, cam: { pos: [1.3, 1.4, 1.8], tgt: [0, 0.9, 0] }, labels: 'chip',
+    title: '量子ビットチップ',
+    html: `<p>混合器の板の下、磁気シールドの中にチップがあります。シリコン基板の上にアルミニウムの回路が作られています。</p>
+<p><b>トランズモン</b>は、2 枚の電極 (コンデンサー) と<b>ジョセフソン接合</b> (超伝導体で薄い絶縁膜をはさんだ素子) でできた「人工原子」です。エネルギーが最も低い状態を |0⟩、次に低い状態を |1⟩ として使います。</p>
+<p><b>読み出し共振器</b> (折れ曲がった線) は、量子ビットが 0 か 1 かで共鳴する周波数がわずかに変わります。これを使って状態を読み取ります。</p>` },
+  { id: 'init', name: '初期状態 |00⟩', dur: 4, cam: { pos: [BX, BY + 2, 13], tgt: [BX, BY, 0] }, labels: 'bloch', qc: true,
+    title: '初期状態 |00⟩',
+    html: `<p>ここからは 2 つの量子ビットで計算します。1 つの量子ビットの状態は<b>ブロッホ球</b>の矢印で表せます。北極が |0⟩、南極が |1⟩、赤道の上は |0⟩ と |1⟩ の<b>重ね合わせ</b>です。</p>
+<p>冷やして待つと、量子ビットはエネルギーの低い |0⟩ に落ち着きます。初期状態は 2 つとも |0⟩、全体で |00⟩ です。</p>` },
+  { id: 'h', name: 'H ゲート (重ね合わせ)', dur: 6, cam: { pos: [BX, BY + 2, 13], tgt: [BX, BY, 0] }, labels: 'bloch', qc: true,
+    title: 'H ゲート — 重ね合わせを作る',
+    html: `<p>量子ビット 1 に<b>アダマール (H) ゲート</b>をかけます。実際には、量子ビットに共鳴するマイクロ波パルスを送って矢印を回します。</p>
+<p>H ゲートは x 軸と z 軸のちょうど中間の軸のまわりの 180° 回転で、|0⟩ は赤道上の |+⟩ = (|0⟩ + |1⟩)/√2 に移ります。この状態で測ると 0 と 1 が 50% ずつ出ます。</p>
+<p>量子ビット 2 は |0⟩ のまま。全体は (|00⟩ + |10⟩)/√2 です。</p>` },
+  { id: 'cnot', name: 'CNOT ゲート (もつれ)', dur: 6, cam: { pos: [BX, BY + 2, 13], tgt: [BX, BY, 0] }, labels: 'bloch', qc: true,
+    title: 'CNOT ゲート — 量子もつれを作る',
+    html: `<p><b>CNOT (制御 NOT) ゲート</b>は「量子ビット 1 が |1⟩ のときだけ量子ビット 2 を反転」します。チップ上では、隣り合う 2 つの量子ビットの結合を使ったパルスで実現します。</p>
+<p>結果は (|00⟩ + |11⟩)/√2。「両方 0」と「両方 1」の重ね合わせで、これが<b>量子もつれ</b> (ベル状態) です。</p>
+<p>もつれた状態では、量子ビット 1 つだけを見ても向きが決まらないので、矢印は長さ 0 (球の中心の点) になります。情報は 2 つの「相関」の中にだけあります。</p>` },
+  { id: 'measure', name: '測定', dur: 5, cam: { pos: [BX, BY + 2, 13], tgt: [BX, BY, 0] }, labels: 'bloch', qc: true,
+    title: '測定 — 状態が 1 つに決まる',
+    html: `<p>読み出し共振器にマイクロ波を当て、返ってくる波の位相から 0 か 1 かを読み取ります。</p>
+<p>測定すると重ね合わせはこわれ、どちらかの結果に決まります (状態の収縮)。(|00⟩ + |11⟩)/√2 の結果は <b>00 か 11 のどちらか</b>で、確率は 50% ずつ。量子ビット 1 が 0 なら 2 も必ず 0、1 なら必ず 1 — これが「もつれ」の相関です。</p>
+<div class="dyn" id="dynMeasure">測定の準備中…</div>` },
+  { id: 'shots', name: '測定の繰り返し', dur: 9, cam: { pos: [BX, BY + 2, 13], tgt: [BX, BY, 0] }, labels: 'bloch', qc: true,
+    title: '測定の繰り返し — 回数の分布を見る',
+    html: `<p>1 回の測定では 0 か 1 しか分かりません。そこで<b>初期化 → H → CNOT → 測定</b>を 1 セット (ショット) として何度もくり返し、結果の回数を集めます。</p>
+<p>理想的には 00 と 11 がほぼ半分ずつで、01 と 10 は 0 回です。実際の装置では小さな誤り (ノイズ) で 01 や 10 が数 % 混ざるため、誤り訂正の研究が進められています。</p>
+<div class="dyn" id="dynShots"></div>` },
+  { id: 'summary', name: 'まとめ', dur: 4, cam: { pos: [13, 9, 38], tgt: [13, 4.5, 0] }, labels: 'summary', qc: true, rotate: true,
+    title: 'まとめ',
+    html: `<p><b>冷やす</b>: 希釈冷凍機で 10 mK まで冷やし、超伝導と「静けさ」を保つ。</p>
+<p><b>操作する</b>: マイクロ波パルスで量子ビットの矢印を回す (ゲート)。</p>
+<p><b>もつれさせる</b>: CNOT で 2 つの量子ビットを 1 つの状態に結びつける。</p>
+<p><b>測る</b>: 共振器で読み出し、何度もくり返して答えの分布を得る。</p>
+<p>これが超伝導量子コンピューターのしくみです。まもなく最初に戻ります。</p>` },
+];
+const TOTAL = phases.reduce((a, p) => a + p.dur, 0);
+let acc = 0; phases.forEach(p => { p.start = acc; acc += p.dur; });
+
+// ---------------------------------------------------------------- HTML labels projected from 3D
+const labelLayer = document.getElementById('labels');
+const labels = [];
+function addLabel(text, o) {
+  const el = document.createElement('div');
+  el.className = 'lbl' + (o.cls ? ' ' + o.cls : '');
+  el.innerHTML = (o.dot ? `<span class="dot" style="background:${o.dot}"></span>` : '') + text;
+  labelLayer.appendChild(el);
+  const L = { el, pos: o.pos, fn: o.fn, ax: o.ax ?? 0, ay: o.ay ?? -50, dx: o.dx ?? 0, dy: o.dy ?? 0, groups: new Set(o.groups) };
+  labels.push(L);
+  return L;
+}
+const camRight = new THREE.Vector3(1, 0, 0);
+const hex = c => '#' + c.toString(16).padStart(6, '0');
+stages.forEach(s => {
+  s.label = addLabel(`${s.name}　${s.temp}`, { dot: hex(s.color), groups: ['overview', 'stages'], ax: 0, ay: -50, dx: 8,
+    fn: () => new THREE.Vector3(0, s.y, 0).addScaledVector(camRight, s.r + 0.1) });
+});
+addLabel('パルス管冷凍機<br>(50 K と 4 K の段を冷やす)', { pos: new THREE.Vector3(PT.x - 0.5, 10.9, PT.z), groups: ['overview', 'stages'], ax: -100, ay: -50, dx: -8 });
+addLabel('希釈ユニット (³He/⁴He)', { pos: new THREE.Vector3(DU.x - 0.42, 4.09, DU.z), groups: ['stages'], ax: -100, ay: -50, dx: -8 });
+addLabel('量子ビットチップ (10 mK)', { pos: new THREE.Vector3(0, 0.3, 0), groups: ['overview', 'signal'], ax: -50, ay: 0, dy: 8 });
+addLabel('入力: 量子ビットを操作するマイクロ波', { pos: new THREE.Vector3(LINES.in1.x, 9.45, LINES.in1.z), groups: ['signal'], ax: -100, ay: -50, dx: -10 });
+addLabel('減衰器 (熱雑音を減らす)', { pos: new THREE.Vector3(LINES.in1.x - 0.09, 5.55, LINES.in1.z), groups: ['signal'], ax: -100, ay: -50, dx: -10 });
+addLabel('出力: 読み出し信号 (アンプへ)', { pos: new THREE.Vector3(LINES.roOut.x, 9.45, LINES.roOut.z), groups: ['signal'], ax: 0, ay: -50, dx: 10 });
+addLabel('HEMT 低雑音アンプ (4 K)', { pos: new THREE.Vector3(LINES.roOut.x + 0.15, 6.07, LINES.roOut.z), groups: ['signal'], ax: 0, ay: -50, dx: 10 });
+addLabel('アイソレーター (逆流防止)', { pos: new THREE.Vector3(LINES.roOut.x + 0.13, 2.33, LINES.roOut.z), groups: ['signal'], ax: 0, ay: -50, dx: 10 });
+addLabel('トランズモン (人工原子) ×2', { pos: new THREE.Vector3(-0.13, chipY, -0.09), groups: ['chip'], ax: -100, ay: -100, dx: -50, dy: -60 });
+addLabel('読み出し共振器', { pos: new THREE.Vector3(0.13, chipY, 0.03), groups: ['chip'], ax: 0, ay: -100, dx: 60, dy: -70 });
+addLabel('チップ: シリコン基板 + アルミニウム回路', { pos: new THREE.Vector3(0, 0.94, 0.21), groups: ['chip'], ax: -50, ay: 0, dy: 40 });
+addLabel('磁気シールド', { pos: new THREE.Vector3(0.65, 1.3, 0), groups: ['chip'], ax: 0, ay: -50, dx: 10 });
+addLabel('試料ホルダー (銅・金めっき)', { pos: new THREE.Vector3(-0.35, 0.78, 0), groups: ['chip'], ax: -100, ay: -50, dx: -14, dy: 48 });
+[[B1, '量子ビット 1 (制御)'], [B2, '量子ビット 2 (標的)']].forEach(([B, name]) => {
+  const w = x => new THREE.Vector3(x[0], x[1], x[2]).applyMatrix4(B.g.matrixWorld);
+  addLabel(name, { groups: ['bloch'], cls: 'title', ax: -50, ay: -100, dy: -6, fn: () => w([0, BR + 0.55, 0]) });
+  addLabel('|0⟩', { groups: ['bloch'], cls: 'axis', ax: -50, ay: -100, dy: -5, fn: () => w([0, BR, 0]) });
+  addLabel('|1⟩', { groups: ['bloch'], cls: 'axis', ax: -50, ay: 0, dy: 5, fn: () => w([0, -BR, 0]) });
+  addLabel('|+⟩', { groups: ['bloch'], cls: 'axis', ax: 0, ay: -50, dx: 6, fn: () => w([BR, 0, 0]) });
+  addLabel('|−⟩', { groups: ['bloch'], cls: 'axis', ax: -100, ay: -50, dx: -6, fn: () => w([-BR, 0, 0]) });
+});
+const entLabel = addLabel('量子もつれ', { pos: new THREE.Vector3(BX, BY - 0.9, 0), groups: [], cls: 'ent', ax: -50, ay: -50 });
+addLabel('希釈冷凍機', { pos: new THREE.Vector3(0, 11.6, 0), groups: ['summary'], cls: 'title', ax: -50, ay: -100 });
+addLabel('2 つの量子ビット (ブロッホ球)', { pos: new THREE.Vector3(BX, BY + 2.8, 0), groups: ['summary'], cls: 'title', ax: -50, ay: -100 });
+
+let labelGroup = 'overview';
+const _v = new THREE.Vector3();
+function updateLabels() {
+  const W = innerWidth, H = innerHeight;
+  camRight.set(1, 0, 0).applyQuaternion(camera.quaternion); camRight.y = 0;
+  if (camRight.lengthSq() < 1e-6) camRight.set(1, 0, 0); else camRight.normalize();
+  for (const L of labels) {
+    const show = L.groups.has(labelGroup) || (L.extra && L.extra());
+    if (!show) { if (L.el.style.display !== 'none') L.el.style.display = 'none'; continue; }
+    _v.copy(L.fn ? L.fn() : L.pos).project(camera);
+    if (_v.z > 1 || Math.abs(_v.x) > 1.4 || Math.abs(_v.y) > 1.4) { L.el.style.display = 'none'; continue; }
+    const x = (_v.x + 1) / 2 * W + L.dx, y = (1 - _v.y) / 2 * H + L.dy;
+    L.el.style.display = 'block';
+    L.el.style.transform = `translate(${x.toFixed(1)}px,${y.toFixed(1)}px) translate(${L.ax}%,${L.ay}%)`;
+  }
+}
+
+// ---------------------------------------------------------------- UI
+const ui = {
+  steps: document.getElementById('steps'), stepNum: document.getElementById('stepNum'), title: document.getElementById('phTitle'),
+  prog: document.getElementById('phProg'), text: document.getElementById('phText'), qc: document.getElementById('qc'),
+  state: document.getElementById('stateTxt'), len: document.getElementById('lenTxt'), chartTitle: document.getElementById('chartTitle'),
+  chart: document.getElementById('chart'), shotLog: document.getElementById('shotLog'), bottom: document.getElementById('bottomProg'),
+  gH: document.getElementById('gH'), gCX: document.getElementById('gCX'), gM: document.getElementById('gM'),
+};
+phases.forEach((p, i) => {
+  const li = document.createElement('li');
+  li.innerHTML = `<span class="n">${i + 1}</span><span>${p.name}</span>`;
+  li.addEventListener('click', () => jumpTo(i));
+  ui.steps.appendChild(li);
+});
+const rows = ['00', '01', '10', '11'].map(k => {
+  const r = document.createElement('div'); r.className = 'row';
+  r.innerHTML = `<span class="k">${k}</span><span class="bw"><div></div></span><span class="v"></span>`;
+  ui.chart.appendChild(r);
+  return { bar: r.querySelector('.bw div'), val: r.querySelector('.v') };
+});
+function setChart(title, values, fmt, max) {
+  ui.chartTitle.textContent = title;
+  values.forEach((v, i) => { rows[i].bar.style.width = (max > 0 ? (v / max) * 100 : 0) + '%'; rows[i].val.textContent = fmt(v); });
+}
+let paused = false;
+document.getElementById('btnPause').addEventListener('click', e => { paused = !paused; e.target.textContent = paused ? '再開 ▶' : '一時停止'; });
+document.getElementById('btnNext').addEventListener('click', () => jumpTo((phaseIdx + 1) % phases.length));
+document.getElementById('chkShield').addEventListener('change', e => { shieldGroup.visible = e.target.checked; });
+window.addEventListener('keydown', e => { if (e.code === 'Space' && e.target.tagName !== 'BUTTON') { e.preventDefault(); document.getElementById('btnPause').click(); } });
+
+// ---------------------------------------------------------------- camera fly
+let camTween = null;
+function flyTo(cam, dur = 1.8) {
+  camTween = { t: 0, dur, p0: camera.position.clone(), t0: controls.target.clone(), p1: new THREE.Vector3(...cam.pos), t1: new THREE.Vector3(...cam.tgt) };
+}
+controls.addEventListener('start', () => { camTween = null; });
+
+// ---------------------------------------------------------------- timeline
+let masterT = 0, phaseIdx = -1, prevIdx = -1;
+const counts = [0, 0, 0, 0];
+let shotLog = [];
+const meas = { done: false, outcome: -1 };
+let lastShot = -1, shotOutcome = -1;
+
+function resetCounts() { counts.fill(0); shotLog = []; }
+function recordShot(i) { counts[i]++; shotLog.push(bitstr(i)); if (shotLog.length > 24) shotLog.shift(); }
+
+function jumpTo(i) { masterT = phases[i].start + 1e-4; }
+
+function enterPhase(i) {
+  prevIdx = phaseIdx; phaseIdx = i;
+  const p = phases[i];
+  flyTo(p.cam);
+  labelGroup = p.labels;
+  ui.stepNum.textContent = String(i + 1);
+  ui.title.textContent = p.title;
+  ui.text.innerHTML = p.html;
+  ui.qc.classList.toggle('hidden', !p.qc);
+  [...ui.steps.children].forEach((li, k) => { li.classList.toggle('on', k === i); li.classList.toggle('done', k < i); });
+  if (p.id === 'measure') { resetCounts(); meas.done = false; meas.outcome = -1; }
+  if (p.id === 'shots') { if (phases[prevIdx]?.id !== 'measure') resetCounts(); lastShot = -1; }
+  if (p.id === 'init') { B1.trailPts.length = 0; B2.trailPts.length = 0; }
+  pulseIn.visible = pulseOut.visible = (p.id === 'signal');
+  stages.forEach(s => s.plate.material = M.gold);
+}
+
+// ---------------------------------------------------------------- per-frame logic
+const activePlateMat = new THREE.MeshStandardMaterial({ color: 0xffd27a, metalness: 0.9, roughness: 0.25, emissive: 0x6a4a10, emissiveIntensity: 0.8 });
+const stateStr = {
+  zero: '|ψ⟩ = |00⟩', plus: '|ψ⟩ = (|00⟩ + |10⟩)/√2 = |+⟩|0⟩', bell: '|ψ⟩ = (|00⟩ + |11⟩)/√2 (ベル状態)',
+};
+function clamp01(x) { return Math.max(0, Math.min(1, x)); }
+
+function updatePhase(dt) {
+  const p = phases[phaseIdx];
+  const tl = masterT - p.start;
+  ui.prog.style.width = (tl / p.dur * 100).toFixed(1) + '%';
+  ui.bottom.style.width = (masterT / TOTAL * 100).toFixed(2) + '%';
+  controls.autoRotate = !!p.rotate && !camTween;
+
+  // --- fridge animations
+  let activeStage = -1;
+  if (p.id === 'stages') activeStage = Math.min(5, Math.floor(tl / (p.dur / 6)));
+  stages.forEach((s, k) => {
+    const on = k === activeStage;
+    s.plate.material = on ? activePlateMat : M.gold;
+    haloMats[k].opacity = on ? 0.95 : 0.5;
+    s.halo.scale.setScalar(on ? 1 + 0.03 * Math.sin(performance.now() / 120) : 1);
+    s.label.el.classList.toggle('active', on);
+  });
+  if (p.id === 'stages') ui.text.querySelectorAll('ul.stg li').forEach((li, k) => li.classList.toggle('on', k === activeStage));
+  if (p.id === 'signal') {
+    const cyc = (tl % 3.0) / 3.0; // 0..0.5 down, 0.5..1 up
+    if (cyc < 0.5) { pulseIn.visible = true; pulseOut.visible = false; pulseIn.position.copy(pathIn(cyc * 2)); }
+    else { pulseIn.visible = false; pulseOut.visible = true; pulseOut.position.copy(pathOut((cyc - 0.5) * 2)); }
+  }
+
+  // --- quantum state
+  let psi = zeroState(), txt = stateStr.zero, gate = null;
+  let chartMode = 'prob';
+  if (p.id === 'h') {
+    const s = clamp01((tl - 1) / 3);
+    psi = partial(zeroState(), applyH1, s);
+    txt = s <= 0 ? stateStr.zero : (s < 1 ? 'H ゲートを適用中… (マイクロ波パルス)' : stateStr.plus);
+    gate = s < 1 ? 'H' : 'Hdone';
+  } else if (p.id === 'cnot') {
+    const s = clamp01((tl - 0.8) / 3.2);
+    psi = partial(applyH1(zeroState()), applyCNOT, s);
+    txt = s <= 0 ? stateStr.plus : (s < 1 ? 'CNOT ゲートを適用中… (2 量子ビットパルス)' : stateStr.bell);
+    gate = s < 1 ? 'CX' : 'CXdone';
+  } else if (p.id === 'measure') {
+    if (!meas.done && tl >= 1.5) { meas.done = true; meas.outcome = sample(BELL); recordShot(meas.outcome); B1.flash = B2.flash = 1; }
+    psi = meas.done ? basis(meas.outcome) : BELL;
+    txt = meas.done ? `測定後: |ψ⟩ = |${bitstr(meas.outcome)}⟩` : stateStr.bell;
+    gate = 'M';
+    chartMode = meas.done ? 'counts' : 'prob';
+    const d = document.getElementById('dynMeasure');
+    if (d) d.innerHTML = meas.done
+      ? `結果: <b style="color:#ffe08a;font-size:16px">${bitstr(meas.outcome)}</b> — 2 つとも ${meas.outcome === 0 ? '|0⟩ (北極)' : '|1⟩ (南極)'} に決まりました`
+      : '測定の準備中… (もつれた状態: 矢印は中心)';
+  } else if (p.id === 'shots') {
+    const IV = 0.36, k = Math.floor(tl / IV), ph = tl - k * IV;
+    if (k > lastShot) { lastShot = k; shotOutcome = sample(BELL); recordShot(shotOutcome); B1.flash = B2.flash = 0.6; }
+    psi = ph < 0.1 ? BELL : basis(shotOutcome);
+    txt = ph < 0.1 ? '初期化 → H → CNOT …' : `測定: |${bitstr(shotOutcome)}⟩`;
+    gate = ph < 0.1 ? 'CX' : 'M';
+    chartMode = 'counts';
+    const d = document.getElementById('dynShots');
+    const n = counts.reduce((a, b) => a + b, 0);
+    if (d) d.innerHTML = `ショット ${n} 回目の結果: <b style="color:#ffe08a;font-size:16px">${bitstr(shotOutcome)}</b>`;
+  } else if (p.id === 'summary') {
+    psi = BELL; txt = stateStr.bell; gate = 'all'; chartMode = 'counts';
+  } else if (p.id === 'init') {
+    psi = zeroState(); txt = stateStr.zero;
+  } else {
+    psi = zeroState(); txt = stateStr.zero; // fridge phases: idle qubits in |00⟩
+  }
+
+  // circuit highlight
+  ui.gH.setAttribute('class', 'g' + (gate === 'H' ? ' on' : (gate ? ' done' : '')));
+  ui.gCX.setAttribute('class', 'g' + (gate === 'CX' ? ' on' : ((gate === 'CXdone' || gate === 'M' || gate === 'all') ? ' done' : '')));
+  ui.gM.setAttribute('class', 'g' + (gate === 'M' ? ' on' : (gate === 'all' ? ' done' : '')));
+
+  // Bloch vectors
+  const r1 = blochVec(psi, 0), r2 = blochVec(psi, 1);
+  const rate = p.id === 'shots' ? 45 : 14;
+  updateBloch(B1, r1, dt, rate); updateBloch(B2, r2, dt, rate);
+  const ent = clamp01(1 - Math.max(B1.disp.length(), B2.disp.length())); // 0 for product states, 1 for maximally entangled
+  linkMat.opacity = ent * 0.9;
+  link.visible = ent > 0.02;
+  const tt = performance.now() / 1000;
+  linkRings.forEach((r, i) => { r.visible = ent > 0.02; r.position.x = ((tt * 0.6 + i / 3) % 1 - 0.5) * (BSEP * 2 - BR * 2 + 0.2); r.scale.setScalar(0.6 + 0.4 * Math.sin(tt * 4 + i)); });
+  entLabel.extra = () => labelGroup === 'bloch' && ent > 0.5;
+  B1.sphMat.emissive.setRGB(0.35 * ent + B1.flash * 0.6, 0.05 * ent + B1.flash * 0.6, 0.3 * ent + B1.flash * 0.6);
+  B2.sphMat.emissive.setRGB(0.35 * ent + B2.flash * 0.6, 0.05 * ent + B2.flash * 0.6, 0.3 * ent + B2.flash * 0.6);
+
+  if (p.qc) {
+    ui.state.textContent = txt;
+    ui.len.textContent = `ブロッホベクトルの長さ: 量子ビット 1 = ${r1.length().toFixed(2)}, 量子ビット 2 = ${r2.length().toFixed(2)}  (1 = 純粋な状態, 0 = 単独では向きが決まらない)`;
+    if (chartMode === 'prob') setChart('いま測定したときに各結果が出る確率', probs(psi), v => (v * 100).toFixed(0) + ' %', 1);
+    else { const n = counts.reduce((a, b) => a + b, 0); setChart(`測定結果の回数 (合計 ${n} ショット)`, counts, v => `${v} 回 (${n ? (v / n * 100).toFixed(0) : 0}%)`, Math.max(1, ...counts)); }
+    ui.shotLog.textContent = shotLog.length ? '結果の列: ' + shotLog.join(' ') : '';
+  }
+}
+
+const _dir = new THREE.Vector3(), _tmp = new THREE.Vector3();
+function updateBloch(B, target, dt, rate = 14) {
+  // Bloch (x, y, z) -> three.js (x, y_up = z, z = y)
+  _tmp.set(target.x, target.z, target.y);
+  const k = 1 - Math.exp(-dt * rate);
+  B.disp.lerp(_tmp, k);
+  B.sphMat.opacity = 0.14 + B.flash * 0.35;
+  const len = B.disp.length();
+  const showArrow = len > 0.08;
+  B.arrow.visible = showArrow;
+  if (showArrow) {
+    _dir.copy(B.disp).normalize();
+    B.arrow.quaternion.setFromUnitVectors(Y, _dir);
+    const L = len * BR;
+    const sh = Math.max(0.001, L - B.coneH);
+    B.shaft.scale.set(1, sh, 1);
+    B.cone.position.y = sh;
+    B.cone.scale.setScalar(Math.min(1, L / B.coneH));
+  }
+  B.centerDot.visible = len < 0.5;
+  B.centerDot.scale.setScalar(Math.max(0.01, 1 - len * 2));
+  // trail of the arrow tip
+  if (showArrow) {
+    const tip = B.disp.clone().multiplyScalar(BR);
+    const last = B.trailPts[B.trailPts.length - 1];
+    if (!last || last.distanceTo(tip) > 0.03) { B.trailPts.push(tip); if (B.trailPts.length > 64) B.trailPts.shift(); }
+  } else B.trailPts.length = 0;
+  const pos = B.trail.geometry.attributes.position;
+  for (let i = 0; i < 64; i++) { const q = B.trailPts[Math.min(i, B.trailPts.length - 1)] || _tmp; pos.setXYZ(i, q.x, q.y, q.z); }
+  pos.needsUpdate = true;
+  B.trail.visible = B.trailPts.length > 1;
+  B.flash = Math.max(0, B.flash - dt * 2.5);
+}
+
+// ---------------------------------------------------------------- resize (shift the projection centre into the gap between the panels)
+function resize() {
+  const W = innerWidth, H = innerHeight;
+  renderer.setSize(W, H);
+  camera.aspect = W / H;
+  const leftW = 240 + 28, rightW = 350 + 28;
+  const cx = (leftW + (W - rightW)) / 2;
+  camera.setViewOffset(W, H, Math.round(W / 2 - cx), 0, W, H);
+  camera.updateProjectionMatrix();
+}
+window.addEventListener('resize', resize);
+resize();
+
+// ---------------------------------------------------------------- main loop
+const clock = new THREE.Clock();
+function frame() {
+  requestAnimationFrame(frame);
+  const dt = Math.min(0.1, clock.getDelta());
+  if (!paused) masterT += dt;
+  if (masterT >= TOTAL) masterT -= TOTAL;
+  let idx = 0;
+  for (let i = 0; i < phases.length; i++) if (masterT >= phases[i].start) idx = i;
+  if (idx !== phaseIdx) enterPhase(idx);
+
+  if (camTween) {
+    camTween.t += dt;
+    const u = clamp01(camTween.t / camTween.dur), s = u * u * (3 - 2 * u);
+    camera.position.lerpVectors(camTween.p0, camTween.p1, s);
+    controls.target.lerpVectors(camTween.t0, camTween.t1, s);
+    if (u >= 1) camTween = null;
+  }
+  controls.update();
+  updatePhase(dt);
+  blochGroup.updateMatrixWorld(true);
+  updateLabels();
+  renderer.render(scene, camera);
+}
+frame();
+</script>
+</body>
+</html>

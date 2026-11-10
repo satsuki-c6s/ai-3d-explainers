@@ -1,0 +1,1191 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>超伝導量子コンピューターのしくみ（3D アニメーション）</title>
+<link rel="icon" href="data:,">
+<style>
+:root{
+  --q0:#ffab40; --q1:#3fd2ff; --bg:#060a13; --panel:rgba(13,19,33,.94);
+  --line:rgba(140,170,220,.22); --txt:#e9eef7; --sub:#a3b3ca; --gold:#f0c35a; --blue:#4d9bff; --orange:#ff9a3c;
+}
+html{font-size:max(9px, min(1.09375vw, 1.9444vh));}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--txt);
+  font-family:"Hiragino Kaku Gothic ProN","Hiragino Sans","Yu Gothic UI","Yu Gothic","Meiryo","Noto Sans JP","Noto Sans CJK JP","Source Han Sans JP",system-ui,sans-serif;}
+.math{font-family:"Cambria Math","Segoe UI Symbol","STIX Two Math","Noto Sans Math","DejaVu Sans",inherit;}
+#app{position:fixed;inset:0;display:grid;grid-template-rows:3.7rem minmax(0,1fr) 3.3rem;grid-template-columns:minmax(0,1fr) 31rem;}
+header{grid-column:1/3;grid-row:1;display:flex;align-items:center;justify-content:space-between;gap:1rem;
+  padding:0 1.1rem;border-bottom:1px solid var(--line);background:linear-gradient(90deg,#0d1424,#0a101d);}
+.ttl h1{font-size:1.28rem;font-weight:700;letter-spacing:.03em;white-space:nowrap;}
+.ttl h1 span{color:var(--gold)}
+.ttl p{font-size:.78rem;color:var(--sub);margin-top:.15rem;white-space:nowrap;}
+.now{display:flex;align-items:center;gap:.8rem;white-space:nowrap;}
+.now .lbl{font-size:.78rem;color:var(--sub);}
+#nowNum{font-size:1rem;font-weight:700;color:#0b1020;background:var(--gold);border-radius:.4rem;padding:.12rem .5rem;}
+#nowName{font-size:1.15rem;font-weight:700;min-width:13rem;}
+#clock{font-size:.82rem;color:var(--sub);font-variant-numeric:tabular-nums;min-width:6.6rem;text-align:right;}
+button{font:inherit;color:inherit;cursor:pointer}
+#pauseBtn{font-size:.82rem;border:1px solid var(--line);background:#16213a;border-radius:.4rem;padding:.3rem .7rem;min-width:6.2rem;}
+#pauseBtn:hover{background:#1e2d4d}
+#view{grid-column:1;grid-row:2;position:relative;overflow:hidden;
+  background:radial-gradient(ellipse at 50% 35%,#18233d 0%,#0b1120 55%,#05080f 100%);}
+#c3d{position:absolute;inset:0;width:100%;height:100%;display:block;outline:none;}
+#leaders{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;}
+#labels{position:absolute;inset:0;pointer-events:none;}
+.lab{position:absolute;left:0;top:0;width:13.4rem;padding:.42rem .6rem .48rem .7rem;border-radius:.45rem;
+  background:rgba(9,14,26,.86);border:1px solid rgba(160,190,240,.28);border-left:.25rem solid var(--c,#f0c35a);
+  opacity:0;visibility:hidden;transition:opacity .35s;}
+.lab.show{opacity:1;visibility:visible;}
+.lab b{display:block;font-size:.9rem;line-height:1.3;color:var(--c,#f0c35a);}
+.lab span{display:block;font-size:.76rem;line-height:1.45;color:#d5deeb;margin-top:.12rem;}
+#hint{position:absolute;left:50%;top:.55rem;transform:translateX(-50%);font-size:.74rem;color:var(--sub);
+  background:rgba(8,12,22,.7);border:1px solid var(--line);border-radius:1rem;padding:.22rem .8rem;white-space:nowrap;pointer-events:none;}
+#panel{grid-column:2;grid-row:2;display:flex;flex-direction:column;gap:.45rem;padding:.65rem .75rem;overflow:hidden;
+  background:var(--panel);border-left:1px solid var(--line);}
+.card{background:rgba(255,255,255,.035);border:1px solid var(--line);border-radius:.55rem;padding:.6rem .8rem .7rem;flex:0 0 auto;}
+.card h2{font-size:1.08rem;line-height:1.35;color:var(--gold);margin-bottom:.35rem;}
+.card p{font-size:.86rem;line-height:1.62;}
+.sec{background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:.55rem;padding:.5rem .7rem;}
+.sec h3{font-size:.84rem;color:var(--gold);margin-bottom:.35rem;font-weight:700;}
+#devInfo{display:flex;flex-direction:column;gap:.55rem;min-height:0;}
+#qInfo{display:none;flex-direction:column;gap:.4rem;flex:1 1 auto;min-height:0;}
+.facts{list-style:none;font-size:.8rem;line-height:1.5;}
+.facts li{display:flex;gap:.6rem;padding:.28rem 0;border-bottom:1px dashed rgba(160,190,240,.15);}
+.facts li:last-child{border-bottom:none}
+.facts li em{font-style:normal;color:var(--sub);flex:0 0 8.6rem;}
+.ladder{list-style:none;display:flex;flex-direction:column;gap:.28rem;}
+.ladder li{display:grid;grid-template-columns:6.4rem 1fr;align-items:center;gap:.6rem;padding:.3rem .5rem;border-radius:.4rem;
+  background:rgba(255,255,255,.03);border:1px solid transparent;transition:background .3s,border-color .3s,opacity .3s;opacity:.45;}
+.ladder li.on{opacity:1;}
+.ladder li.cur{background:rgba(240,195,90,.13);border-color:rgba(240,195,90,.5);}
+.ladder .t{font-weight:700;font-size:.92rem;font-variant-numeric:tabular-nums;}
+.ladder .d{font-size:.76rem;line-height:1.4;}
+.ladder .d b{display:block;font-size:.82rem;}
+.flow{list-style:none;counter-reset:f;display:flex;flex-direction:column;gap:.2rem;}
+.flow li{position:relative;font-size:.78rem;line-height:1.45;padding:.3rem .5rem .3rem 2rem;border-radius:.4rem;background:rgba(255,255,255,.03);}
+.flow li::before{counter-increment:f;content:counter(f);position:absolute;left:.5rem;top:.32rem;width:1.1rem;height:1.1rem;border-radius:50%;
+  background:var(--fc,#4d9bff);color:#081020;font-weight:700;font-size:.7rem;display:flex;align-items:center;justify-content:center;}
+.flow li b{color:var(--fc,#4d9bff)}
+.small{font-size:.76rem;line-height:1.55;color:#d5deeb;}
+.levels{width:100%;height:auto;display:block;}
+/* quantum */
+.circ svg{width:100%;height:auto;display:block;}
+.circ{padding:.3rem .5rem;}
+.circ .g{transition:filter .3s}
+.circ .g.on{filter:drop-shadow(0 0 4px #ffd36b);}
+.circ .g.on .box{stroke:#ffd36b;fill:rgba(255,211,107,.22)}
+#blochSec{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;}
+#blochLegend{font-size:.7rem;line-height:1.45;color:var(--sub);margin-bottom:.15rem;}
+#blochWrap{position:relative;flex:1 1 auto;min-height:5rem;}
+#cBloch{position:absolute;inset:0;width:100%;height:100%;display:block;}
+#entBadge{position:absolute;left:50%;top:40%;transform:translate(-50%,-50%);font-size:.74rem;font-weight:700;color:#ffe08a;
+  background:rgba(60,40,0,.55);border:1px solid rgba(255,220,120,.6);border-radius:1rem;padding:.15rem .55rem;opacity:0;transition:opacity .4s;white-space:nowrap;}
+#entBadge.show{opacity:1}
+.caps{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;flex:0 0 auto;}
+.cap{font-size:.74rem;line-height:1.4;text-align:center;min-height:2.1rem;}
+.cap b{font-size:.82rem;margin-right:.35rem}
+#cap0 b{color:var(--q0)} #cap1 b{color:var(--q1)}
+#stateLine{font-size:.84rem;line-height:1.4;text-align:center;min-height:2.45rem;display:flex;align-items:center;justify-content:center;
+  background:rgba(255,255,255,.04);border-radius:.45rem;padding:0 .5rem;flex:0 0 auto;}
+.bars{flex:0 0 auto;}
+.barsHead{display:flex;justify-content:space-between;font-size:.76rem;color:var(--sub);margin-bottom:.25rem;}
+.barsHead b{color:var(--txt)}
+.brow{display:grid;grid-template-columns:2.2rem 1fr 4.6rem;align-items:center;gap:.5rem;height:1.12rem;}
+.brow .k{font-size:.8rem;font-weight:700;text-align:right;font-variant-numeric:tabular-nums;}
+.brow .track{position:relative;height:.75rem;background:rgba(255,255,255,.07);border-radius:.3rem;overflow:hidden;}
+.brow .fill{position:absolute;left:0;top:0;bottom:0;width:0;background:linear-gradient(90deg,#c9932f,#ffd36b);border-radius:.3rem;}
+.brow .exp{position:absolute;top:-1px;bottom:-1px;left:50%;border-left:2px dashed rgba(255,255,255,.55);display:none;}
+.brow .v{font-size:.78rem;text-align:right;font-variant-numeric:tabular-nums;}
+.note{font-size:.68rem;color:var(--sub);margin-top:.2rem;line-height:1.4;}
+footer{grid-column:1/3;grid-row:3;display:flex;gap:.35rem;padding:.4rem .75rem;border-top:1px solid var(--line);background:#0a101d;}
+.step{flex:1 1 0;min-width:0;position:relative;border:1px solid var(--line);border-radius:.45rem;background:#0f1729;
+  display:flex;align-items:center;gap:.4rem;padding:0 .5rem;font-size:.8rem;color:var(--sub);overflow:hidden;white-space:nowrap;}
+.step i{font-style:normal;flex:0 0 auto;width:1.3rem;height:1.3rem;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  background:#1d2a45;color:var(--txt);font-size:.72rem;font-weight:700;}
+.step .bar{position:absolute;left:0;bottom:0;height:.2rem;width:0;background:var(--gold);}
+.step.done{color:#cfd9e8}
+.step.done i{background:#6b5a2c}
+.step.cur{color:var(--txt);border-color:rgba(240,195,90,.7);background:#1a2238;}
+.step.cur i{background:var(--gold);color:#0b1020}
+.step:hover{border-color:rgba(240,195,90,.5)}
+#err{display:none;position:fixed;inset:0;align-items:center;justify-content:center;font-size:1.2rem;background:#060a13;z-index:9;padding:2rem;text-align:center;}
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="ttl">
+      <h1><span>超伝導</span>量子コンピューターのしくみ</h1>
+      <p>希釈冷凍機の中で、2 つの量子ビットが計算するまで</p>
+    </div>
+    <div class="now">
+      <span class="lbl">いまの段階</span>
+      <span id="nowNum">1 / 8</span>
+      <span id="nowName">装置の全体</span>
+      <span id="clock">0 秒 / 59 秒</span>
+      <button id="pauseBtn" type="button">一時停止</button>
+    </div>
+  </header>
+
+  <div id="view">
+    <canvas id="c3d"></canvas>
+    <svg id="leaders"></svg>
+    <div id="labels"></div>
+    <div id="hint">ドラッグで回転・ホイールで拡大・右ドラッグで移動</div>
+  </div>
+
+  <aside id="panel">
+    <section class="card">
+      <h2 id="cardTitle"></h2>
+      <p id="cardText"></p>
+    </section>
+
+    <div id="devInfo"></div>
+
+    <div id="qInfo">
+      <section class="sec circ">
+        <svg viewBox="0 0 420 80" aria-label="量子回路">
+          <g fill="none" stroke="#8fa3c2" stroke-width="2">
+            <line x1="78" y1="22" x2="262" y2="22"/>
+            <line x1="78" y1="54" x2="262" y2="54"/>
+            <line x1="296" y1="20" x2="336" y2="20"/><line x1="296" y1="24" x2="336" y2="24"/>
+            <line x1="296" y1="52" x2="336" y2="52"/><line x1="296" y1="56" x2="336" y2="56"/>
+          </g>
+          <text x="6" y="27" fill="#ffab40" font-size="15" font-weight="700">q0</text>
+          <text x="32" y="27" fill="#dfe7f3" font-size="15" class="math">|0⟩</text>
+          <text x="6" y="59" fill="#3fd2ff" font-size="15" font-weight="700">q1</text>
+          <text x="32" y="59" fill="#dfe7f3" font-size="15" class="math">|0⟩</text>
+          <g id="gH" class="g">
+            <rect class="box" x="118" y="8" width="30" height="28" rx="4" fill="#1b2742" stroke="#c9d6ea" stroke-width="2"/>
+            <text x="133" y="28" fill="#fff" font-size="17" font-weight="700" text-anchor="middle">H</text>
+          </g>
+          <g id="gCX" class="g">
+            <line x1="205" y1="22" x2="205" y2="64" stroke="#c9d6ea" stroke-width="2"/>
+            <circle cx="205" cy="22" r="5.5" fill="#c9d6ea"/>
+            <circle class="box" cx="205" cy="54" r="10" fill="#1b2742" stroke="#c9d6ea" stroke-width="2"/>
+            <line x1="195" y1="54" x2="215" y2="54" stroke="#c9d6ea" stroke-width="2"/>
+            <line x1="205" y1="44" x2="205" y2="64" stroke="#c9d6ea" stroke-width="2"/>
+          </g>
+          <g id="gM" class="g">
+            <rect class="box" x="264" y="8" width="32" height="28" rx="4" fill="#1b2742" stroke="#c9d6ea" stroke-width="2"/>
+            <path d="M270 31 A10 10 0 0 1 290 31" fill="none" stroke="#c9d6ea" stroke-width="2"/>
+            <line x1="280" y1="31" x2="287" y2="17" stroke="#c9d6ea" stroke-width="2"/>
+            <rect class="box" x="264" y="40" width="32" height="28" rx="4" fill="#1b2742" stroke="#c9d6ea" stroke-width="2"/>
+            <path d="M270 63 A10 10 0 0 1 290 63" fill="none" stroke="#c9d6ea" stroke-width="2"/>
+            <line x1="280" y1="63" x2="287" y2="49" stroke="#c9d6ea" stroke-width="2"/>
+          </g>
+          <text x="342" y="27" fill="#dfe7f3" font-size="14" id="out0">0 / 1</text>
+          <text x="342" y="59" fill="#dfe7f3" font-size="14" id="out1">0 / 1</text>
+          <text x="133" y="78" fill="#a3b3ca" font-size="12" text-anchor="middle">重ね合わせ</text>
+          <text x="205" y="78" fill="#a3b3ca" font-size="12" text-anchor="middle">もつれ</text>
+          <text x="280" y="78" fill="#a3b3ca" font-size="12" text-anchor="middle">測定</text>
+          <line id="playhead" x1="95" y1="2" x2="95" y2="68" stroke="#ffd36b" stroke-width="2" stroke-dasharray="4 3"/>
+        </svg>
+      </section>
+
+      <section class="sec" id="blochSec">
+        <div id="blochLegend">ブロッホ球：北極 = <span class="math">|0⟩</span>、南極 = <span class="math">|1⟩</span>、赤道 = 半分ずつの重ね合わせ。矢印の長さ = その量子ビット 1 つだけで状態が決まる度合い（0〜1）</div>
+        <div id="blochWrap"><canvas id="cBloch"></canvas><div id="entBadge">⟷ 量子もつれ</div></div>
+        <div class="caps"><div class="cap" id="cap0"></div><div class="cap" id="cap1"></div></div>
+      </section>
+
+      <div id="stateLine"></div>
+
+      <section class="sec bars">
+        <div class="barsHead"><span id="barsMode">確率</span><span id="barsCount"></span></div>
+        <div class="brow"><span class="k">00</span><div class="track"><div class="fill" id="bf0"></div><div class="exp" id="be0"></div></div><span class="v" id="bv0"></span></div>
+        <div class="brow"><span class="k">01</span><div class="track"><div class="fill" id="bf1"></div><div class="exp" id="be1"></div></div><span class="v" id="bv1"></span></div>
+        <div class="brow"><span class="k">10</span><div class="track"><div class="fill" id="bf2"></div><div class="exp" id="be2"></div></div><span class="v" id="bv2"></span></div>
+        <div class="brow"><span class="k">11</span><div class="track"><div class="fill" id="bf3"></div><div class="exp" id="be3"></div></div><span class="v" id="bv3"></span></div>
+        <div class="note" id="barsNote">左の数字が q0、右が q1。理想的な計算（実機ではノイズで 01・10 も少し出る）</div>
+      </section>
+    </div>
+  </aside>
+
+  <footer id="steps"></footer>
+</div>
+<div id="err">このページの表示には WebGL が使えるブラウザー（Chrome など）が必要です。</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+const $ = (id) => document.getElementById(id);
+const textCache = new Map();
+function setHTML(el, html) { if (textCache.get(el) !== html) { textCache.set(el, html); el.innerHTML = html; } }
+const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
+const smooth = (x) => { x = clamp(x, 0, 1); return x * x * (3 - 2 * x); };
+const ease = (x) => { x = clamp(x, 0, 1); return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2; };
+const K = (s) => `<span class="math">${s}</span>`;
+
+/* ============================================================
+   段階（フェーズ）の定義 — 合計 59 秒
+   ============================================================ */
+const PH = [
+  { key: 'overview', short: '装置の全体', name: '装置の全体', dur: 7,
+    title: '希釈冷凍機 ― 金色のシャンデリア',
+    text: '金色の段の集まりが「希釈冷凍機」です。上から円板（プレート）がつり下がり、下の段ほど冷たくなります。いちばん下の磁気シールドの中に量子ビットのチップがあり、約 0.01 K まで冷やされます。ふだんは外側を真空の缶でおおいます（ここでは外して表示）。' },
+  { key: 'temps', short: '温度の段', name: '段ごとの温度', dur: 8,
+    title: '下の段ほど冷たい ― 300 K から 0.01 K へ',
+    text: '円板は熱をよく伝える銅に金めっきしたもの。上の 2 段はパルス管冷凍機（ヘリウムガスの圧縮と膨張）で約 50 K・約 4 K に冷やします。その下は、ヘリウム3 がヘリウム4 の液に溶け込むときに熱をうばう性質を使い、混合室で約 0.01 K にします。' },
+  { key: 'chip', short: 'チップ', name: '量子ビットのチップ', dur: 7,
+    title: '量子ビットのチップ ― 超伝導の電気回路',
+    text: 'チップは数 mm 角。アルミの回路は約 1.2 K 以下で超伝導（電気抵抗ゼロ）になります。十字形の電極とジョセフソン接合でできた「トランズモン」が 1 個の量子ビット。いちばん低いエネルギーの状態を ' + K('|0⟩') + '、1 つ上を ' + K('|1⟩') + ' として使います。' },
+  { key: 'signal', short: '信号の通り道', name: '信号の通り道', dur: 7,
+    title: '信号の通り道 ― マイクロ波で操作・読み出し',
+    text: '量子ビットは室温の装置から送るマイクロ波のパルス（青い光）で操作します。入力線の減衰器は、上の段から来る熱の雑音を弱めます。チップから返る弱い読み出し信号（オレンジの光）は、サーキュレーターを通り増幅器で大きくされ、室温で読み取られます。' },
+  { key: 'hgate', short: 'H ゲート', name: 'H ゲート（重ね合わせ）', dur: 7,
+    title: 'H ゲート ― 重ね合わせをつくる',
+    text: 'はじめは 2 つとも ' + K('|0⟩') + '（北極）。q0 に H ゲートのパルスを当てると、矢印は x と z の間の軸のまわりに半回転して赤道へ。' + K('|0⟩') + ' と ' + K('|1⟩') + ' が半分ずつの「重ね合わせ」です。q1 は ' + K('|0⟩') + ' のまま。' },
+  { key: 'cnot', short: 'CNOT', name: 'CNOT（量子もつれ）', dur: 7,
+    title: 'CNOT ゲート ― 量子もつれをつくる',
+    text: 'q0 が 1 のときだけ q1 を反転させるゲート。q0 が重ね合わせなので、全体は ' + K('(|00⟩+|11⟩)/√2') + ' の「量子もつれ」に。1 つずつ見ると向きが決まらず、矢印は中心に縮みます（長さ 0）。' },
+  { key: 'measure', short: '測定', name: '測定をくり返す', dur: 12,
+    title: '測定 ― 何回もくり返して数える',
+    text: '測定すると 0 か 1 に決まります（矢印は北極か南極へ）。1 回ごとの結果はランダムですが、q0 と q1 はいつも同じ値。毎回 ' + K('|00⟩') + ' から回路をやり直し、1024 回くり返して数えます。' },
+  { key: 'summary', short: 'まとめ', name: 'まとめ', dur: 4,
+    title: 'まとめ',
+    text: '冷やす → マイクロ波で操作する → 増幅して読み出す。H で重ね合わせ、CNOT でもつれ。測定では 00 と 11 がほぼ半分ずつ出て、01 と 10 は出ません。結果がいつもそろうのが、もつれた状態の特徴です。' },
+];
+const starts = []; let TOTAL = 0;
+PH.forEach((p) => { starts.push(TOTAL); TOTAL += p.dur; });
+
+/* 右パネル（装置の段階）の補足 */
+const DEV_INFO = [
+  `<section class="sec"><h3>主な数字</h3><ul class="facts">
+    <li><em>いちばん冷たい所</em><span>約 0.01 K（−273.14 ℃）</span></li>
+    <li><em>宇宙の背景の温度</em><span>約 2.7 K（混合室はその 200 分の 1 以下）</span></li>
+    <li><em>冷やす時間</em><span>室温から 1〜2 日ほど</span></li>
+    <li><em>冷やし方</em><span>上の段：パルス管冷凍機<br>下の段：ヘリウム3 と ヘリウム4 の混合液</span></li>
+    <li><em>外側</em><span>真空の缶と熱をさえぎるシールドで何重にもおおう</span></li>
+  </ul></section>`,
+  `<section class="sec"><h3>段ごとの温度（上から下へ）</h3><ul class="ladder" id="ladder">
+    <li><span class="t" style="color:#ff7a5c">300 K</span><span class="d"><b>室温プレート</b>装置のふた。配線や管の入り口</span></li>
+    <li><span class="t" style="color:#ffae4a">約 50 K</span><span class="d"><b>50 K プレート</b>パルス管冷凍機の 1 段目</span></li>
+    <li><span class="t" style="color:#ffe066">約 4 K</span><span class="d"><b>4 K プレート</b>2 段目。読み出し用の増幅器を置く</span></li>
+    <li><span class="t" style="color:#8ef0d0">約 0.8 K</span><span class="d"><b>スティル</b>ヘリウム3 を蒸発させて送り出す</span></li>
+    <li><span class="t" style="color:#7cc4ff">約 0.1 K</span><span class="d"><b>コールドプレート</b>配線から入る熱をここで止める</span></li>
+    <li><span class="t" style="color:#8f9bff">約 0.01 K</span><span class="d"><b>混合室プレート</b>いちばん冷たい。チップをつなぐ</span></li>
+  </ul></section>`,
+  `<section class="sec"><h3>なぜ 0 と 1 の 2 つだけを使えるの？</h3>
+    <svg class="levels" viewBox="0 0 400 150" aria-label="エネルギー準位">
+      <text x="95" y="16" fill="#a3b3ca" font-size="13" text-anchor="middle">ふつうの電気回路</text>
+      <text x="300" y="16" fill="#f0c35a" font-size="13" text-anchor="middle">トランズモン</text>
+      <g stroke="#a3b3ca" stroke-width="2.5">
+        <line x1="40" y1="132" x2="150" y2="132"/><line x1="40" y1="102" x2="150" y2="102"/>
+        <line x1="40" y1="72" x2="150" y2="72"/><line x1="40" y1="42" x2="150" y2="42"/>
+      </g>
+      <text x="160" y="92" fill="#a3b3ca" font-size="11">間かくが同じ</text>
+      <g stroke="#f0c35a" stroke-width="2.5">
+        <line x1="245" y1="132" x2="355" y2="132"/><line x1="245" y1="92" x2="355" y2="92"/>
+        <line x1="245" y1="60" x2="355" y2="60"/><line x1="245" y1="36" x2="355" y2="36"/>
+      </g>
+      <text x="236" y="136" fill="#fff" font-size="13" text-anchor="end" class="math">|0⟩</text>
+      <text x="236" y="96" fill="#fff" font-size="13" text-anchor="end" class="math">|1⟩</text>
+      <text x="236" y="64" fill="#a3b3ca" font-size="13" text-anchor="end" class="math">|2⟩</text>
+      <line x1="300" y1="129" x2="300" y2="97" stroke="#4d9bff" stroke-width="3"/>
+      <path d="M300 94 l-5 8 h10z" fill="#4d9bff"/>
+      <text x="306" y="118" fill="#4d9bff" font-size="11">約 5 GHz</text>
+    </svg>
+    <p class="small">ジョセフソン接合のおかげで段の間かくがふぞろいになり、0↔1 の周波数のマイクロ波だけを当てれば 2 より上に行きません。<br>0.01 K まで冷やすのは、熱のゆらぎ（0.01 K で約 0.2 GHz 分）を 0↔1 の差（約 5 GHz）よりずっと小さくして、勝手に 1 にならないようにするためです。</p>
+  </section>`,
+  `<section class="sec"><h3>信号の流れ</h3><ol class="flow">
+    <li><b>室温の制御装置</b>：約 4〜8 GHz のマイクロ波パルスをつくる</li>
+    <li><b>入力線と減衰器</b>：4 K・0.1 K・0.01 K の段で信号を弱め、熱の雑音も小さくする</li>
+    <li style="--fc:#f0c35a"><b>チップ</b>：パルスが量子ビットを回す。読み出しパルスは共振器ではね返る</li>
+    <li style="--fc:#ff9a3c"><b>サーキュレーター</b>：返ってきた信号を出力線へ一方通行で送る</li>
+    <li style="--fc:#ff9a3c"><b>増幅器</b>：4 K の HEMT 増幅器などで何百倍にも大きくする</li>
+    <li style="--fc:#ff9a3c"><b>室温で判定</b>：信号の形から 0 か 1 かを決める</li>
+  </ol></section>`,
+];
+
+/* ============================================================
+   three.js の準備
+   ============================================================ */
+const viewEl = $('view');
+let renderer;
+try {
+  renderer = new THREE.WebGLRenderer({ canvas: $('c3d'), antialias: true, alpha: true });
+} catch (e) {
+  $('err').style.display = 'flex';
+  throw e;
+}
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.0;
+
+const scene = new THREE.Scene();
+const pmrem = new THREE.PMREMGenerator(renderer);
+const envTex = pmrem.fromScene(new RoomEnvironment(renderer), 0.04).texture;
+scene.environment = envTex;
+
+const camera = new THREE.PerspectiveCamera(36, 1, 0.01, 300);
+camera.position.set(20, 11, 26);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.minDistance = 0.3;
+controls.maxDistance = 40;
+controls.target.set(0.6, 3.4, 0);
+let userCam = false;
+controls.addEventListener('start', () => { userCam = true; });
+
+scene.add(new THREE.HemisphereLight(0xc8dcff, 0x1a1d28, 0.7));
+const sun = new THREE.DirectionalLight(0xffffff, 1.7); sun.position.set(6, 12, 9); scene.add(sun);
+const rim = new THREE.DirectionalLight(0x88aaff, 0.8); rim.position.set(-8, 4, -6); scene.add(rim);
+const low = new THREE.PointLight(0xffe2b0, 3, 6, 1.5); low.position.set(0.8, -0.2, 1.6); scene.add(low);
+
+/* 材質 */
+const MAT = {
+  gold: new THREE.MeshStandardMaterial({ color: 0xe6b450, metalness: 1, roughness: 0.27 }),
+  goldDark: new THREE.MeshStandardMaterial({ color: 0xc89632, metalness: 1, roughness: 0.38 }),
+  steel: new THREE.MeshStandardMaterial({ color: 0xd2d6dc, metalness: 1, roughness: 0.33 }),
+  steelDark: new THREE.MeshStandardMaterial({ color: 0x9aa1aa, metalness: 1, roughness: 0.45 }),
+  copper: new THREE.MeshStandardMaterial({ color: 0xd88c5c, metalness: 1, roughness: 0.32 }),
+  coax: new THREE.MeshStandardMaterial({ color: 0xc3c8cf, metalness: 0.9, roughness: 0.32 }),
+  dark: new THREE.MeshStandardMaterial({ color: 0x2b303a, metalness: 0.5, roughness: 0.55 }),
+  hose: new THREE.MeshStandardMaterial({ color: 0x3a3f48, metalness: 0.3, roughness: 0.6 }),
+  cab: new THREE.MeshStandardMaterial({ color: 0x1d2330, metalness: 0.6, roughness: 0.45 }),
+  cabFace: new THREE.MeshStandardMaterial({ color: 0x343c4c, metalness: 0.6, roughness: 0.4 }),
+};
+const V = (x, y, z) => new THREE.Vector3(x, y, z);
+function mesh(geo, mat, x = 0, y = 0, z = 0, parent = fridge) {
+  const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); parent.add(m); return m;
+}
+function cyl(rt, rb, h, seg = 32, open = false) { return new THREE.CylinderGeometry(rt, rb, h, seg, 1, open); }
+
+const fridge = new THREE.Group();
+scene.add(fridge);
+
+/* ---------- 段（プレート） ---------- */
+const STAGES = [
+  { name: '室温プレート', temp: '300 K', y: 7.0, r: 2.6, t: 0.2, col: 0xff7a5c, css: '#ff7a5c' },
+  { name: '50 K プレート', temp: '約 50 K', y: 5.5, r: 2.35, t: 0.1, col: 0xffae4a, css: '#ffae4a' },
+  { name: '4 K プレート', temp: '約 4 K', y: 4.0, r: 2.1, t: 0.1, col: 0xffe066, css: '#ffe066' },
+  { name: 'スティル', temp: '約 0.8 K', y: 2.65, r: 1.75, t: 0.09, col: 0x8ef0d0, css: '#8ef0d0' },
+  { name: 'コールドプレート', temp: '約 0.1 K', y: 1.6, r: 1.55, t: 0.08, col: 0x7cc4ff, css: '#7cc4ff' },
+  { name: '混合室プレート', temp: '約 0.01 K', y: 0.5, r: 1.4, t: 0.1, col: 0x8f9bff, css: '#8f9bff' },
+];
+const NL = 10, LINE_R = 0.95;
+const lineAng = []; for (let i = 0; i < NL; i++) lineAng.push(THREE.MathUtils.degToRad(18 + 36 * i));
+const PT = { x: 1.3, z: -0.75 };                         // パルス管の位置
+const PUMP = { x: 1.4 * Math.cos(-2.0944), z: 1.4 * Math.sin(-2.0944) }; // スティルの排気管
+const deg = THREE.MathUtils.degToRad;
+
+const plateMats = [];
+STAGES.forEach((s, i) => {
+  const mat = (i === 0 ? MAT.steel : MAT.gold).clone();
+  mat.emissive = new THREE.Color(s.col); mat.emissiveIntensity = 0;
+  plateMats.push(mat);
+  const shape = new THREE.Shape(); shape.absarc(0, 0, s.r, 0, Math.PI * 2, false);
+  const holes = [];
+  lineAng.forEach((a) => holes.push([LINE_R * Math.cos(a), LINE_R * Math.sin(a), 0.055]));
+  if (i > 0) holes.push([0, 0, 0.13]);
+  if (i === 0) holes.push([PT.x, PT.z, 0.2]);
+  if (i === 1) holes.push([PT.x, PT.z, 0.14]);
+  if (i <= 2) holes.push([PUMP.x, PUMP.z, 0.22]);
+  if (s.r >= 1.7) [30, 90, 150, 270].forEach((d) => holes.push([0.72 * s.r * Math.cos(deg(d)), 0.72 * s.r * Math.sin(deg(d)), 0.075]));
+  holes.forEach(([x, z, r]) => { const p = new THREE.Path(); p.absarc(x, -z, r, 0, Math.PI * 2, true); shape.holes.push(p); });
+  const g = new THREE.ExtrudeGeometry(shape, { depth: s.t, bevelEnabled: true, bevelThickness: 0.012, bevelSize: 0.012, bevelSegments: 1, curveSegments: 72 });
+  g.rotateX(-Math.PI / 2); g.translate(0, -s.t / 2, 0);
+  const plate = mesh(g, mat, 0, s.y, 0);
+  s.mesh = plate;
+  // シールド取り付け用のつば
+  const ring = mesh(cyl(s.r * 0.965, s.r * 0.965, 0.13, 72, true), i === 0 ? MAT.steelDark : MAT.goldDark, 0, s.y - s.t / 2 - 0.065, 0);
+  ring.material = ring.material.clone(); ring.material.side = THREE.DoubleSide;
+  // ボルト
+  const nb = Math.round(s.r * 14);
+  const bolts = new THREE.InstancedMesh(cyl(0.03, 0.03, 0.035, 8), i === 0 ? MAT.steelDark : MAT.goldDark, nb);
+  const m4 = new THREE.Matrix4();
+  for (let k = 0; k < nb; k++) {
+    const a = (k / nb) * Math.PI * 2;
+    m4.makeTranslation((s.r - 0.08) * Math.cos(a), s.y + s.t / 2 + 0.017, (s.r - 0.08) * Math.sin(a));
+    bolts.setMatrixAt(k, m4);
+  }
+  fridge.add(bolts);
+  // 配線の貫通コネクタ
+  const ft = new THREE.InstancedMesh(cyl(0.042, 0.042, 0.06, 12), i === 0 ? MAT.steel : MAT.goldDark, NL);
+  lineAng.forEach((a, k) => { m4.makeTranslation(LINE_R * Math.cos(a), s.y + s.t / 2 + 0.03, LINE_R * Math.sin(a)); ft.setMatrixAt(k, m4); });
+  fridge.add(ft);
+});
+
+/* 室温プレート上のポート */
+[[-1.6, 0.9], [0.2, 1.75], [-0.4, -1.7], [1.9, 0.9]].forEach(([x, z]) => {
+  mesh(cyl(0.16, 0.16, 0.22, 24), MAT.steel, x, 7.21, z);
+  mesh(cyl(0.24, 0.24, 0.04, 24), MAT.steel, x, 7.33, z);
+});
+
+/* ---------- 支柱 ---------- */
+for (let s = 0; s < STAGES.length - 1; s++) {
+  const A = STAGES[s], B = STAGES[s + 1];
+  const rr = B.r * 0.88, h = A.y - B.y;
+  const thin = s < 2;
+  for (let k = 0; k < 6; k++) {
+    const a = deg(s * 15 + k * 60);
+    mesh(cyl(thin ? 0.045 : 0.04, thin ? 0.045 : 0.04, h, 12), thin ? MAT.steelDark : MAT.gold, rr * Math.cos(a), B.y + h / 2, rr * Math.sin(a));
+  }
+}
+
+/* ---------- パルス管冷凍機 ---------- */
+mesh(cyl(0.3, 0.3, 0.8, 32), MAT.steel, PT.x, 7.5, PT.z);
+mesh(cyl(0.36, 0.36, 0.06, 32), MAT.steel, PT.x, 7.13, PT.z);
+mesh(new THREE.BoxGeometry(0.55, 0.36, 0.45), MAT.steelDark, PT.x, 8.08, PT.z);
+mesh(cyl(0.16, 0.16, 1.5, 24), MAT.steel, PT.x, 6.25, PT.z);
+mesh(cyl(0.05, 0.05, 1.5, 12), MAT.steelDark, PT.x + 0.24, 6.25, PT.z + 0.05);
+mesh(cyl(0.3, 0.3, 0.12, 32), MAT.copper, PT.x, 5.39, PT.z);
+mesh(cyl(0.11, 0.11, 1.4, 24), MAT.steel, PT.x, 4.7, PT.z);
+mesh(cyl(0.24, 0.24, 0.12, 32), MAT.copper, PT.x, 3.89, PT.z);
+{ // ヘリウムの柔らかいホース
+  [0.12, -0.12].forEach((dz, k) => {
+    const c = new THREE.CatmullRomCurve3([V(PT.x + 0.2, 8.1, PT.z + dz), V(PT.x + 0.8, 8.25, PT.z + dz), V(PT.x + 1.5, 8.0 - k * 0.1, PT.z + dz - 0.3), V(PT.x + 2.0, 7.4, PT.z + dz - 0.9)]);
+    mesh(new THREE.TubeGeometry(c, 40, 0.06, 10), MAT.hose);
+  });
+}
+const ptMid = V(PT.x, 6.3, PT.z);
+
+/* ---------- スティル排気管（ベローズ付き） ---------- */
+{
+  const c = new THREE.CatmullRomCurve3([V(PUMP.x, 2.75, PUMP.z), V(PUMP.x, 7.6, PUMP.z), V(PUMP.x - 0.1, 8.05, PUMP.z), V(PUMP.x - 0.6, 8.3, PUMP.z), V(-2.7, 8.35, PUMP.z)], false, 'centripetal');
+  mesh(new THREE.TubeGeometry(c, 80, 0.19, 20), MAT.steel);
+  for (let y = 3.0; y < 6.9; y += 0.32) {
+    if (Math.abs(y - 5.5) < 0.2 || Math.abs(y - 4.0) < 0.2) continue;
+    const t = new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.025, 8, 24), MAT.steel);
+    t.rotation.x = Math.PI / 2; t.position.set(PUMP.x, y, PUMP.z); fridge.add(t);
+  }
+  mesh(cyl(0.28, 0.28, 0.05, 24), MAT.steel, PUMP.x, 2.72, PUMP.z);
+}
+
+/* ---------- スティル・熱交換器・混合室 ---------- */
+mesh(cyl(0.42, 0.42, 0.45, 40), MAT.goldDark, 0, 2.35, 0);
+mesh(cyl(0.46, 0.46, 0.04, 40), MAT.gold, 0, 2.13, 0);
+{
+  const pts = []; for (let k = 0; k <= 160; k++) { const u = k / 160, a = u * Math.PI * 2 * 5; pts.push(V(0.2 * Math.cos(a), 2.1 - u * 0.42, 0.2 * Math.sin(a))); }
+  mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 320, 0.024, 8), MAT.steel);
+  mesh(cyl(0.06, 0.06, 0.45, 12), MAT.steelDark, 0, 1.88, 0);
+}
+[1.38, 1.18, 0.99].forEach((y) => { mesh(cyl(0.25, 0.25, 0.07, 32), MAT.steel, 0, y, 0); });
+mesh(cyl(0.05, 0.05, 0.6, 12), MAT.steelDark, 0, 1.2, 0);
+const mcMesh = mesh(cyl(0.36, 0.36, 0.3, 40), MAT.gold, 0, 0.7, 0);
+mesh(cyl(0.39, 0.39, 0.04, 40), MAT.goldDark, 0, 0.86, 0);
+{ // 凝縮ライン（細い管）
+  const c = new THREE.CatmullRomCurve3([V(0.55, 8.2, 0.25), V(0.55, 7.0, 0.25), V(0.55, 2.0, 0.25), V(0.3, 1.25, 0.12), V(0.22, 0.95, 0.06)], false, 'centripetal');
+  mesh(new THREE.TubeGeometry(c, 200, 0.014, 6), MAT.steelDark);
+}
+
+/* ---------- 試料ホルダーとチップ ---------- */
+const CHIP_Y = -0.95;
+mesh(new THREE.BoxGeometry(0.06, 1.42, 0.1), MAT.gold, -0.31, -0.26, 0);
+mesh(new THREE.BoxGeometry(0.06, 1.42, 0.1), MAT.gold, 0.31, -0.26, 0);
+mesh(new THREE.BoxGeometry(0.68, 0.06, 0.16), MAT.gold, 0, 0.42, 0);
+mesh(new THREE.BoxGeometry(0.56, 0.5, 0.16), MAT.goldDark, 0, CHIP_Y, 0);
+mesh(new THREE.BoxGeometry(0.5, 0.44, 0.012), MAT.gold, 0, CHIP_Y, 0.084);
+
+const shieldMat = new THREE.MeshStandardMaterial({ color: 0x5b6270, metalness: 0.7, roughness: 0.42, transparent: true, opacity: 1, side: THREE.DoubleSide });
+const shield = mesh(cyl(0.5, 0.5, 1.25, 48, true), shieldMat, 0, -0.78, 0);
+const shieldCap = mesh(new THREE.CircleGeometry(0.5, 48), shieldMat, 0, -1.405, 0); shieldCap.rotation.x = Math.PI / 2;
+const shieldRing = mesh(cyl(0.53, 0.53, 0.05, 48, true), shieldMat, 0, -0.17, 0);
+
+const chip = new THREE.Group();
+chip.position.set(0, CHIP_Y, 0.09);
+fridge.add(chip);
+const chipM = {
+  sub: new THREE.MeshStandardMaterial({ color: 0x27324a, metalness: 0.35, roughness: 0.35 }),
+  alu: new THREE.MeshStandardMaterial({ color: 0xdfe6ef, metalness: 1, roughness: 0.22, emissive: 0x000000 }),
+  q0: new THREE.MeshStandardMaterial({ color: 0xffd9a0, metalness: 0.8, roughness: 0.25, emissive: 0xffab40, emissiveIntensity: 0.25 }),
+  q1: new THREE.MeshStandardMaterial({ color: 0xbfefff, metalness: 0.8, roughness: 0.25, emissive: 0x3fd2ff, emissiveIntensity: 0.25 }),
+  jj: new THREE.MeshStandardMaterial({ color: 0xff5050, metalness: 0.4, roughness: 0.3, emissive: 0xff3030, emissiveIntensity: 0.8 }),
+  res: new THREE.MeshStandardMaterial({ color: 0xdfe6ef, metalness: 0.9, roughness: 0.25, emissive: 0xff9a3c, emissiveIntensity: 0 }),
+  cpl: new THREE.MeshStandardMaterial({ color: 0xdfe6ef, metalness: 0.9, roughness: 0.25, emissive: 0xffe08a, emissiveIntensity: 0 }),
+  drv: new THREE.MeshStandardMaterial({ color: 0xdfe6ef, metalness: 0.9, roughness: 0.25, emissive: 0x4d9bff, emissiveIntensity: 0 }),
+};
+mesh(new THREE.BoxGeometry(0.34, 0.34, 0.02), chipM.sub, 0, 0, 0, chip);
+function feat(x, y, w, h, mat) { return mesh(new THREE.BoxGeometry(w, h, 0.004), mat, x, y, 0.012, chip); }
+feat(0, 0.125, 0.32, 0.01, chipM.res);                                     // 読み出し用の線（フィードライン）
+feat(-0.155, 0.125, 0.03, 0.03, chipM.alu); feat(0.155, 0.125, 0.03, 0.03, chipM.alu);
+[-0.07, 0.07].forEach((qx, qi) => {
+  const qm = qi === 0 ? chipM.q0 : chipM.q1;
+  feat(qx, -0.02, 0.09, 0.014, qm); feat(qx, -0.02, 0.014, 0.09, qm);     // 十字（Xmon 型トランズモン）
+  feat(qx, -0.071, 0.012, 0.008, chipM.jj);                                  // ジョセフソン接合
+  feat(qx, -0.08, 0.03, 0.007, chipM.alu);
+  feat(qx, -0.1375, 0.006, 0.065, chipM.drv);                                // 制御線
+  feat(qx, -0.16, 0.022, 0.02, chipM.alu);
+  // 読み出し共振器（蛇行線）
+  feat(qx, 0.032, 0.004, 0.014, chipM.res);
+  for (let k = 0; k < 5; k++) {
+    const y = 0.04 + k * 0.015;
+    feat(qx, y, 0.05, 0.004, chipM.res);
+    if (k < 4) feat(qx + (k % 2 === 0 ? 0.025 : -0.025), y + 0.0075, 0.004, 0.015, chipM.res);
+  }
+  feat(qx + 0.025, 0.107, 0.004, 0.011, chipM.res);
+});
+feat(0, -0.02, 0.03, 0.008, chipM.cpl);                                      // 結合部
+const chipW = (x, y) => chip.localToWorld(V(x, y, 0.015));
+chip.updateMatrixWorld(true);
+
+/* ---------- 同軸ケーブル ---------- */
+const ROLE = { rout: 0, q1: 1, q0: 3, rin: 4, rout2: 9 };
+const isOut = (i) => i === 0 || i === 9;
+const lineCurves = [], lineMats = [];
+const CAB = { x: 3.75, y: 7.25, z: -0.9 };
+for (let i = 0; i < NL; i++) {
+  const a = lineAng[i], cx = Math.cos(a), sz = Math.sin(a);
+  const R = (r, y) => V(r * cx, y, r * sz);
+  const tan = V(-sz, 0, cx).multiplyScalar(0.07);
+  const pts = [];
+  pts.push(V(CAB.x - 0.5, CAB.y + 0.5 - (i % 5) * 0.12, CAB.z - 0.3 + Math.floor(i / 5) * 0.25 + (i % 5) * 0.05));
+  pts.push(V(2.9, 8.85 + (i % 3) * 0.05, -0.05 + (i - 4.5) * 0.06));
+  pts.push(R(LINE_R, 8.5).add(V(0.25 * cx, 0, 0.25 * sz)));
+  pts.push(R(LINE_R, 7.75));
+  STAGES.forEach((s, k) => {
+    pts.push(R(LINE_R, s.y + 0.14));
+    pts.push(R(LINE_R, s.y - 0.16));
+    if (k < STAGES.length - 1) {
+      const nxt = STAGES[k + 1];
+      pts.push(R(LINE_R, (s.y + nxt.y) / 2).add(tan.clone().multiplyScalar(k % 2 ? 1 : -1)));
+    }
+  });
+  const xi = cx * 0.24, zi = sz > 0 ? 0.035 : -0.035;
+  pts.push(R(0.72, 0.08));
+  pts.push(R(0.42, -0.25));
+  pts.push(V(xi, -0.48, zi));
+  pts.push(V(xi, -0.665, zi));
+  const curve = new THREE.CatmullRomCurve3(pts, false, 'centripetal');
+  curve.arcLengthDivisions = 1500;
+  lineCurves.push(curve);
+  const m = MAT.coax.clone(); m.emissive = new THREE.Color(0x000000); lineMats.push(m);
+  mesh(new THREE.TubeGeometry(curve, 700, 0.018, 6), m);
+  mesh(cyl(0.024, 0.024, 0.05, 12), MAT.steel, xi, CHIP_Y + 0.275, zi);
+}
+const lineAt = (i, y) => V(LINE_R * Math.cos(lineAng[i]), y, LINE_R * Math.sin(lineAng[i]));
+
+/* 減衰器・サーキュレーター・増幅器 */
+for (let i = 0; i < NL; i++) {
+  if (isOut(i)) continue;
+  [2, 4, 5].forEach((k) => { const s = STAGES[k]; const p = lineAt(i, s.y - s.t / 2 - 0.1); mesh(cyl(0.045, 0.045, 0.15, 16), MAT.steel, p.x, p.y, p.z); });
+}
+[0, 9].forEach((i) => {
+  const c = lineAt(i, 1.0); mesh(new THREE.BoxGeometry(0.17, 0.17, 0.17), MAT.goldDark, c.x, c.y, c.z);
+  mesh(cyl(0.075, 0.075, 0.19, 24), MAT.dark, c.x, c.y, c.z).rotation.z = Math.PI / 2;
+  const h = lineAt(i, 3.66); mesh(new THREE.BoxGeometry(0.24, 0.3, 0.2), MAT.gold, h.x, h.y, h.z);
+  mesh(new THREE.BoxGeometry(0.2, 0.22, 0.21), MAT.dark, h.x, h.y, h.z);
+});
+const attenPos = lineAt(ROLE.rin, STAGES[2].y - STAGES[2].t / 2 - 0.1);
+
+/* ---------- 室温の制御装置 ---------- */
+const ledMats = [];
+{
+  const g = new THREE.Group(); g.position.set(CAB.x + 0.15, CAB.y, CAB.z); fridge.add(g);
+  mesh(new THREE.BoxGeometry(0.8, 1.5, 0.8), MAT.cab, 0, 0, 0, g);
+  for (let k = 0; k < 5; k++) {
+    mesh(new THREE.BoxGeometry(0.03, 0.22, 0.7), MAT.cabFace, -0.41, 0.56 - k * 0.27, 0, g);
+    for (let j = 0; j < 4; j++) {
+      const lm = new THREE.MeshBasicMaterial({ color: j % 2 ? 0x45e07a : 0x4d9bff });
+      ledMats.push(lm);
+      mesh(new THREE.BoxGeometry(0.02, 0.03, 0.045), lm, -0.43, 0.6 - k * 0.27, -0.26 + j * 0.075, g);
+    }
+  }
+}
+
+/* ---------- 真空容器（最初だけ半透明で表示） ---------- */
+const canMat = new THREE.MeshStandardMaterial({ color: 0x9fb2c8, metalness: 0.6, roughness: 0.35, transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide });
+const cans = new THREE.Group(); fridge.add(cans);
+[[2.75, 6.9, -2.1], [2.45, 5.42, -1.85], [2.2, 3.93, -1.65]].forEach(([r, top, bot]) => {
+  const h = top - bot; mesh(cyl(r, r, h, 64, true), canMat, 0, bot + h / 2, 0, cans);
+  const d = mesh(new THREE.CircleGeometry(r, 64), canMat, 0, bot, 0, cans); d.rotation.x = Math.PI / 2;
+});
+
+/* ============================================================
+   信号パルス（光の粒）
+   ============================================================ */
+function glowTexture() {
+  const c = document.createElement('canvas'); c.width = c.height = 64;
+  const g = c.getContext('2d'); const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+  gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.22, 'rgba(255,255,255,.85)'); gr.addColorStop(0.5, 'rgba(255,255,255,.25)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+}
+const GLOW = glowTexture();
+const pulsePool = [];
+for (let k = 0; k < 80; k++) {
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: GLOW, color: 0xffffff, blending: THREE.AdditiveBlending, transparent: true, depthWrite: false }));
+  s.visible = false; scene.add(s); pulsePool.push(s);
+}
+const BLUE = new THREE.Color(0x4d9bff), ORANGE = new THREE.Color(0xff9a3c), YEL = new THREE.Color(0xffe08a);
+const chipGlow = [];
+for (let k = 0; k < 3; k++) {
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: GLOW, color: k === 0 ? 0xffab40 : (k === 1 ? 0x3fd2ff : 0xffe08a), blending: THREE.AdditiveBlending, transparent: true, depthWrite: false, opacity: 0 }));
+  s.position.copy(chipW(k === 0 ? -0.07 : (k === 1 ? 0.07 : 0), -0.02)); s.scale.set(0.12, 0.12, 1); scene.add(s); chipGlow.push(s);
+}
+
+/* ============================================================
+   量子ビットの計算（2 量子ビットの状態ベクトル）
+   添字 = 2*q0 + q1   （|q0 q1⟩ の順）
+   ============================================================ */
+const C = (re, im = 0) => [re, im];
+const cmul = (a, b) => [a[0] * b[0] - a[1] * b[1], a[0] * b[1] + a[1] * b[0]];
+const cadd = (a, b) => [a[0] + b[0], a[1] + b[1]];
+const conj = (a) => [a[0], -a[1]];
+const abs2 = (a) => a[0] * a[0] + a[1] * a[1];
+const S2 = Math.SQRT1_2;
+const KET00 = [C(1), C(0), C(0), C(0)];
+function apply1(st, M, q) {
+  const out = [C(0), C(0), C(0), C(0)];
+  for (let i = 0; i < 4; i++) {
+    const b0 = i >> 1, b1 = i & 1, bit = q === 0 ? b0 : b1;
+    for (let k = 0; k < 2; k++) {
+      const j = q === 0 ? (k << 1) | b1 : (b0 << 1) | k;
+      out[j] = cadd(out[j], cmul(M[k][bit], st[i]));
+    }
+  }
+  return out;
+}
+function applyControlled(st, M) { // q0 が 1 の成分だけ q1 に M をかける
+  return [st[0], st[1], cadd(cmul(M[0][0], st[2]), cmul(M[0][1], st[3])), cadd(cmul(M[1][0], st[2]), cmul(M[1][1], st[3]))];
+}
+// H ゲートを途中まで：H^t = e^{iπt/2}·R_n(πt)、n = (x+z)/√2 の軸まわりの回転
+function Hpow(t) {
+  const g = [Math.cos(Math.PI * t / 2), Math.sin(Math.PI * t / 2)];
+  const c = Math.cos(Math.PI * t / 2), s = Math.sin(Math.PI * t / 2);
+  return [[cmul(g, C(c, -s * S2)), cmul(g, C(0, -s * S2))], [cmul(g, C(0, -s * S2)), cmul(g, C(c, s * S2))]];
+}
+// CNOT を途中まで：制御付き RY(πt)（t = 1 でこの入力に対して CNOT と同じ結果）
+function RY(th) { const c = Math.cos(th / 2), s = Math.sin(th / 2); return [[C(c), C(-s)], [C(s), C(c)]]; }
+const stH = (t) => apply1(KET00, Hpow(t), 0);
+const ST_PLUS0 = stH(1);
+const stCX = (t) => applyControlled(ST_PLUS0, RY(Math.PI * t));
+const ST_BELL = stCX(1);
+function blochOf(st, q) {
+  let r00, r11, r01;
+  if (q === 0) { r00 = abs2(st[0]) + abs2(st[1]); r11 = abs2(st[2]) + abs2(st[3]); r01 = cadd(cmul(st[0], conj(st[2])), cmul(st[1], conj(st[3]))); }
+  else { r00 = abs2(st[0]) + abs2(st[2]); r11 = abs2(st[1]) + abs2(st[3]); r01 = cadd(cmul(st[0], conj(st[1])), cmul(st[2], conj(st[3]))); }
+  return { x: 2 * r01[0], y: -2 * r01[1], z: r00 - r11 };
+}
+const probs = (st) => st.map(abs2);
+
+/* 測定の結果（1024 回分）を前もって乱数で決める */
+const SHOTS = 1024;
+let outcomes = null;
+function makeOutcomes() {
+  const p = probs(ST_BELL);
+  outcomes = new Uint8Array(SHOTS);
+  for (let k = 0; k < SHOTS; k++) {
+    let r = Math.random(), idx = 0;
+    while (idx < 3 && r >= p[idx]) { r -= p[idx]; idx++; }
+    outcomes[k] = idx;
+  }
+}
+const SLOW = [0.8, 2.2, 3.6], FAST_T0 = 5.0, FAST_T1 = 10.5;
+function shotsDone(tp) {
+  if (tp < SLOW[0] + 0.5) return 0;
+  if (tp < FAST_T0) { let n = 0; SLOW.forEach((s, k) => { if (tp >= s + 0.5) n = k + 1; }); return n; }
+  const p = clamp((tp - FAST_T0) / (FAST_T1 - FAST_T0), 0, 1);
+  return 3 + Math.floor((SHOTS - 3) * Math.pow(p, 1.7));
+}
+
+/* ============================================================
+   ブロッホ球（右パネルの別キャンバス）
+   ============================================================ */
+const bCanvas = $('cBloch');
+const bRenderer = new THREE.WebGLRenderer({ canvas: bCanvas, antialias: true, alpha: true });
+bRenderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+bRenderer.outputColorSpace = THREE.SRGBColorSpace;
+bRenderer.setScissorTest(true);
+const bScene = new THREE.Scene();
+bScene.add(new THREE.AmbientLight(0xffffff, 0.8));
+const bl = new THREE.DirectionalLight(0xffffff, 1.6); bl.position.set(3, 5, 4); bScene.add(bl);
+const bCam = new THREE.PerspectiveCamera(30, 1, 0.1, 50);
+bCam.position.set(2.3, 1.75, 5.4); bCam.lookAt(0, -0.02, 0);
+
+function textSprite(txt, color, h) {
+  const c = document.createElement('canvas'); c.width = 256; c.height = 128;
+  const g = c.getContext('2d');
+  g.font = 'bold 76px "Cambria Math","Segoe UI Symbol","Noto Sans Math","DejaVu Sans","Segoe UI",sans-serif';
+  g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = color; g.fillText(txt, 128, 66);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, transparent: true, depthWrite: false, depthTest: false }));
+  s.scale.set(h * 2, h, 1); return s;
+}
+// ブロッホ座標 (x, y, z) → three.js 座標 (y, z, x)
+const b2t = (v) => V(v.y, v.z, v.x);
+function circle(axis, color, op) {
+  const pts = []; for (let k = 0; k <= 96; k++) { const a = (k / 96) * Math.PI * 2; const c = Math.cos(a), s = Math.sin(a);
+    pts.push(axis === 'eq' ? V(c, 0, s) : axis === 'm1' ? V(0, c, s) : V(c, s, 0)); }
+  return new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color, transparent: true, opacity: op }));
+}
+function makeBloch(colorHex, cssColor) {
+  const g = new THREE.Group(); bScene.add(g);
+  g.add(new THREE.Mesh(new THREE.SphereGeometry(1, 48, 32), new THREE.MeshPhongMaterial({ color: 0x6f8fd0, transparent: true, opacity: 0.13, depthWrite: false, shininess: 60 })));
+  g.add(circle('eq', 0xbfd0ff, 0.6)); g.add(circle('m1', 0x8fa3c2, 0.3)); g.add(circle('m2', 0x8fa3c2, 0.3));
+  const ax = (a, b, c) => { const l = new THREE.Line(new THREE.BufferGeometry().setFromPoints([a, b]), new THREE.LineBasicMaterial({ color: c, transparent: true, opacity: 0.55 })); g.add(l); };
+  ax(V(0, -1.15, 0), V(0, 1.15, 0), 0xdfe7f3); ax(V(0, 0, -1.15), V(0, 0, 1.15), 0xff8f8f); ax(V(-1.15, 0, 0), V(1.15, 0, 0), 0x8fff9f);
+  const l0 = textSprite('|0⟩', '#ffffff', 0.32); l0.position.set(0, 1.36, 0); g.add(l0);
+  const l1 = textSprite('|1⟩', '#ffffff', 0.32); l1.position.set(0, -1.36, 0); g.add(l1);
+  const lx = textSprite('x', '#ff9f9f', 0.26); lx.position.set(0, 0, 1.36); g.add(lx);
+  const ly = textSprite('y', '#9fffaf', 0.26); ly.position.set(1.34, 0, 0); g.add(ly);
+  const arrow = new THREE.Group(); g.add(arrow);
+  const am = new THREE.MeshStandardMaterial({ color: colorHex, emissive: colorHex, emissiveIntensity: 0.35, metalness: 0.2, roughness: 0.4 });
+  const shaft = new THREE.Mesh(cyl(0.035, 0.035, 1, 16), am); arrow.add(shaft);
+  const head = new THREE.Mesh(new THREE.ConeGeometry(0.09, 0.2, 20), am); arrow.add(head);
+  const tip = new THREE.Mesh(new THREE.SphereGeometry(0.055, 16, 12), new THREE.MeshBasicMaterial({ color: colorHex })); g.add(tip);
+  const dot = new THREE.Mesh(new THREE.SphereGeometry(0.07, 16, 12), new THREE.MeshBasicMaterial({ color: colorHex, transparent: true, opacity: 0.9 })); g.add(dot);
+  const trailGeo = new THREE.BufferGeometry(); trailGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(3 * 80), 3));
+  const trail = new THREE.Line(trailGeo, new THREE.LineBasicMaterial({ color: colorHex, transparent: true, opacity: 0.85 })); g.add(trail);
+  trailGeo.setDrawRange(0, 0);
+  return { g, arrow, shaft, head, tip, dot, trail, trailGeo };
+}
+const B = [makeBloch(0xffab40), makeBloch(0x3fd2ff)];
+const hAxis = (() => {
+  const n = b2t({ x: S2, y: 0, z: S2 });
+  const l = new THREE.Line(new THREE.BufferGeometry().setFromPoints([n.clone().multiplyScalar(-1.25), n.clone().multiplyScalar(1.25)]),
+    new THREE.LineDashedMaterial({ color: 0xffe08a, dashSize: 0.08, gapSize: 0.06, transparent: true, opacity: 0.9 }));
+  l.computeLineDistances(); B[0].g.add(l); return l;
+})();
+const hAxisLabel = textSprite('H の軸', '#ffe08a', 0.2); hAxisLabel.position.copy(b2t({ x: S2, y: 0, z: S2 }).multiplyScalar(1.32)); B[0].g.add(hAxisLabel);
+const UP = V(0, 1, 0);
+function setArrow(b, v, scaleLen = 1) {
+  const t = b2t(v); const L = t.length() * scaleLen;
+  const show = L > 0.06;
+  b.arrow.visible = show; b.tip.visible = show;
+  if (show) {
+    const dir = t.clone().normalize();
+    b.arrow.quaternion.setFromUnitVectors(UP, dir);
+    const hl = Math.min(0.2, L * 0.45);
+    b.shaft.scale.set(1, Math.max(0.001, L - hl), 1); b.shaft.position.set(0, (L - hl) / 2, 0);
+    b.head.scale.set(hl / 0.2, hl / 0.2, hl / 0.2); b.head.position.set(0, L - hl / 2, 0);
+    b.tip.position.copy(dir.multiplyScalar(L));
+  }
+}
+function setTrail(b, pts) {
+  const arr = b.trailGeo.attributes.position.array; const n = Math.min(80, pts.length);
+  for (let k = 0; k < n; k++) { const t = b2t(pts[k]); arr[3 * k] = t.x; arr[3 * k + 1] = t.y; arr[3 * k + 2] = t.z; }
+  b.trailGeo.attributes.position.needsUpdate = true; b.trailGeo.setDrawRange(0, n);
+}
+
+/* ============================================================
+   ラベル（引き出し線つき）
+   ============================================================ */
+const labelsEl = $('labels'), svgEl = $('leaders');
+const SVGNS = 'http://www.w3.org/2000/svg';
+const LAB = {};
+function defLabel(id, title, desc, pos, side, color = '#f0c35a') {
+  const el = document.createElement('div'); el.className = 'lab'; el.style.setProperty('--c', color);
+  el.innerHTML = `<b>${title}</b>${desc ? `<span>${desc}</span>` : ''}`;
+  labelsEl.appendChild(el);
+  const path = document.createElementNS(SVGNS, 'path'); path.setAttribute('fill', 'none'); path.setAttribute('stroke', color); path.setAttribute('stroke-width', '1.4'); path.setAttribute('opacity', '0');
+  const dot = document.createElementNS(SVGNS, 'circle'); dot.setAttribute('r', '3.5'); dot.setAttribute('fill', color); dot.setAttribute('opacity', '0');
+  svgEl.appendChild(path); svgEl.appendChild(dot);
+  LAB[id] = { el, path, dot, pos, side, h: 0, y: null, shown: false };
+}
+const st0 = STAGES;
+defLabel('rt', '室温プレート（300 K）', '装置のふた。配線やヘリウムの管がここから入る', V(-2.45, st0[0].y + 0.1, 0.4), 'L', st0[0].css);
+defLabel('pt', 'パルス管冷凍機', 'ヘリウムガスの圧縮と膨張で、50 K と 4 K の段を冷やす', ptMid, 'R', '#e8eef8');
+defLabel('coax', '同軸ケーブル', 'マイクロ波を通す細い配線。室温からチップまで続く', lineAt(5, 3.3), 'L', '#c9d6ea');
+defLabel('mc', '混合室', 'ヘリウム3 が溶け込むとき熱をうばう。いちばん冷たい所', V(0.36, 0.72, 0.1), 'R', st0[5].css);
+defLabel('shield', '磁気シールド', '中に量子ビットのチップ。外の磁場をさえぎる', V(0.48, -0.9, 0.15), 'R', '#c9d6ea');
+defLabel('still', 'スティル（蒸発器）', 'ヘリウム3 を蒸発させて、混合室から引き出す', V(-0.42, 2.35, 0), 'L', st0[3].css);
+defLabel('cab', '室温の制御装置', 'パルスをつくり、戻った信号から 0 か 1 かを判定する', V(CAB.x - 0.25, CAB.y - 0.2, CAB.z), 'R', '#9fd0ff');
+STAGES.forEach((s, i) => {
+  const right = i % 2 === 1;
+  const descs = ['室温。装置のふた', 'パルス管冷凍機の 1 段目', 'パルス管冷凍機の 2 段目', 'ヘリウム3 を蒸発させる段', '配線から入る熱を止める段', 'いちばん冷たい段。チップがつながる'];
+  defLabel('st' + i, `${s.temp}　${s.name}`, descs[i], V(right ? s.r : -s.r, s.y, 0.1), right ? 'R' : 'L', s.css);
+});
+defLabel('cq0', '量子ビット q0（トランズモン）', '十字形のアルミ電極。電気の振動のエネルギーで 0 と 1 を表す', chipW(-0.07, 0.005), 'L', '#ffab40');
+defLabel('cjj', 'ジョセフソン接合', 'うすい絶縁膜をはさんだ超伝導の接合。エネルギーの段の間かくをふぞろいにする', chipW(-0.07, -0.071), 'L', '#ff7070');
+defLabel('cres', '読み出し共振器', '量子ビットが 0 か 1 かで、共振する周波数がわずかに変わる', chipW(-0.095, 0.07), 'L', '#ff9a3c');
+defLabel('cq1', '量子ビット q1', 'q0 と同じつくり。少しちがう周波数で区別して操作する', chipW(0.07, 0.005), 'R', '#3fd2ff');
+defLabel('ccpl', '結合部', '2 つの量子ビットをつなぎ、CNOT などの 2 量子ビットゲートに使う', chipW(0, -0.02), 'R', '#ffe08a');
+defLabel('cdrv', '制御線', 'ここからマイクロ波パルスが量子ビットに届く', chipW(0.07, -0.13), 'R', '#4d9bff');
+defLabel('sin', '入力線（青い光）', '制御と読み出しのパルスが下りていく', lineAt(ROLE.rin, 5.0), 'L', '#4d9bff');
+defLabel('satt', '減衰器', '信号を弱め、上の段から来る熱の雑音もいっしょに小さくする', attenPos, 'L', '#9fc6ff');
+defLabel('sout', '出力線（オレンジの光）', 'チップからの読み出し信号が上っていく', lineAt(ROLE.rout, 5.0), 'R', '#ff9a3c');
+defLabel('shemt', 'HEMT 増幅器（4 K）', '弱い読み出し信号を大きくする', lineAt(ROLE.rout, 3.66), 'R', '#ffc27a');
+defLabel('scirc', 'サーキュレーター', '信号を一方向だけに通し、雑音がチップへ戻らないようにする', lineAt(ROLE.rout, 1.0), 'R', '#ffc27a');
+defLabel('qq0', '量子ビット q0', '制御側。H ゲートのパルスを受ける', chipW(-0.07, -0.02), 'L', '#ffab40');
+defLabel('qq1', '量子ビット q1', '標的側。CNOT で q0 が 1 なら反転', chipW(0.07, -0.02), 'R', '#3fd2ff');
+defLabel('qread', '読み出し線', '測定のたびにパルスを送り、返ってきた信号で 0/1 を判定', V(-0.24, -0.45, 0.04), 'L', '#ff9a3c');
+
+const PHASE_LABELS = [
+  [['rt', 0.8], ['coax', 1.6], ['still', 2.4], ['pt', 1.2], ['mc', 2.0], ['shield', 2.8], ['cab', 3.4]],
+  [0, 1, 2, 3, 4, 5].map((i) => ['st' + i, 0.5 + i * 1.1]),
+  [['cq0', 1.4], ['cq1', 1.8], ['cjj', 2.4], ['ccpl', 2.8], ['cres', 3.4], ['cdrv', 3.8]],
+  [['sin', 0.8], ['satt', 1.6], ['sout', 2.6], ['shemt', 3.2], ['scirc', 3.8], ['cab', 1.2]],
+  [['qq0', 1.2], ['qq1', 1.6]],
+  [['qq0', 1.0], ['qq1', 1.0]],
+  [['qq0', 0.5], ['qq1', 0.5], ['qread', 0.8]],
+  [['qq0', 0.3], ['qq1', 0.3]],
+];
+
+const v3 = new THREE.Vector3();
+function layoutLabels(tp, dt) {
+  const w = viewEl.clientWidth, h = viewEl.clientHeight;
+  const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
+  const colW = 13.4 * rem, mx = 0.8 * rem, top = 2.6 * rem, bottom = h - 0.8 * rem, gap = 0.5 * rem;
+  const active = new Map((PHASE_LABELS[curPhase] || []).filter(([, t]) => tp >= t).map(([id]) => [id, true]));
+  const cols = { L: [], R: [] };
+  for (const id in LAB) {
+    const L = LAB[id];
+    let vis = active.has(id);
+    if (vis) {
+      v3.copy(L.pos).project(camera);
+      const sx = (v3.x + 1) / 2 * w, sy = (1 - v3.y) / 2 * h;
+      if (v3.z > 1 || sx < 4 || sx > w - 4 || sy < 4 || sy > h - 4) vis = false;
+      else { L.sx = sx; L.sy = sy; }
+    }
+    if (vis) {
+      if (!L.shown) { L.el.classList.add('show'); L.shown = true; L.h = L.el.offsetHeight; L.y = null; }
+      if (!L.h) L.h = L.el.offsetHeight;
+      cols[L.side].push(L);
+    } else if (L.shown) {
+      L.el.classList.remove('show'); L.shown = false; L.path.setAttribute('opacity', '0'); L.dot.setAttribute('opacity', '0');
+    }
+  }
+  for (const side of ['L', 'R']) {
+    const items = cols[side].sort((a, b) => a.sy - b.sy);
+    let y = top;
+    for (const it of items) { it.ty = Math.max(it.sy - it.h / 2, y); y = it.ty + it.h + gap; }
+    let lim = bottom;
+    for (let k = items.length - 1; k >= 0; k--) { const it = items[k]; if (it.ty + it.h > lim) it.ty = lim - it.h; lim = it.ty - gap; }
+    for (const it of items) {
+      it.y = it.y === null ? it.ty : it.y + (it.ty - it.y) * Math.min(1, dt * 8);
+      const x = side === 'L' ? mx : w - mx - colW;
+      it.el.style.transform = `translate(${x.toFixed(1)}px, ${it.y.toFixed(1)}px)`;
+      const ex = side === 'L' ? x + colW : x, ey = it.y + Math.min(it.h / 2, 1.1 * rem);
+      const bx = side === 'L' ? ex + 12 : ex - 12;
+      it.path.setAttribute('d', `M${ex.toFixed(1)} ${ey.toFixed(1)} L${bx.toFixed(1)} ${ey.toFixed(1)} L${it.sx.toFixed(1)} ${it.sy.toFixed(1)}`);
+      it.path.setAttribute('opacity', '0.85'); it.dot.setAttribute('opacity', '1');
+      it.dot.setAttribute('cx', it.sx.toFixed(1)); it.dot.setAttribute('cy', it.sy.toFixed(1));
+    }
+  }
+}
+
+/* ============================================================
+   カメラの動き（段階ごと）
+   ============================================================ */
+const QCAM = { t: [0, CHIP_Y + 0.12, 0.1], p: [0.75, CHIP_Y + 0.6, 1.85], sway: 0.18 };
+const CAM = [
+  { t: [0.7, 3.35, 0], p: [6.2, 6.6, 15.6], sway: 0.22 },
+  { t: [0.6, 3.3, 0], p: [2.4, 5.2, 16.0], sway: 0.1 },
+  { t: [0, CHIP_Y, 0.1], p: [0.16, CHIP_Y + 0.2, 0.86], sway: 0.14 },
+  { t: [0.8, 3.6, 0], p: [3.2, 5.6, 15.4], sway: 0.08 },
+  QCAM, QCAM, QCAM, QCAM,
+];
+let camFromP = camera.position.clone(), camFromT = controls.target.clone();
+const tmpP = new THREE.Vector3(), tmpT = new THREE.Vector3();
+function updateCamera(tp) {
+  if (userCam) return;
+  const k = CAM[curPhase];
+  const target = V(...k.t);
+  const off = V(...k.p).sub(target);
+  off.applyAxisAngle(UP, k.sway * Math.sin(tp * 0.45));
+  const dur = curPhase === 0 ? 2.4 : 1.8;
+  const e = ease(tp / dur);
+  tmpT.copy(camFromT).lerp(target, e);
+  tmpP.copy(camFromP).lerp(target.clone().add(off), e);
+  camera.position.copy(tmpP); controls.target.copy(tmpT);
+}
+
+/* ============================================================
+   画面（パネル・ステップ）
+   ============================================================ */
+const stepsEl = $('steps');
+const stepEls = PH.map((p, i) => {
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'step';
+  b.innerHTML = `<i>${i + 1}</i><span>${p.short}</span><div class="bar"></div>`;
+  b.addEventListener('click', () => { T = starts[i] + 0.001; enterPhase(i); });
+  stepsEl.appendChild(b); return b;
+});
+let T = 0, paused = false, curPhase = -1;
+const qs = new URLSearchParams(location.search);
+if (qs.has('t')) T = clamp(parseFloat(qs.get('t')) || 0, 0, TOTAL - 0.01);
+$('pauseBtn').addEventListener('click', () => { paused = !paused; $('pauseBtn').textContent = paused ? '再生' : '一時停止'; });
+if (qs.has('pause')) { paused = true; $('pauseBtn').textContent = '再生'; }
+
+function enterPhase(i) {
+  curPhase = i;
+  const p = PH[i];
+  $('nowNum').textContent = `${i + 1} / ${PH.length}`;
+  $('nowName').textContent = p.name;
+  $('cardTitle').innerHTML = p.title;
+  $('cardText').innerHTML = p.text;
+  stepEls.forEach((el, k) => { el.classList.toggle('cur', k === i); el.classList.toggle('done', k < i); el.querySelector('.bar').style.width = k < i ? '100%' : '0'; });
+  const dev = i < 4;
+  $('devInfo').style.display = dev ? 'flex' : 'none';
+  $('qInfo').style.display = dev ? 'none' : 'flex';
+  if (dev) $('devInfo').innerHTML = DEV_INFO[i];
+  camFromP = camera.position.clone(); camFromT = controls.target.clone(); userCam = false;
+  lineMats.forEach((m, k) => {
+    let c = 0x000000, s = 0;
+    if (i === 3) { if (k === ROLE.rin || k === ROLE.q0 || k === ROLE.q1) { c = 0x2f7dff; s = 0.9; } if (k === ROLE.rout) { c = 0xff7a1a; s = 0.9; } }
+    if (i >= 4) { if (k === ROLE.q0 || k === ROLE.q1 || k === ROLE.rin) { c = 0x2f7dff; s = 0.5; } if (k === ROLE.rout) { c = 0xff7a1a; s = 0.5; } }
+    m.emissive.setHex(c); m.emissiveIntensity = s;
+  });
+  if (i === 6 || !outcomes) makeOutcomes();
+  for (const id in LAB) { LAB[id].h = 0; }
+}
+
+/* ============================================================
+   毎フレームの更新
+   ============================================================ */
+const pulsesNow = [];
+function travel(line, t0, dur, tp, up, color, size = 1) {
+  if (tp < t0 || tp > t0 + dur) return;
+  const u = (tp - t0) / dur;
+  pulsesNow.push({ line, u: up ? 1 - u : u, color, size, up });
+}
+function schedulePulses(key, tp) {
+  pulsesNow.length = 0;
+  if (key === 'signal') {
+    for (let s = 0.6; s < tp; s += 1.7) {
+      travel(ROLE.rin, s, 1.5, tp, false, BLUE); travel(ROLE.q0, s + 0.4, 1.5, tp, false, BLUE); travel(ROLE.q1, s + 0.8, 1.5, tp, false, BLUE);
+      travel(ROLE.rout, s + 1.4, 1.5, tp, true, ORANGE);
+    }
+  } else if (key === 'hgate') {
+    travel(ROLE.q0, 0.1, 1.4, tp, false, BLUE, 1.2);
+  } else if (key === 'cnot') {
+    travel(ROLE.q0, 0.1, 1.4, tp, false, BLUE, 1.2); travel(ROLE.q1, 0.25, 1.3, tp, false, BLUE, 1.0);
+  } else if (key === 'measure') {
+    SLOW.forEach((s) => { travel(ROLE.rin, s - 0.55, 1.05, tp, false, BLUE, 1.1); travel(ROLE.rout, s + 0.5, 1.2, tp, true, ORANGE, 1.1); });
+    for (let s = FAST_T0 - 0.6; s < FAST_T1 - 0.4; s += 0.3) { travel(ROLE.rin, s, 1.0, tp, false, BLUE, 0.9); travel(ROLE.rout, s + 1.0, 1.1, tp, true, ORANGE, 0.9); }
+  }
+}
+function drawPulses() {
+  let n = 0;
+  const camPos = camera.position;
+  for (const p of pulsesNow) {
+    const curve = lineCurves[p.line];
+    for (let k = 0; k < 5 && n < pulsePool.length; k++) {
+      const u = p.u + (p.up ? 1 : -1) * k * 0.004;
+      if (u < 0 || u > 1) continue;
+      const s = pulsePool[n++];
+      curve.getPointAt(u, s.position);
+      const d = s.position.distanceTo(camPos);
+      const sc = clamp(d * 0.028, 0.03, 0.42) * p.size * (1 - k * 0.16);
+      s.scale.set(sc, sc, 1); s.material.color.copy(p.color); s.material.opacity = 1 - k * 0.18; s.visible = true;
+    }
+  }
+  for (; n < pulsePool.length; n++) pulsePool[n].visible = false;
+}
+
+function describe(v) {
+  const L = Math.hypot(v.x, v.y, v.z);
+  if (L < 0.06) return ['中心（向きなし）', '長さ 0：単独では決まらない'];
+  let where;
+  if (v.z > 0.985 * L && L > 0.97) where = '北極 = ' + K('|0⟩');
+  else if (v.z < -0.985 * L && L > 0.97) where = '南極 = ' + K('|1⟩');
+  else if (Math.abs(v.z) < 0.03 && L > 0.97) where = '赤道 = 重ね合わせ';
+  else where = L > 0.97 ? '回転中…' : '縮んでいく…';
+  return [where, `矢印の長さ ${L.toFixed(2)}`];
+}
+
+let lastCountsKey = '';
+function updateQuantum(key, tp) {
+  let st = null, v0, v1, shotIdx = -1, collapse = 1, mode = 'prob', n = 0, line = '', gate = '';
+  let trail0 = null, trail1 = null, axisOp = 0, ent = false;
+  let x = 95;
+  if (key === 'hgate') {
+    const g = smooth((tp - 1.5) / 3.0);
+    st = stH(g); gate = tp >= 1.2 ? 'H' : '';
+    x = 95 + (133 - 95) * smooth((tp - 0.6) / 0.9);
+    if (g > 0) { const pts = []; for (let k = 0; k <= 60; k++) pts.push(blochOf(stH(g * k / 60), 0)); trail0 = pts; }
+    axisOp = smooth((tp - 1.0) / 0.5) * (1 - 0.6 * smooth((tp - 5.0) / 1));
+    if (tp < 1.5) line = `はじめ：${K('|ψ⟩ = |00⟩')}（左が q0、右が q1）`;
+    else if (g < 1) line = `H ゲート中：q0 を x と z の間の軸のまわりに回転`;
+    else line = `${K('|ψ⟩ = (|00⟩ + |10⟩)/√2')}　q0 は重ね合わせ、q1 は ${K('|0⟩')}`;
+  } else if (key === 'cnot') {
+    const g = smooth((tp - 1.5) / 3.0);
+    st = stCX(g); gate = tp >= 1.2 ? 'CX' : '';
+    x = 133 + (205 - 133) * smooth((tp - 0.4) / 1.0);
+    if (g > 0) { const p0 = [], p1 = []; for (let k = 0; k <= 60; k++) { const s = stCX(g * k / 60); p0.push(blochOf(s, 0)); p1.push(blochOf(s, 1)); } trail0 = p0; trail1 = p1; }
+    ent = g > 0.98;
+    if (tp < 1.5) line = `いま：${K('|ψ⟩ = (|00⟩ + |10⟩)/√2')}`;
+    else if (g < 1) line = 'CNOT 中：q0 が 1 の部分だけ q1 が反転していく';
+    else line = `${K('|ψ⟩ = (|00⟩ + |11⟩)/√2')}　量子もつれ：情報は 2 つの関係の中にある`;
+  } else {
+    x = key === 'measure' ? 205 + (280 - 205) * smooth(tp / 0.8) : 318;
+    gate = 'M'; mode = 'count'; ent = key === 'measure' && tp < SLOW[0] + 0.5;
+    if (key === 'measure') {
+      n = shotsDone(tp);
+      if (tp < SLOW[0]) { st = ST_BELL; mode = 'prob'; line = `${K('(|00⟩ + |11⟩)/√2')} を測定する`; }
+      else if (tp < FAST_T0) {
+        const k = SLOW.findIndex((s) => tp >= s && tp < s + 1.4);
+        const kk = k < 0 ? n - 1 : k;
+        const s0 = SLOW[kk];
+        if (tp < s0 + 0.5) { st = ST_BELL; line = `${kk + 1} 回目：${K('|00⟩')} から H → CNOT をやり直し、測定中…`; ent = true; }
+        else { shotIdx = kk; collapse = smooth((tp - s0 - 0.5) / 0.15); }
+      } else {
+        const nq = shotsDone(Math.floor(tp / 0.1) * 0.1);
+        shotIdx = Math.max(0, nq - 1);
+        if (tp < FAST_T1) line = `${n} 回目まで：毎回やり直して高速でくり返し中…`;
+        else line = `${SHOTS} 回の測定が終わった`;
+      }
+    } else {
+      n = SHOTS; shotIdx = SHOTS - 1;
+    }
+    if (shotIdx >= 0) {
+      const o = outcomes[shotIdx], b0 = o >> 1, b1 = o & 1;
+      v0 = { x: 0, y: 0, z: (b0 ? -1 : 1) * collapse }; v1 = { x: 0, y: 0, z: (b1 ? -1 : 1) * collapse };
+      if (!line) line = `${shotIdx + 1} 回目の結果：q0 = ${b0}、q1 = ${b1} → <b>${b0}${b1}</b>　（2 つがそろう）`;
+      $('out0').textContent = String(b0); $('out1').textContent = String(b1);
+    } else { $('out0').textContent = '0 / 1'; $('out1').textContent = '0 / 1'; }
+    if (key === 'summary') {
+      const c = [0, 0, 0, 0]; for (let k = 0; k < SHOTS; k++) c[outcomes[k]]++;
+      line = `00 が ${c[0]} 回、11 が ${c[3]} 回、01 と 10 は ${c[1] + c[2]} 回`;
+    }
+  }
+  if (key === 'hgate' || key === 'cnot') { $('out0').textContent = '0 / 1'; $('out1').textContent = '0 / 1'; }
+  if (st) { v0 = blochOf(st, 0); v1 = blochOf(st, 1); }
+
+  setArrow(B[0], v0); setArrow(B[1], v1);
+  [[B[0], v0], [B[1], v1]].forEach(([b, v]) => {
+    const L = Math.hypot(v.x, v.y, v.z);
+    b.dot.visible = L < 0.12;
+    const pulse = 1 + 0.25 * Math.sin(performance.now() / 160);
+    b.dot.scale.setScalar(pulse);
+  });
+  if (trail0) setTrail(B[0], trail0); else B[0].trailGeo.setDrawRange(0, 0);
+  if (trail1) setTrail(B[1], trail1); else B[1].trailGeo.setDrawRange(0, 0);
+  hAxis.visible = axisOp > 0.01; hAxis.material.opacity = axisOp * 0.9;
+  hAxisLabel.visible = axisOp > 0.01; hAxisLabel.material.opacity = axisOp;
+  $('entBadge').classList.toggle('show', ent);
+
+  const d0 = describe(v0), d1 = describe(v1);
+  setHTML($('cap0'), `<b>q0</b>${d0[0]}<br>${d0[1]}`);
+  setHTML($('cap1'), `<b>q1</b>${d1[0]}<br>${d1[1]}`);
+  setHTML($('stateLine'), line);
+  $('playhead').setAttribute('x1', x); $('playhead').setAttribute('x2', x);
+  $('gH').classList.toggle('on', gate === 'H'); $('gCX').classList.toggle('on', gate === 'CX'); $('gM').classList.toggle('on', gate === 'M');
+
+  // 棒グラフ
+  let vals, labels;
+  if (mode === 'prob') {
+    const p = probs(st || ST_BELL);
+    vals = p; labels = p.map((q) => `${Math.round(q * 100)} %`);
+    setHTML($('barsMode'), '各結果が出る<b>確率</b>（計算上）');
+    setHTML($('barsCount'), '');
+  } else {
+    const c = [0, 0, 0, 0]; for (let k = 0; k < n; k++) c[outcomes[k]]++;
+    vals = c.map((q) => q / SHOTS); labels = c.map((q) => `${q} 回`);
+    setHTML($('barsMode'), '測定で出た<b>回数</b>');
+    setHTML($('barsCount'), `測定回数 <b>${n}</b> / ${SHOTS}`);
+  }
+  const ck = mode + vals.map((q) => q.toFixed(4)).join(',');
+  if (ck !== lastCountsKey) {
+    lastCountsKey = ck;
+    for (let k = 0; k < 4; k++) {
+      $('bf' + k).style.width = (vals[k] * 100).toFixed(2) + '%';
+      $('bv' + k).textContent = labels[k];
+      $('be' + k).style.display = mode === 'count' && (k === 0 || k === 3) ? 'block' : 'none';
+    }
+  }
+
+  // チップの光り方
+  const gp = (a, b) => (tp > a && tp < b ? 0.6 + 0.4 * Math.sin(tp * 18) : 0);
+  let g0 = 0, g1 = 0, gc = 0, gr = 0;
+  if (key === 'hgate') g0 = gp(1.5, 4.5);
+  if (key === 'cnot') { gc = gp(1.5, 4.5); g0 = gc * 0.6; g1 = gc; }
+  if (key === 'measure') {
+    SLOW.forEach((s) => { if (tp > s + 0.3 && tp < s + 0.8) gr = 1; });
+    if (tp > FAST_T0 && tp < FAST_T1) gr = 0.6 + 0.4 * Math.sin(tp * 30);
+  }
+  return { g0, g1, gc, gr };
+}
+
+let lastT = performance.now();
+let clockShown = '';
+function frame(now) {
+  requestAnimationFrame(frame);
+  const dt = Math.min(0.1, (now - lastT) / 1000); lastT = now;
+  if (!paused) { T += dt; if (T >= TOTAL) T -= TOTAL; }
+  let i = PH.length - 1; while (i > 0 && T < starts[i]) i--;
+  if (i !== curPhase) enterPhase(i);
+  const tp = T - starts[i];
+  const key = PH[i].key;
+
+  // 大きさの調整
+  const w = viewEl.clientWidth, h = viewEl.clientHeight;
+  const cv = renderer.domElement;
+  if (cv.width !== Math.floor(w * renderer.getPixelRatio()) || cv.height !== Math.floor(h * renderer.getPixelRatio())) {
+    renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
+    for (const id in LAB) LAB[id].h = 0;
+  }
+
+  updateCamera(tp);
+  controls.update();
+
+  // 段の光（温度の段階）
+  plateMats.forEach((m, k) => {
+    let s = 0;
+    if (key === 'temps') { const a = 0.5 + k * 1.1; if (tp > a) s = 0.12 + 0.55 * Math.exp(-(tp - a) * 1.6); }
+    m.emissiveIntensity = s;
+  });
+  const ld = $('ladder');
+  if (ld && key === 'temps') {
+    [...ld.children].forEach((li, k) => { const a = 0.5 + k * 1.1, b = 0.5 + (k + 1) * 1.1; li.classList.toggle('on', tp > a); li.classList.toggle('cur', tp > a && (tp < b || k === 5)); });
+  } else if (ld) { [...ld.children].forEach((li) => li.classList.add('on')); }
+
+  // シールドの透け方・真空容器
+  const shieldTarget = (key === 'overview' || key === 'temps' || key === 'signal') ? 1 : 0.12;
+  shieldMat.opacity += (shieldTarget - shieldMat.opacity) * Math.min(1, dt * 4);
+  shieldMat.depthWrite = shieldMat.opacity > 0.95;
+  const canOp = key === 'overview' ? 0.28 * (1 - smooth((tp - 0.6) / 2.4)) : 0;
+  canMat.opacity = canOp; cans.visible = canOp > 0.005;
+
+  // 制御装置のランプ
+  ledMats.forEach((m, k) => { const on = Math.sin(now / 1000 * (1.3 + (k % 5) * 0.7) + k * 1.7) > 0.2; m.color.setHex(on ? (k % 2 ? 0x45e07a : 0x4d9bff) : 0x1a2433); });
+
+  // パルス
+  schedulePulses(key, tp);
+  drawPulses();
+
+  // 量子の計算と右パネル
+  let glow = { g0: 0, g1: 0, gc: 0, gr: 0 };
+  if (i >= 4) glow = updateQuantum(key, tp);
+  chipM.q0.emissiveIntensity = 0.25 + glow.g0 * 1.5;
+  chipM.q1.emissiveIntensity = 0.25 + glow.g1 * 1.5;
+  chipM.cpl.emissiveIntensity = glow.gc * 2;
+  chipM.res.emissiveIntensity = glow.gr * 1.6;
+  chipM.drv.emissiveIntensity = (key === 'chip' ? 0.6 : 0) + Math.max(glow.g0, glow.g1);
+  chipGlow[0].material.opacity = glow.g0 * 0.9; chipGlow[1].material.opacity = glow.g1 * 0.9; chipGlow[2].material.opacity = glow.gc * 0.9;
+
+  renderer.render(scene, camera);
+
+  if (i >= 4) {
+    const bw = bCanvas.clientWidth, bh = bCanvas.clientHeight;
+    if (bw > 0 && bh > 0) {
+      const pr = bRenderer.getPixelRatio();
+      if (bCanvas.width !== Math.floor(bw * pr) || bCanvas.height !== Math.floor(bh * pr)) bRenderer.setSize(bw, bh, false);
+      const half = bw / 2;
+      bCam.aspect = half / bh;
+      const dist = bCam.position.length();
+      bCam.fov = THREE.MathUtils.radToDeg(2 * Math.atan(Math.max(1.6 / dist, 1.55 / dist / bCam.aspect)));
+      bCam.updateProjectionMatrix();
+      bRenderer.setClearColor(0x000000, 0);
+      for (let k = 0; k < 2; k++) {
+        B[0].g.visible = k === 0; B[1].g.visible = k === 1;
+        bRenderer.setViewport(k * half, 0, half, bh); bRenderer.setScissor(k * half, 0, half, bh);
+        bRenderer.clear(); bRenderer.render(bScene, bCam);
+      }
+    }
+  }
+
+  layoutLabels(tp, dt);
+
+  const cs = `${Math.floor(T)} 秒 / ${TOTAL} 秒`;
+  if (cs !== clockShown) { clockShown = cs; $('clock').textContent = cs; }
+  stepEls[i].querySelector('.bar').style.width = (100 * tp / PH[i].dur).toFixed(1) + '%';
+}
+requestAnimationFrame(frame);
+if (qs.has('debug')) window.__qc = { THREE, camera, scene, fridge, chip, STAGES, controls };
+</script>
+</body>
+</html>

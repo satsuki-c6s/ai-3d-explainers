@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI が作った 3D の解説ページ (エアコン・量子コンピューター)</title>
+<style>
+  :root { --bg: #eef4f0; --card: #fff; --fg: #1d2a24; --muted: #5b6b63; --line: #d3ded8; --ok: #2f7d4f; --warn: #b0701a; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #121a16; --card: #1b2520; --fg: #e6efe9; --muted: #9db0a5; --line: #2c3a33; --ok: #6cc690; --warn: #e2a453; } }
+  body { margin: 0; background: var(--bg); color: var(--fg); font-family: "Hiragino Sans", "Yu Gothic", "Noto Sans JP", sans-serif; line-height: 1.7; }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 28px 16px 48px; }
+  h1 { font-size: clamp(1.5rem, 3.2vw, 2.2rem); margin: 0 0 6px; }
+  .lead { color: var(--muted); margin: 0 0 24px; max-width: 70ch; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: 20px; }
+  a.card { display: flex; flex-direction: column; background: var(--card); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; color: inherit; text-decoration: none; }
+  a.card:hover, a.card:focus-visible { outline: 2px solid var(--ok); }
+  a.card img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; display: block; background: var(--line); }
+  .cap { padding: 12px 16px 16px; display: grid; gap: 4px; }
+  .name { font-weight: 700; }
+  .note { color: var(--muted); font-size: .9rem; }
+  .tag { font-size: .75rem; padding: 1px 8px; border-radius: 999px; border: 1px solid currentColor; margin-left: 6px; }
+  .ok { color: var(--ok); } .warn { color: var(--warn); }
+  footer { margin-top: 28px; color: var(--muted); font-size: .9rem; }
+  footer a { color: inherit; }
+  h2 { margin: 28px 0 12px; font-size: 1.25rem; }
+  code { font-size: .85em; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>AI が 1 枚の HTML で作った 3D の解説ページ</h1>
+  <p class="lead">同じ指示を 1 回だけ、5 つの AI モデルに出して作らせた Three.js のページです。カードを押すと、その作品がブラウザで動きます (ドラッグで回転・ホイールで拡大)。道具は Hermes Agent。各モデル 1 回ずつなので順位は付けていません。並びは固定の順です。2026 年 11 月 10 日。</p>
+  <h2>エアコン</h2>
+  <div class="grid">
+    <a class="card" href="aircon-fable52.html"><img src="aircon-fable52.gif" alt="Claude Fable 5.2 のエアコン" loading="lazy"><span class="cap"><span class="name">Claude Fable 5.2<span class="tag ok">採点 19/19</span></span><span class="note">暖房で開く: <code>aircon-fable52.html?mode=heat</code></span></span></a>
+    <a class="card" href="aircon-astra.html"><img src="aircon-astra.gif" alt="GPT-6 Astra のエアコン" loading="lazy"><span class="cap"><span class="name">GPT-6 Astra<span class="tag ok">採点 19/19</span></span><span class="note">暖房で開く: <code>aircon-astra.html?mode=heat</code></span></span></a>
+    <a class="card" href="aircon-opus55.html"><img src="aircon-opus55.gif" alt="Claude Opus 5.5 のエアコン" loading="lazy"><span class="cap"><span class="name">Claude Opus 5.5<span class="tag warn">採点 18/19</span></span><span class="note">暖房で開く: <code>aircon-opus55.html?mode=heat</code></span></span></a>
+    <a class="card" href="aircon-fable51.html"><img src="aircon-fable51.gif" alt="Claude Fable 5.1 のエアコン" loading="lazy"><span class="cap"><span class="name">Claude Fable 5.1<span class="tag warn">採点 18/19</span></span><span class="note">暖房で開く: <code>aircon-fable51.html?mode=heat</code></span></span></a>
+    <a class="card" href="aircon-grok.html"><img src="aircon-grok.gif" alt="Grok 4.7 のエアコン" loading="lazy"><span class="cap"><span class="name">Grok 4.7<span class="tag warn">採点 16/19</span></span><span class="note">暖房で開く: <code>aircon-grok.html?mode=heat</code></span></span></a>
+  </div>
+  <h2>量子コンピューター</h2>
+  <div class="grid">
+    <a class="card" href="quantum-fable52.html"><img src="quantum-fable52.gif" alt="Claude Fable 5.2 の量子コンピューター" loading="lazy"><span class="cap"><span class="name">Claude Fable 5.2<span class="tag ok">採点 16/16</span></span></span></a>
+    <a class="card" href="quantum-astra.html"><img src="quantum-astra.gif" alt="GPT-6 Astra の量子コンピューター" loading="lazy"><span class="cap"><span class="name">GPT-6 Astra<span class="tag ok">採点 16/16</span></span></span></a>
+    <a class="card" href="quantum-opus55.html"><img src="quantum-opus55.gif" alt="Claude Opus 5.5 の量子コンピューター" loading="lazy"><span class="cap"><span class="name">Claude Opus 5.5<span class="tag ok">採点 16/16</span></span></span></a>
+    <a class="card" href="quantum-fable51.html"><img src="quantum-fable51.gif" alt="Claude Fable 5.1 の量子コンピューター" loading="lazy"><span class="cap"><span class="name">Claude Fable 5.1<span class="tag warn">採点 15/16</span></span></span></a>
+    <a class="card" href="quantum-grok.html"><img src="quantum-grok.gif" alt="Grok 4.7 の量子コンピューター" loading="lazy"><span class="cap"><span class="name">Grok 4.7<span class="tag warn">採点 13/16</span></span></span></a>
+  </div>
+  <footer>
+    <p>採点は 1 課題につき、機械の確認 3 点 + 中身の項目 (エアコン 16・量子 13)。項目は 3 つの AI モデルが作者名を伏せた写真とソースで合否を付けました。課題文は <a href="prompt-aircon.txt">prompt-aircon.txt</a>・<a href="prompt-quantum.txt">prompt-quantum.txt</a>、採点表は <a href="RUBRIC.md">RUBRIC.md</a>、説明は <a href="https://github.com/satsuki-c6s/ai-3d-explainers">README</a> にあります。</p>
+  </footer>
+</div>
+</body>
+</html>

@@ -1,0 +1,1195 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>エアコンが冷やす・暖めるしくみ（3D断面模型）</title>
+<link rel="icon" href="data:,">
+<style>
+:root{ --lw:252px; --rw:336px; --fs:13px; }
+@media (min-width:1600px) and (min-height:900px){ :root{ --lw:330px; --rw:430px; --fs:15.5px; } }
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;background:#0d1520;color:#e6edf6;
+  font-family:"Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP","Noto Sans CJK JP","Yu Gothic UI","Meiryo",sans-serif;font-size:var(--fs);line-height:1.5}
+#left,#right{position:absolute;top:0;bottom:0;overflow-y:auto;overflow-x:hidden;background:#101a27}
+#left{left:0;width:var(--lw);padding:10px 12px;border-right:1px solid #25374d}
+#right{right:0;width:var(--rw);padding:10px 14px;border-left:1px solid #25374d}
+#view{position:absolute;top:0;bottom:0;left:var(--lw);right:var(--rw);overflow:hidden}
+#c{display:block;width:100%;height:100%;outline:none}
+h1{font-size:1.32em;line-height:1.3;margin:0 0 2px}
+h2{font-size:1.25em;margin:0 0 4px;line-height:1.3}
+h3{font-size:1em;margin:10px 0 4px;color:#9fc2ea;line-height:1.3}
+p{margin:0 0 4px}
+.sub{color:#9fb0c4;font-size:.9em;margin-bottom:6px}
+.btns{display:flex;flex-wrap:wrap;gap:5px;margin:4px 0}
+button{font:inherit;color:#dfe8f3;background:#1c2a3b;border:1px solid #36506d;border-radius:6px;padding:3px 9px;cursor:pointer;line-height:1.4}
+button:hover{background:#26384e}
+button.on{background:#2c5d93;border-color:#6aa6e6;color:#fff;font-weight:bold}
+#bCool.on{background:#1f6fb5}
+#bHeat.on{background:#b5521f;border-color:#f09a63}
+.big button{font-size:1.08em;padding:4px 16px}
+.chk{display:flex;flex-wrap:wrap;gap:2px 10px;font-size:.92em}
+.chk label{cursor:pointer;white-space:nowrap}
+#inset{display:block;width:100%;height:150px;background:#0a121c;border:1px solid #25374d;border-radius:6px}
+@media (min-width:1600px) and (min-height:900px){ #inset{height:200px} }
+#pinfo{font-size:.92em;margin-top:3px}
+#pinfo b{font-size:1.15em}
+.bar{height:7px;background:#1c2a3b;border-radius:4px;overflow:hidden;margin:2px 0 3px}
+.bar i{display:block;height:100%;width:30%;background:#ff7a3a}
+.small{font-size:.86em;color:#a9b8c9;line-height:1.45}
+.hint{font-size:.84em;color:#8ea2b8;margin-top:6px;line-height:1.45}
+#mTitle.cool{color:#6cc4ff} #mTitle.heat{color:#ffab70}
+#steps{list-style:none;margin:0;padding:0}
+#steps li{border:1px solid #2a3d54;border-radius:6px;padding:3px 7px;margin:0 0 4px;cursor:pointer;background:#142132}
+#steps li.on{border-color:#ffd84a;background:#2a2a1a}
+.st-t{font-weight:bold;line-height:1.35}
+.st-t span{font-weight:normal;color:#9fc2ea;font-size:.88em;margin-left:4px}
+.st-d{font-size:.9em;color:#c9d6e4;line-height:1.4}
+.note{background:#17283c;border-left:4px solid #ff9a3c;padding:4px 8px;font-size:.92em;line-height:1.45;border-radius:4px;margin-top:6px}
+#part{background:#142132;border:1px solid #2a3d54;border-radius:6px;padding:4px 8px;min-height:3em}
+#part b{color:#ffe08a}
+#part p{font-size:.92em;line-height:1.45;margin:2px 0 0}
+.lg{font-size:.88em;line-height:1.45;color:#c9d6e4}
+.grad{height:10px;border-radius:5px;margin:2px 0 0}
+.ticks{display:flex;justify-content:space-between;font-size:.82em;color:#9fb0c4}
+.sym{display:inline-block;width:.8em;height:.8em;border-radius:50%;vertical-align:-.05em;margin-right:2px}
+#labels{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+#lines{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;overflow:visible}
+.lbl{position:absolute;left:0;top:0;visibility:hidden;background:rgba(12,20,31,.88);border:1px solid rgba(150,185,230,.5);
+  border-radius:6px;padding:2px 7px;font-size:calc(var(--fs) - 1px);line-height:1.35;color:#eef4fb;white-space:nowrap;pointer-events:auto;cursor:pointer}
+.lbl b{font-weight:bold}
+.lbl .d{display:none;font-size:.9em;color:#b8cbe0;white-space:normal;max-width:15em}
+.lbl.full .d{display:block}
+.lbl.state{border-left:6px solid var(--c,#888)}
+.lbl.heat{background:rgba(70,32,6,.9);border-color:#ff9a3c}
+.lbl.heat b{color:#ffcf9a}
+.lbl.region{background:rgba(12,20,31,.55);border-color:transparent;color:#a8bdd4}
+.lbl.hl{border-color:#ffd84a;box-shadow:0 0 0 2px rgba(255,216,74,.45)}
+#tip{position:absolute;display:none;pointer-events:none;background:rgba(5,10,18,.94);border:1px solid #6aa6e6;border-radius:6px;padding:3px 8px;font-size:calc(var(--fs) - 1px);line-height:1.4;white-space:nowrap;z-index:5}
+#loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#9fb0c4}
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<div id="left">
+  <h1>エアコンが冷やす・<br>暖めるしくみ</h1>
+  <div class="sub">壁掛けエアコン（室内機＋室外機）の3D断面模型</div>
+  <div class="btns big"><button id="bCool">冷房</button><button id="bHeat">暖房</button></div>
+  <h3>視点</h3>
+  <div class="btns" id="views">
+    <button data-v="all">全体</button><button data-v="in">室内機</button><button data-v="out">室外機</button><button data-v="comp">圧縮機</button>
+  </div>
+  <div class="chk">
+    <label><input type="checkbox" id="cLbl" checked>名前</label>
+    <label><input type="checkbox" id="cAir" checked>空気の流れ</label>
+    <label><input type="checkbox" id="cHeat" checked>熱の移動</label>
+    <label><input type="checkbox" id="cCase" checked>外装</label>
+  </div>
+  <h3>圧縮機の中（上から見た断面）</h3>
+  <canvas id="inset"></canvas>
+  <div id="pinfo">圧縮室の圧力 <b id="pval">1.1</b> MPa　<span id="pstate"></span></div>
+  <div class="bar"><i id="pbar"></i></div>
+  <p class="small">ロータリー式。軸が回ると偏心したローラー（灰色）がシリンダーの内側を転がり、ベーン（黄色の仕切り板）との間の空間がだんだん小さくなって気体が押し縮められます。※実物は1秒に数十回転</p>
+  <p class="hint">ドラッグ：回転　ホイール：拡大・縮小　右ドラッグ：移動<br>ラベルや配管にマウスを置くと説明が出ます</p>
+</div>
+
+<div id="view">
+  <div id="loading">読み込み中…</div>
+  <canvas id="c" tabindex="0"></canvas>
+  <div id="labels"><svg id="lines"></svg></div>
+  <div id="tip"></div>
+</div>
+
+<div id="right">
+  <h2 id="mTitle">冷房のしくみ</h2>
+  <p id="mSum"></p>
+  <h3>冷媒の1周（4つの変化）</h3>
+  <ol id="steps"></ol>
+  <div class="note" id="mNote"></div>
+  <h3>部品の説明</h3>
+  <div id="part"></div>
+  <h3>色と形の見方</h3>
+  <div class="lg">
+    <div>冷媒・空気の温度（℃）</div>
+    <div class="grad" id="grad"></div>
+    <div class="ticks"><span>0</span><span>20</span><span>40</span><span>60</span><span>80</span></div>
+    <div><span class="sym" style="background:#8fd0ff;opacity:.55;border:1px solid #fff"></span>大きい半透明の粒＝気体（速く流れる）</div>
+    <div><span class="sym" style="background:#1f6fe0;width:.6em;height:.6em"></span>小さい不透明の粒＝液体（ゆっくり流れる）</div>
+    <div>▲ 空気の流れ（色は温度）　<span style="color:#ff9a3c">➡</span> 熱の移動</div>
+    <div class="small">圧力は冷媒R32のおよその絶対圧（大気圧は約0.1MPa）</div>
+  </div>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+const $ = id => document.getElementById(id);
+const V = (x, y, z) => new THREE.Vector3(x, y, z);
+const TAU = Math.PI * 2;
+const qs = new URLSearchParams(location.search);
+let mode = qs.get('mode') === 'heat' ? 'heat' : 'cool';
+
+/* ================= renderer / scene ================= */
+const view = $('view'), canvas = $('c');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+renderer.localClippingEnabled = true;
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x182334);
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+scene.add(new THREE.HemisphereLight(0xe8f0ff, 0x30302a, 0.7));
+const dl = new THREE.DirectionalLight(0xffffff, 1.3); dl.position.set(1.2, 3, 2.5); scene.add(dl);
+const dl2 = new THREE.DirectionalLight(0xbfd4ff, 0.5); dl2.position.set(-3, 1.5, 1); scene.add(dl2);
+const camera = new THREE.PerspectiveCamera(36, 1, 0.01, 60);
+const controls = new OrbitControls(camera, canvas);
+controls.enableDamping = true; controls.dampingFactor = 0.08;
+controls.minDistance = 0.12; controls.maxDistance = 7;
+
+/* ================= helpers ================= */
+function rounded(pts, rad, n = 8) {
+  if (!rad) return pts.map(p => p.clone());
+  const out = [pts[0].clone()];
+  for (let i = 1; i < pts.length - 1; i++) {
+    const A = pts[i - 1], B = pts[i], C = pts[i + 1];
+    const ba = A.clone().sub(B), bc = C.clone().sub(B);
+    const la = ba.length(), lc = bc.length();
+    if (la < 1e-9 || lc < 1e-9) continue;
+    if (ba.angleTo(bc) > Math.PI - 1e-3) { out.push(B.clone()); continue; }
+    const r = Math.min(rad, la * 0.5, lc * 0.5);
+    const p1 = B.clone().addScaledVector(ba, r / la), p2 = B.clone().addScaledVector(bc, r / lc);
+    for (let k = 0; k <= n; k++) {
+      const t = k / n;
+      out.push(new THREE.Vector3().addScaledVector(p1, (1 - t) * (1 - t)).addScaledVector(B, 2 * t * (1 - t)).addScaledVector(p2, t * t));
+    }
+  }
+  out.push(pts[pts.length - 1].clone());
+  return out;
+}
+function resample(pts, step) {
+  const cum = [0];
+  for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + pts[i].distanceTo(pts[i - 1]));
+  const L = cum[cum.length - 1];
+  const n = Math.max(2, Math.ceil(L / step) + 1);
+  const out = []; let j = 0;
+  for (let k = 0; k < n; k++) {
+    const s = L * k / (n - 1);
+    while (j < pts.length - 2 && cum[j + 1] < s) j++;
+    const seg = cum[j + 1] - cum[j];
+    const t = seg > 1e-12 ? (s - cum[j]) / seg : 0;
+    out.push(pts[j].clone().lerp(pts[j + 1], Math.min(1, Math.max(0, t))));
+  }
+  return out;
+}
+function bend(P, Q, w, out, n = 10) {
+  const M = P.clone().add(Q).multiplyScalar(0.5), rho = P.distanceTo(Q) / 2;
+  const u = P.clone().sub(M).divideScalar(rho || 1);
+  for (let k = 1; k < n; k++) {
+    const a = Math.PI * k / n;
+    out.push(M.clone().addScaledVector(u, rho * Math.cos(a)).addScaledVector(w, rho * Math.sin(a)));
+  }
+}
+function tubeGeometry(pts, radius, radial = 10) {
+  const n = pts.length, ring = radial + 1;
+  const pos = new Float32Array(n * ring * 3), nor = new Float32Array(n * ring * 3), col = new Float32Array(n * ring * 3);
+  const T = [];
+  for (let i = 0; i < n; i++) {
+    const a = pts[Math.max(0, i - 1)], b = pts[Math.min(n - 1, i + 1)];
+    const t = b.clone().sub(a); if (t.lengthSq() < 1e-14) t.set(1, 0, 0); T.push(t.normalize());
+  }
+  const N = new THREE.Vector3().crossVectors(T[0], Math.abs(T[0].y) < 0.9 ? V(0, 1, 0) : V(1, 0, 0)).normalize();
+  const q = new THREE.Quaternion(), B = new THREE.Vector3(), d = new THREE.Vector3();
+  for (let i = 0; i < n; i++) {
+    if (i > 0) { q.setFromUnitVectors(T[i - 1], T[i]); N.applyQuaternion(q); N.addScaledVector(T[i], -N.dot(T[i])).normalize(); }
+    B.crossVectors(T[i], N);
+    for (let j = 0; j < ring; j++) {
+      const a = j / radial * TAU;
+      d.copy(N).multiplyScalar(Math.cos(a)).addScaledVector(B, Math.sin(a));
+      const k = (i * ring + j) * 3;
+      pos[k] = pts[i].x + d.x * radius; pos[k + 1] = pts[i].y + d.y * radius; pos[k + 2] = pts[i].z + d.z * radius;
+      nor[k] = d.x; nor[k + 1] = d.y; nor[k + 2] = d.z;
+    }
+  }
+  const idx = [];
+  for (let i = 0; i < n - 1; i++) for (let j = 0; j < radial; j++) {
+    const a = i * ring + j, b = a + ring;
+    idx.push(a, b, a + 1, b, b + 1, a + 1);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  g.setAttribute('normal', new THREE.BufferAttribute(nor, 3));
+  g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  g.setIndex(idx);
+  g.userData.rings = n; g.userData.ring = ring;
+  return g;
+}
+function strip2(pts2, th, rad = 0.008) {
+  const p = resample(rounded(pts2.map(a => V(a[0], a[1], 0)), rad), 0.003);
+  const L = [], R = [];
+  for (let i = 0; i < p.length; i++) {
+    const a = p[Math.max(0, i - 1)], b = p[Math.min(p.length - 1, i + 1)];
+    const tx = b.x - a.x, ty = b.y - a.y, l = Math.hypot(tx, ty) || 1, nx = -ty / l, ny = tx / l;
+    L.push(new THREE.Vector2(p[i].x + nx * th / 2, p[i].y + ny * th / 2));
+    R.push(new THREE.Vector2(p[i].x - nx * th / 2, p[i].y - ny * th / 2));
+  }
+  return new THREE.Shape(L.concat(R.reverse()));
+}
+function extZ(shape, z0, z1) {
+  const g = new THREE.ExtrudeGeometry(shape, { depth: z1 - z0, bevelEnabled: false, curveSegments: 6 });
+  g.translate(0, 0, z0); return g;
+}
+function mesh(geo, mat, parent = scene, pos) {
+  const m = new THREE.Mesh(geo, mat); if (pos) m.position.copy(pos); parent.add(m); return m;
+}
+function cylX(r, len) { return new THREE.CylinderGeometry(r, r, len, 24).rotateZ(Math.PI / 2); }
+function cylZ(r, len) { return new THREE.CylinderGeometry(r, r, len, 24).rotateX(Math.PI / 2); }
+function lathe(pairs, seg = 48) { return new THREE.LatheGeometry(pairs.map(p => new THREE.Vector2(p[0], p[1])), seg); }
+
+/* temperature colour */
+const TSTOPS = [[-5, 0x3434ff], [5, 0x1f78ff], [12, 0x1fb6ff], [20, 0x5fe0c8], [30, 0xffe066], [42, 0xff9a2e], [60, 0xff4a2a], [85, 0xe0105a]].map(s => [s[0], new THREE.Color(s[1])]);
+function tcol(T, out = new THREE.Color()) {
+  if (T <= TSTOPS[0][0]) return out.copy(TSTOPS[0][1]);
+  for (let i = 1; i < TSTOPS.length; i++) {
+    if (T <= TSTOPS[i][0]) { const a = TSTOPS[i - 1], b = TSTOPS[i]; return out.copy(a[1]).lerp(b[1], (T - a[0]) / (b[0] - a[0])); }
+  }
+  return out.copy(TSTOPS[TSTOPS.length - 1][1]);
+}
+function cssT(T) { return '#' + tcol(T).getHexString(); }
+
+/* ================= materials ================= */
+const mat = {
+  alu: new THREE.MeshStandardMaterial({ color: 0xc9d1d9, metalness: 0.55, roughness: 0.4 }),
+  steel: new THREE.MeshStandardMaterial({ color: 0x9aa3ad, metalness: 0.55, roughness: 0.4 }),
+  dark: new THREE.MeshStandardMaterial({ color: 0x3a3f47, metalness: 0.3, roughness: 0.6 }),
+  plastic: new THREE.MeshStandardMaterial({ color: 0xe3e8ee, roughness: 0.55 }),
+  brass: new THREE.MeshStandardMaterial({ color: 0xc9a14a, metalness: 0.7, roughness: 0.3 }),
+  copper: new THREE.MeshStandardMaterial({ color: 0xc27a4a, metalness: 0.6, roughness: 0.35 }),
+  blade: new THREE.MeshStandardMaterial({ color: 0xa9bed2, roughness: 0.45, side: THREE.DoubleSide }),
+  rubber: new THREE.MeshStandardMaterial({ color: 0x202226, roughness: 0.9 }),
+};
+function casingMat(color, op, clip) {
+  return new THREE.MeshStandardMaterial({ color, transparent: true, opacity: op, roughness: 0.4, depthWrite: false, side: THREE.DoubleSide, clippingPlanes: clip || null });
+}
+const casingObjs = [];
+function addCasing(geo, m, edgeMat, parent) {
+  const me = new THREE.Mesh(geo, m); parent.add(me); casingObjs.push(me);
+  if (edgeMat) { const l = new THREE.LineSegments(new THREE.EdgesGeometry(geo, 25), edgeMat); parent.add(l); casingObjs.push(l); }
+  return me;
+}
+
+/* ================= world layout ================= */
+const IU0 = V(0.1, 1.2, 0);                 // indoor unit: back-bottom at wall face
+const iu = (x, y, z) => V(IU0.x + x, IU0.y + y, IU0.z + z);
+const CX = -0.42, CZ = 0.27;                // compressor axis
+const AX = -0.328, AZ = 0.262;              // accumulator axis
+const EX = -0.296, EZ = 0.195;              // expansion valve
+const VX = -0.36, VY = 0.47, VZ = 0.28;     // 4-way valve
+const FANO = V(-0.50, 0.33, -0.125);        // outdoor propeller fan centre
+
+/* ---- room / wall / ground ---- */
+{
+  const wallM = new THREE.MeshStandardMaterial({ color: 0xd6d0c4, roughness: 0.9 });
+  const cutM = new THREE.MeshStandardMaterial({ color: 0x8a8376, roughness: 0.9 });
+  const mats = [wallM, wallM, wallM, wallM, cutM, wallM];
+  const box = (x0, x1, y0, y1, z0, z1, m) => { const g = new THREE.BoxGeometry(x1 - x0, y1 - y0, z1 - z0); const me = new THREE.Mesh(g, m); me.position.set((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2); scene.add(me); return me; };
+  box(-0.1, 0.1, 0, 2.05, -1.6, 0.34, mats);
+  box(-0.1, 0.1, 0, 1.18, 0.34, 0.46, mats);
+  box(-0.1, 0.1, 1.31, 2.05, 0.34, 0.46, mats);
+  box(-0.1, 0.1, 1.18, 1.31, 0.33, 0.34, cutM);
+  box(0.1, 1.5, -0.03, 0, -1.6, 0.46, new THREE.MeshStandardMaterial({ color: 0x8b6a4c, roughness: 0.8 }));
+  box(-1.5, -0.1, -0.03, 0, -1.6, 0.46, new THREE.MeshStandardMaterial({ color: 0x5f6560, roughness: 0.95 }));
+  const blk = new THREE.MeshStandardMaterial({ color: 0x9a9c98, roughness: 0.95 });
+  box(-0.57, -0.24, 0, 0.034, -0.36, -0.24, blk); box(-0.57, -0.24, 0, 0.034, 0.24, 0.36, blk);
+  // pipe sleeve through the wall
+  mesh(cylX(0.055, 0.2).translate(0, 1.245, 0.39), new THREE.MeshStandardMaterial({ color: 0xbfc5cc, transparent: true, opacity: 0.22, depthWrite: false, side: THREE.DoubleSide }));
+}
+
+/* ================= refrigerant sections ================= */
+const SECS = {}; const tubeMeshes = [];
+const insulMat = new THREE.MeshStandardMaterial({ color: 0xf2f2ee, transparent: true, opacity: 0.16, roughness: 0.8, depthWrite: false });
+function sec(name, raw, o = {}) {
+  const pts = resample(rounded(raw, o.rad ?? 0.022), 0.004);
+  const s = { name, pts, R: o.R ?? 0.0055, mul: o.mul ?? 1, jit: o.jit ?? 0, drawn: o.drawn !== false, title: o.title || '' };
+  SECS[name] = s;
+  if (s.drawn) {
+    s.geo = tubeGeometry(pts, s.R, 10);
+    s.mat = new THREE.MeshStandardMaterial({ vertexColors: true, transparent: true, opacity: 0.62, roughness: 0.3, metalness: 0.2, depthWrite: false, emissive: 0x000000 });
+    s.mesh = new THREE.Mesh(s.geo, s.mat); s.mesh.userData.sec = name; scene.add(s.mesh); tubeMeshes.push(s.mesh);
+  }
+  if (o.insul) mesh(tubeGeometry(pts, s.R * 2.0, 12), insulMat);
+  return s;
+}
+
+/* ================= INDOOR UNIT ================= */
+const IUG = new THREE.Group(); IUG.position.copy(IU0); scene.add(IUG);
+const clipIn = [new THREE.Plane(V(0, 0, -1), 0.10)];
+const casIn = casingMat(0xf5f8fb, 0.17, clipIn);
+const edgeIn = new THREE.LineBasicMaterial({ color: 0xbcd4f0, transparent: true, opacity: 0.6, clippingPlanes: clipIn });
+const innerIn = new THREE.MeshStandardMaterial({ color: 0xdfe4ea, roughness: 0.6, side: THREE.DoubleSide, clippingPlanes: clipIn });
+const FANC = [0.115, 0.125];
+const outline = [[0.008, 0.012], [0.008, 0.285], [0.02, 0.29], [0.205, 0.29], [0.228, 0.284], [0.242, 0.268], [0.249, 0.24], [0.252, 0.12], [0.246, 0.078], [0.236, 0.06], [0.15, 0.0], [0.03, 0.0], [0.012, 0.006]];
+{
+  const Z0 = -0.42, Z1 = 0.42;
+  addCasing(extZ(strip2([[0.008, 0.012], [0.008, 0.285]], 0.004), Z0, Z1), casIn, edgeIn, IUG);
+  addCasing(extZ(strip2([[0.008, 0.285], [0.02, 0.29], [0.045, 0.29]], 0.004), Z0, Z1), casIn, edgeIn, IUG);
+  addCasing(extZ(strip2([[0.205, 0.29], [0.228, 0.284], [0.242, 0.268], [0.249, 0.24], [0.252, 0.12], [0.246, 0.078], [0.236, 0.06]], 0.004), Z0, Z1), casIn, edgeIn, IUG);
+  addCasing(extZ(strip2([[0.15, 0.0], [0.03, 0.0], [0.012, 0.006], [0.008, 0.012]], 0.004), Z0, Z1), casIn, edgeIn, IUG);
+  const grilleM = new THREE.MeshStandardMaterial({ color: 0xeef2f6, roughness: 0.5, transparent: true, opacity: 0.45, depthWrite: false, clippingPlanes: clipIn });
+  for (let x = 0.055; x <= 0.196; x += 0.014) { const g = new THREE.BoxGeometry(0.005, 0.005, Z1 - Z0); const m = new THREE.Mesh(g, grilleM); m.position.set(x, 0.29, 0); IUG.add(m); casingObjs.push(m); }
+  const sh = new THREE.Shape(outline.map(p => new THREE.Vector2(p[0], p[1])));
+  const capG = new THREE.ShapeGeometry(sh); capG.translate(0, 0, Z0);
+  addCasing(capG, casingMat(0xf5f8fb, 0.2), new THREE.LineBasicMaterial({ color: 0xbcd4f0, transparent: true, opacity: 0.6 }), IUG);
+  mesh(new THREE.BoxGeometry(0.004, 0.22, 0.62), mat.steel, IUG, V(0.003, 0.15, 0));
+  // rear guider (scroll), drain pan, stabilizer
+  mesh(extZ(strip2([[0.045, 0.16], [0.06, 0.135], [0.058, 0.10], [0.07, 0.06], [0.10, 0.035], [0.135, 0.012], [0.15, 0.003]], 0.003), -0.36, 0.36), innerIn, IUG);
+  mesh(extZ(strip2([[0.185, 0.066], [0.185, 0.045], [0.238, 0.045], [0.238, 0.062]], 0.003, 0.003), -0.37, 0.37), innerIn, IUG);
+  mesh(extZ(strip2([[0.185, 0.045], [0.168, 0.068], [0.157, 0.085]], 0.003), -0.36, 0.36), innerIn, IUG);
+  // filter
+  const fM = new THREE.MeshStandardMaterial({ color: 0xb8c4d0, transparent: true, opacity: 0.35, depthWrite: false, side: THREE.DoubleSide, clippingPlanes: clipIn });
+  const fp = [[0.03, 0.276], [0.20, 0.279], [0.228, 0.258], [0.236, 0.20]];
+  mesh(extZ(strip2(fp, 0.0015), -0.4, 0.4), fM, IUG);
+  const fl = []; const fpts = resample(rounded(fp.map(a => V(a[0], a[1], 0)), 0.008), 0.012);
+  fpts.forEach(p => fl.push(p.x, p.y, -0.4, p.x, p.y, 0.4));
+  for (let z = -0.4; z <= 0.4; z += 0.02) for (let i = 1; i < fpts.length; i++) fl.push(fpts[i - 1].x, fpts[i - 1].y, z, fpts[i].x, fpts[i].y, z);
+  const flg = new THREE.BufferGeometry(); flg.setAttribute('position', new THREE.Float32BufferAttribute(fl, 3));
+  IUG.add(new THREE.LineSegments(flg, new THREE.LineBasicMaterial({ color: 0x9fb0c2, transparent: true, opacity: 0.5, clippingPlanes: clipIn })));
+}
+// water in drain pan (cooling)
+const panWater = mesh(new THREE.BoxGeometry(0.046, 0.004, 0.73), new THREE.MeshStandardMaterial({ color: 0x4aa8ff, transparent: true, opacity: 0.55, clippingPlanes: clipIn }), IUG, V(0.2115, 0.0485, 0));
+// louver flap & vertical vanes
+const flap = new THREE.Group(); flap.position.set(0.205, 0.008, 0); IUG.add(flap);
+mesh(extZ(strip2([[-0.035, 0.004], [0, 0], [0.035, 0.004]], 0.003, 0.03), -0.33, 0.33), mat.plastic, flap);
+const vanes = [];
+for (let z = -0.3; z <= 0.301; z += 0.075) { const v = mesh(new THREE.BoxGeometry(0.032, 0.026, 0.002), new THREE.MeshStandardMaterial({ color: 0xd0d6dd, roughness: 0.6 }), IUG, V(0.165, 0.026, z)); vanes.push(v); }
+// heat exchanger (indoor)
+const HXI = [{ a: [0.205, 0.065], b: [0.214, 0.165], n: 3 }, { a: [0.212, 0.172], b: [0.148, 0.252], n: 3 }, { a: [0.132, 0.255], b: [0.045, 0.175], n: 4 }];
+const tubesOuter = [], tubesInner = [];
+HXI.forEach(s => {
+  const dx = s.b[0] - s.a[0], dy = s.b[1] - s.a[1], len = Math.hypot(dx, dy);
+  let nn = [-dy / len, dx / len];
+  const mx = (s.a[0] + s.b[0]) / 2 - FANC[0], my = (s.a[1] + s.b[1]) / 2 - FANC[1];
+  if (nn[0] * mx + nn[1] * my < 0) nn = [-nn[0], -nn[1]];
+  for (let k = 0; k < s.n; k++) {
+    const to = (k + 0.75) / s.n, ti = (k + 0.25) / s.n;
+    tubesOuter.push([s.a[0] + dx * to + nn[0] * 0.0065, s.a[1] + dy * to + nn[1] * 0.0065]);
+    tubesInner.push([s.a[0] + dx * ti - nn[0] * 0.0065, s.a[1] + dy * ti - nn[1] * 0.0065]);
+  }
+  const zs = []; for (let z = -0.33; z <= 0.06; z += 0.0055) zs.push(z);
+  const im = new THREE.InstancedMesh(new THREE.BoxGeometry(len + 0.004, 0.027, 0.0006), mat.alu, zs.length);
+  const o = new THREE.Object3D();
+  zs.forEach((z, i) => { o.position.set((s.a[0] + s.b[0]) / 2, (s.a[1] + s.b[1]) / 2, z); o.rotation.set(0, 0, Math.atan2(dy, dx)); o.updateMatrix(); im.setMatrixAt(i, o.matrix); });
+  IUG.add(im);
+});
+const tubeOrderIn = tubesOuter.concat(tubesInner.slice().reverse());
+const hxInPts = []; const ZT = 0.34;
+tubeOrderIn.forEach((p, i) => {
+  const z0 = i % 2 === 0 ? ZT : -ZT;
+  const A = iu(p[0], p[1], z0), B = iu(p[0], p[1], -z0);
+  if (i > 0) bend(hxInPts[hxInPts.length - 1], A, V(0, 0, Math.sign(z0)), hxInPts);
+  hxInPts.push(A, B);
+});
+// cross-flow fan
+const cff = new THREE.Group(); cff.position.set(FANC[0], FANC[1], 0); IUG.add(cff);
+{
+  for (let k = 0; k < 30; k++) {
+    const a0 = k / 30 * TAU, pts = [];
+    for (let i = 0; i <= 5; i++) { const t = i / 5, r = 0.035 + 0.013 * t, a = a0 + 0.30 * t + 0.12 * t * t; pts.push([r * Math.cos(a), r * Math.sin(a)]); }
+    mesh(extZ(strip2(pts, 0.0016, 0), -0.335, 0.335), mat.blade, cff);
+  }
+  const ringM = new THREE.MeshStandardMaterial({ color: 0x95abc0, roughness: 0.5, side: THREE.DoubleSide });
+  for (let z = -0.335; z <= 0.336; z += 0.1117) { const r = mesh(new THREE.RingGeometry(0.033, 0.0495, 40), ringM, cff); r.position.z = z; }
+  mesh(new THREE.CircleGeometry(0.0495, 40), ringM, cff).position.z = -0.336;
+  mesh(cylZ(0.006, 0.05), mat.steel, cff, V(0, 0, -0.36));
+  // stripe to make rotation visible
+  mesh(new THREE.BoxGeometry(0.004, 0.012, 0.004), new THREE.MeshStandardMaterial({ color: 0xff6040 }), cff, V(0.042, 0, 0.337));
+}
+mesh(cylZ(0.03, 0.045), mat.dark, IUG, V(FANC[0], FANC[1], -0.393));
+
+/* ================= OUTDOOR UNIT ================= */
+const casOut = casingMat(0xf1f3f0, 0.14);
+const edgeOut = new THREE.LineBasicMaterial({ color: 0xbcd4f0, transparent: true, opacity: 0.55 });
+{
+  const sh = new THREE.Shape([new THREE.Vector2(-0.405, 0.052), new THREE.Vector2(0.405, 0.052), new THREE.Vector2(0.405, 0.605), new THREE.Vector2(-0.405, 0.605)]);
+  const hole = new THREE.Path(); hole.absarc(0.125, 0.33, 0.205, 0, TAU, true); sh.holes.push(hole);
+  const fg = new THREE.ExtrudeGeometry(sh, { depth: 0.006, bevelEnabled: false, curveSegments: 48 });
+  const fp = addCasing(fg, casOut, edgeOut, scene); fp.rotation.y = Math.PI / 2; fp.position.x = -0.555;
+  scene.children[scene.children.length - 1].rotation.y = Math.PI / 2; scene.children[scene.children.length - 1].position.x = -0.555;
+  const bx = (w, h, d, x, y, z) => { const g = new THREE.BoxGeometry(w, h, d); g.translate(x, y, z); return g; };
+  addCasing(bx(0.30, 0.004, 0.81, -0.405, 0.607, 0), casOut, edgeOut, scene);
+  addCasing(bx(0.30, 0.555, 0.004, -0.405, 0.33, -0.407), casOut, edgeOut, scene);
+  addCasing(bx(0.004, 0.55, 0.245, -0.258, 0.33, 0.283), casOut, edgeOut, scene);
+  const rs = new THREE.LineSegments(new THREE.EdgesGeometry(bx(0.30, 0.555, 0.002, -0.405, 0.33, 0.405)), new THREE.LineDashedMaterial({ color: 0x9fc2ea, dashSize: 0.015, gapSize: 0.01, transparent: true, opacity: 0.7 }));
+  rs.computeLineDistances(); scene.add(rs); casingObjs.push(rs);
+  mesh(bx(0.31, 0.012, 0.81, -0.405, 0.046, 0), mat.steel);
+  mesh(bx(0.29, 0.545, 0.002, -0.405, 0.3275, 0.16), new THREE.MeshStandardMaterial({ color: 0x8d969f, transparent: true, opacity: 0.35, depthWrite: false, side: THREE.DoubleSide }));
+  // grille & bell mouth
+  const gm = new THREE.MeshStandardMaterial({ color: 0x4a5058, roughness: 0.6 });
+  [0.05, 0.1, 0.15, 0.2].forEach(r => { const t = mesh(new THREE.TorusGeometry(r, 0.0018, 4, 64), gm); t.rotation.y = Math.PI / 2; t.position.set(-0.563, FANO.y, FANO.z); casingObjs.push(t); });
+  for (let k = 0; k < 4; k++) { const b = mesh(new THREE.BoxGeometry(0.003, 0.41, 0.003), gm); b.position.set(-0.563, FANO.y, FANO.z); b.rotation.x = k * Math.PI / 4; casingObjs.push(b); }
+  const bm = mesh(new THREE.TorusGeometry(0.207, 0.011, 10, 64), mat.dark); bm.rotation.y = Math.PI / 2; bm.position.set(-0.54, FANO.y, FANO.z);
+  // fan motor & bracket
+  mesh(cylX(0.042, 0.055), mat.dark, scene, V(-0.445, FANO.y, FANO.z));
+  mesh(cylX(0.006, 0.05), mat.steel, scene, V(-0.485, FANO.y, FANO.z));
+  mesh(new THREE.BoxGeometry(0.012, 0.55, 0.022), mat.steel, scene, V(-0.41, 0.33, FANO.z - 0.06));
+  mesh(new THREE.BoxGeometry(0.012, 0.55, 0.022), mat.steel, scene, V(-0.41, 0.33, FANO.z + 0.06));
+  mesh(new THREE.BoxGeometry(0.012, 0.03, 0.15), mat.steel, scene, V(-0.415, FANO.y, FANO.z));
+  // control box
+  mesh(new THREE.BoxGeometry(0.09, 0.06, 0.2), new THREE.MeshStandardMaterial({ color: 0x5a6470, transparent: true, opacity: 0.4, depthWrite: false }), scene, V(-0.50, 0.565, 0.285));
+  mesh(new THREE.BoxGeometry(0.08, 0.004, 0.18), new THREE.MeshStandardMaterial({ color: 0x1f7a4a, roughness: 0.6 }), scene, V(-0.50, 0.545, 0.285));
+  for (let i = 0; i < 6; i++) mesh(new THREE.BoxGeometry(0.012, 0.012, 0.016), mat.dark, scene, V(-0.52 + (i % 3) * 0.02, 0.553, 0.23 + Math.floor(i / 3) * 0.08));
+  // service valves
+  [0.14, 0.25].forEach((y, i) => { mesh(new THREE.BoxGeometry(0.024, 0.024, 0.024), mat.brass, scene, V(EX, y, 0.398)); mesh(cylZ(i ? 0.009 : 0.007, 0.02), mat.brass, scene, V(EX - 0.0, y + 0.0, 0.418)); });
+}
+// propeller fan
+const prop = new THREE.Group(); prop.position.copy(FANO); scene.add(prop);
+{
+  mesh(cylX(0.045, 0.06), new THREE.MeshStandardMaterial({ color: 0x8796a6, roughness: 0.5 }), prop);
+  for (let b = 0; b < 3; b++) {
+    const th0 = b / 3 * TAU, nu = 12, nv = 8, pos = [], idx = [];
+    for (let i = 0; i <= nu; i++) {
+      const u = i / nu, r = 0.043 + (0.186 - 0.043) * u, c = 0.075 + 0.07 * u, beta = Math.atan(0.30 / (TAU * r)), thc = th0 + 0.45 * u * u;
+      for (let j = 0; j <= nv; j++) {
+        const v = j / nv - 0.5, th = thc + v * c * Math.cos(beta) / r, a = v * c * Math.sin(beta) + 0.004 * Math.sin(Math.PI * (v + 0.5));
+        pos.push(a, r * Math.cos(th), r * Math.sin(th));
+      }
+    }
+    for (let i = 0; i < nu; i++) for (let j = 0; j < nv; j++) { const a = i * (nv + 1) + j, bb = a + nv + 1; idx.push(a, bb, a + 1, bb, bb + 1, a + 1); }
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals();
+    mesh(g, mat.blade, prop);
+  }
+  mesh(new THREE.BoxGeometry(0.006, 0.02, 0.01), new THREE.MeshStandardMaterial({ color: 0xff6040 }), prop, V(-0.032, 0.03, 0));
+}
+// outdoor heat exchanger (L-shape)
+const ROWX = [-0.276, -0.296], ROWZ = [-0.389, -0.369], RCs = [0.06, 0.04], XC = -0.336, ZC = -0.329, ZM = 0.115, XF = -0.50;
+const OY0 = 0.555, ODY = (0.555 - 0.105) / 7;
+function Lpass(row, y) {
+  const p = [V(ROWX[row], y, ZM)];
+  for (let k = 0; k <= 10; k++) { const a = -Math.PI / 2 * k / 10; p.push(V(XC + RCs[row] * Math.cos(a), y, ZC + RCs[row] * Math.sin(a))); }
+  p.push(V(XF, y, ROWZ[row])); return p;
+}
+const hxOutPts = [];
+for (let k = 0; k < 16; k++) {
+  const row = k % 2, lev = Math.floor(k / 2), y = OY0 - lev * ODY;
+  let p = Lpass(row, y); if (row === 1) p = p.reverse();
+  if (k > 0) bend(hxOutPts[hxOutPts.length - 1], p[0], row === 1 ? V(-1, 0, 0) : V(0, 0, 1), hxOutPts);
+  hxOutPts.push(...p);
+}
+{
+  const o = new THREE.Object3D(), list = [];
+  for (let z = ZC; z <= -0.06; z += 0.011) list.push([-0.286, z, 0, 0]);
+  for (let x = XC - 0.006; x >= -0.49; x -= 0.011) list.push([x, -0.379, 1, 0]);
+  for (let a = -5; a >= -85; a -= 10) list.push([0, 0, 2, a * Math.PI / 180]);
+  const im = new THREE.InstancedMesh(new THREE.BoxGeometry(0.04, 0.51, 0.0006), mat.alu, list.length);
+  list.forEach((f, i) => {
+    o.rotation.set(0, 0, 0);
+    if (f[2] === 0) o.position.set(f[0], 0.33, f[1]);
+    else if (f[2] === 1) { o.position.set(f[0], 0.33, f[1]); o.rotation.y = Math.PI / 2; }
+    else { o.position.set(XC + 0.05 * Math.cos(f[3]), 0.33, ZC + 0.05 * Math.sin(f[3])); o.rotation.y = -f[3]; }
+    o.updateMatrix(); im.setMatrixAt(i, o.matrix);
+  });
+  scene.add(im);
+}
+
+/* ---- compressor (rotary) ---- */
+const clipC = [new THREE.Plane(V(0, 0, -1), CZ)];
+const CG = new THREE.Group(); CG.position.set(CX, 0, CZ); scene.add(CG);
+const cm = (c, o = {}) => new THREE.MeshStandardMaterial(Object.assign({ color: c, metalness: 0.4, roughness: 0.5, side: THREE.DoubleSide, clippingPlanes: clipC }, o));
+mesh(lathe([[0, 0.075], [0.03, 0.077], [0.046, 0.084], [0.054, 0.096], [0.055, 0.105], [0.055, 0.325], [0.054, 0.334], [0.046, 0.346], [0.03, 0.354], [0, 0.357]]), cm(0x2c3036, { metalness: 0.5 }), CG);
+mesh(lathe([[0.031, 0.19], [0.053, 0.19], [0.053, 0.28], [0.031, 0.28], [0.031, 0.19]]), cm(0x707985), CG);
+[0.183, 0.287].forEach(y => { const t = mesh(new THREE.TorusGeometry(0.041, 0.0075, 10, 40), cm(0xc27a3a, { metalness: 0.6, roughness: 0.35 }), CG); t.rotation.x = Math.PI / 2; t.position.y = y; });
+mesh(lathe([[0.008, 0.136], [0.054, 0.136], [0.054, 0.15], [0.018, 0.15], [0.018, 0.175], [0.009, 0.175]]), cm(0x8c949c), CG);
+mesh(lathe([[0.028, 0.106], [0.054, 0.106], [0.054, 0.134], [0.028, 0.134], [0.028, 0.106]]), cm(0x8f98a1), CG);
+mesh(lathe([[0.008, 0.092], [0.04, 0.092], [0.04, 0.106], [0.008, 0.106]]), cm(0x8c949c), CG);
+mesh(new THREE.CylinderGeometry(0.05, 0.044, 0.016, 40), cm(0xd99a2b, { transparent: true, opacity: 0.6, metalness: 0 }), CG, V(0, 0.088, 0));
+for (let k = 0; k < 3; k++) { const a = k / 3 * TAU + 0.5; mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.025, 12), mat.rubber, CG, V(0.05 * Math.cos(a), 0.0675, 0.05 * Math.sin(a))); }
+const PUMP = { R: 0.028, rp: 0.021, e: 0.007 };
+const PG = new THREE.Group(); PG.rotation.y = -0.35; CG.add(PG);
+const SG = new THREE.Group(); PG.add(SG);
+mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.21, 16), cm(0xb9c2cb, { clippingPlanes: null, metalness: 0.7 }), SG, V(0, 0.195, 0));
+mesh(new THREE.CylinderGeometry(0.0122, 0.0122, 0.026, 24), cm(0x6d7680, { clippingPlanes: null }), SG, V(PUMP.e, 0.12, 0));
+mesh(new THREE.CylinderGeometry(0.0285, 0.0285, 0.086, 32), cm(0x59626d, { clippingPlanes: null }), SG, V(0, 0.235, 0));
+for (let k = 0; k < 3; k++) { const a = k / 3 * TAU; const b = mesh(new THREE.BoxGeometry(0.004, 0.084, 0.007), cm(0xff8a3a, { clippingPlanes: null }), SG, V(0.0285 * Math.cos(a), 0.235, 0.0285 * Math.sin(a))); b.rotation.y = -a; }
+const roller = mesh(lathe([[0.0125, 0.107], [0.021, 0.107], [0.021, 0.133], [0.0125, 0.133], [0.0125, 0.107]], 40), cm(0xd5dbe1, { clippingPlanes: null, metalness: 0.8, roughness: 0.25 }), PG);
+const vane = mesh(new THREE.BoxGeometry(0.024, 0.026, 0.004), cm(0xe6c95a, { clippingPlanes: null, metalness: 0.6 }), PG);
+vane.position.y = 0.12;
+// accumulator
+mesh(lathe((() => { const a = []; for (let k = 0; k <= 8; k++) { const t = -Math.PI / 2 + Math.PI / 2 * k / 8; a.push([0.032 * Math.cos(t), 0.19 + 0.032 * Math.sin(t)]); } for (let k = 0; k <= 8; k++) { const t = Math.PI / 2 * k / 8; a.push([0.032 * Math.cos(t), 0.31 + 0.032 * Math.sin(t)]); } return a; })(), 32),
+  new THREE.MeshStandardMaterial({ color: 0x4a525c, transparent: true, opacity: 0.38, depthWrite: false, side: THREE.DoubleSide, metalness: 0.4 }), scene, V(AX, 0, AZ));
+mesh(new THREE.CylinderGeometry(0.026, 0.02, 0.014, 24), new THREE.MeshStandardMaterial({ color: 0x2f8cff, transparent: true, opacity: 0.6 }), scene, V(AX, 0.168, AZ));
+mesh(new THREE.BoxGeometry(0.03, 0.012, 0.008), mat.steel, scene, V(-0.35, 0.29, 0.266));
+// four-way valve
+mesh(cylX(0.012, 0.075), new THREE.MeshStandardMaterial({ color: 0xc9a14a, metalness: 0.6, roughness: 0.3, transparent: true, opacity: 0.45, depthWrite: false }), scene, V(VX, VY, VZ));
+const slide = mesh(new THREE.BoxGeometry(0.04, 0.008, 0.016), new THREE.MeshStandardMaterial({ color: 0x3b4450, roughness: 0.5 }), scene, V(-0.371, VY - 0.005, VZ));
+mesh(new THREE.BoxGeometry(0.022, 0.02, 0.02), new THREE.MeshStandardMaterial({ color: 0x25406a, roughness: 0.5 }), scene, V(VX - 0.02, VY + 0.035, VZ + 0.025));
+[[V(-0.385, 0.495, 0.305), V(-0.402, 0.495, 0.305), V(-0.402, 0.47, 0.29), V(-0.3975, 0.47, VZ)], [V(-0.37, 0.495, 0.305), V(-0.318, 0.495, 0.305), V(-0.318, 0.47, 0.29), V(-0.3225, 0.47, VZ)]]
+  .forEach(p => mesh(tubeGeometry(resample(rounded(p, 0.008), 0.003), 0.0015, 6), mat.copper));
+// electronic expansion valve
+mesh(new THREE.CylinderGeometry(0.009, 0.009, 0.065, 20), new THREE.MeshStandardMaterial({ color: 0xc9a14a, metalness: 0.6, roughness: 0.3, transparent: true, opacity: 0.45, depthWrite: false }), scene, V(EX, 0.2025, EZ));
+mesh(new THREE.CylinderGeometry(0.016, 0.016, 0.05, 24), new THREE.MeshStandardMaterial({ color: 0x2d3f63, roughness: 0.5 }), scene, V(EX, 0.26, EZ));
+const needle = mesh(new THREE.ConeGeometry(0.003, 0.03, 12).rotateX(Math.PI), mat.steel, scene, V(EX, 0.222, EZ));
+
+/* ---- refrigerant circuit (all sections drawn in the COOLING direction) ---- */
+const shellEntry = V(CX + 0.055 * Math.cos(-0.086), 0.12, CZ + 0.055 * Math.sin(-0.086));
+const pw = (r, wa, y) => V(CX + r * Math.cos(wa), y, CZ + r * Math.sin(wa));
+sec('compIn', [shellEntry, pw(0.0262, -0.086, 0.12)], { drawn: false, mul: 0.3 });
+{ const p = []; for (let a = 25; a <= 335; a += 5) p.push(pw(0.0262, -a * Math.PI / 180 + 0.35, 0.12)); sec('compBore', p, { drawn: false, mul: 0.11, rad: 0 }); }
+sec('compUp', [pw(0.0262, 0.786, 0.12), pw(0.022, 0.786, 0.14), pw(0.022, 0.786, 0.16), pw(0.042, 1.2, 0.175), pw(0.042, 1.2, 0.30), V(CX, 0.33, CZ), V(CX, 0.37, CZ)], { drawn: false, mul: 0.3, rad: 0.01 });
+sec('dis', [V(CX, 0.37, CZ), V(CX, 0.53, CZ), V(VX, 0.53, VZ), V(VX, 0.481, VZ)], { R: 0.0065, mul: 0.6 });
+sec('vDC', [V(VX, 0.481, VZ), V(VX, 0.47, VZ), V(-0.338, 0.47, VZ), V(-0.338, 0.459, VZ)], { drawn: false, mul: 0.35, rad: 0.005 });
+sec('vES', [V(-0.382, 0.459, VZ), V(-0.382, 0.466, VZ), V(VX, 0.466, VZ), V(VX, 0.459, VZ)], { drawn: false, mul: 0.35, rad: 0.004 });
+sec('vDE', [V(VX, 0.481, VZ), V(VX, 0.47, VZ), V(-0.382, 0.47, VZ), V(-0.382, 0.459, VZ)], { drawn: false, mul: 0.35, rad: 0.005 });
+sec('vCS', [V(-0.338, 0.459, VZ), V(-0.338, 0.466, VZ), V(VX, 0.466, VZ), V(VX, 0.459, VZ)], { drawn: false, mul: 0.35, rad: 0.004 });
+sec('pC', [V(-0.338, 0.459, VZ), V(-0.338, 0.44, VZ), V(-0.338, 0.44, 0.20), V(-0.276, 0.44, 0.20), V(-0.276, 0.555, 0.20), V(-0.276, 0.555, ZM)], { R: 0.0075, rad: 0.02 });
+sec('hxOut', hxOutPts, { R: 0.0055, rad: 0 });
+sec('eev1', [V(-0.296, 0.105, ZM), V(-0.296, 0.105, 0.165), V(EX, 0.205, 0.165), V(EX, 0.205, EZ)], { R: 0.005, mul: 0.8, rad: 0.015 });
+sec('eev2', [V(EX, 0.205, EZ), V(EX, 0.14, EZ), V(EX, 0.14, 0.395)], { R: 0.005, mul: 0.8, rad: 0.015 });
+sec('liqOut', [V(EX, 0.14, 0.395), V(EX, 0.14, 0.45), V(-0.13, 0.14, 0.45), V(-0.13, 0.14, 0.355), V(-0.13, 1.23, 0.355), iu(0.02, 0.03, 0.355)], { R: 0.0055, insul: true, rad: 0.03 });
+const [x1, y1] = tubeOrderIn[0], [xN, yN] = tubeOrderIn[tubeOrderIn.length - 1];
+sec('liqIn', [iu(0.02, 0.03, 0.355), iu(0.04, 0.03, 0.355), iu(0.04, 0.03, 0.405), iu(x1, 0.03, 0.405), iu(x1, y1, 0.405), iu(x1, y1, ZT)], { R: 0.0055, rad: 0.01 });
+sec('hxIn', hxInPts, { R: 0.0055, rad: 0 });
+sec('gasIn', [iu(xN, yN, ZT), iu(xN, yN, 0.385), iu(xN, 0.07, 0.385), iu(0.02, 0.07, 0.385)], { R: 0.0075, rad: 0.006 });
+sec('gasOut', [iu(0.02, 0.07, 0.385), V(-0.13, 1.27, 0.385), V(-0.13, 0.25, 0.385), V(-0.13, 0.25, 0.47), V(EX, 0.25, 0.47), V(EX, 0.25, 0.395)], { R: 0.0075, insul: true, rad: 0.03 });
+sec('gasM', [V(EX, 0.25, 0.395), V(EX, 0.25, 0.365), V(EX, 0.43, 0.365), V(-0.382, 0.43, 0.365), V(-0.382, 0.43, VZ), V(-0.382, 0.459, VZ)], { R: 0.0075, rad: 0.015 });
+sec('suc1', [V(VX, 0.459, VZ), V(VX, 0.39, VZ), V(-0.34, 0.39, VZ), V(-0.34, 0.39, AZ), V(-0.34, 0.342, AZ)], { R: 0.0075, rad: 0.008 });
+sec('sucAcc', [V(-0.34, 0.342, AZ), V(-0.34, 0.31, AZ), V(-0.318, 0.30, AZ)], { drawn: false, mul: 0.3, jit: 0.012, rad: 0.01 });
+sec('suc2', [V(-0.318, 0.30, AZ), V(-0.318, 0.15, AZ), V(-0.318, 0.12, AZ), shellEntry], { R: 0.0075, rad: 0.015 });
+// drain hose
+const hosePts = resample(rounded([iu(0.21, 0.05, 0.355), iu(0.21, 0.012, 0.355), iu(0.03, 0.012, 0.355), iu(0.03, 0.012, 0.425), V(-0.17, 1.212, 0.425), V(-0.17, 0.06, 0.425)], 0.02), 0.005);
+mesh(tubeGeometry(hosePts, 0.0075, 10), new THREE.MeshStandardMaterial({ color: 0x9aa3ad, transparent: true, opacity: 0.55, depthWrite: false, roughness: 0.7 }));
+
+/* ================= refrigerant states ================= */
+const MP = {
+  cool: { Pl: 1.1, Ph: 2.8, Te: 10, Tc: 45, Td: 75, Ts: 13, Tl: 40, xf: 0.2, Troom: 27, TroomOut: 14, Tamb: 35, TambOut: 45 },
+  heat: { Pl: 0.8, Ph: 2.8, Te: 0, Tc: 45, Td: 80, Ts: 3, Tl: 38, xf: 0.25, Troom: 20, TroomOut: 40, Tamb: 7, TambOut: 2 },
+};
+function KF(m) {
+  const p = MP[m];
+  const g = (T, P, x = 1) => [[0, T, x, P], [1, T, x, P]];
+  const lin = (Ta, Tb, x, P) => [[0, Ta, x, P], [1, Tb, x, P]];
+  const comp = {
+    compIn: g(p.Ts, p.Pl), compBore: [[0, p.Ts, 1, p.Pl], [0.5, p.Ts + 12, 1, p.Pl * 1.45], [0.82, p.Td - 8, 1, p.Ph], [1, p.Td, 1, p.Ph]],
+    compUp: g(p.Td, p.Ph), dis: lin(p.Td, p.Td - 1, 1, p.Ph), suc1: g(p.Ts, p.Pl), sucAcc: g(p.Ts, p.Pl), suc2: g(p.Ts, p.Pl),
+  };
+  const cond = T0 => [[0, T0, 1, p.Ph], [0.14, p.Tc, 1, p.Ph], [0.86, p.Tc, 0, p.Ph], [1, p.Tl, 0, p.Ph]];
+  const evap = x0 => [[0, p.Te, x0, p.Pl], [0.86, p.Te, 1, p.Pl], [1, p.Ts, 1, p.Pl]];
+  const flash = T0 => [[0, T0, 0, p.Ph], [0.1, p.Te, p.xf, p.Pl], [1, p.Te, p.xf, p.Pl]];
+  if (m === 'cool') return Object.assign(comp, {
+    vDC: g(p.Td - 1, p.Ph), pC: lin(p.Td - 1, p.Td - 3, 1, p.Ph), hxOut: cond(p.Td - 3), eev1: g(p.Tl, p.Ph, 0), eev2: flash(p.Tl),
+    liqOut: [[0, p.Te, p.xf, p.Pl], [1, p.Te, p.xf + 0.01, p.Pl]], liqIn: [[0, p.Te, p.xf + 0.01, p.Pl], [1, p.Te, p.xf + 0.02, p.Pl]],
+    hxIn: evap(p.xf + 0.02), gasIn: g(p.Ts, p.Pl), gasOut: g(p.Ts, p.Pl), gasM: g(p.Ts, p.Pl), vES: g(p.Ts, p.Pl),
+  });
+  return Object.assign(comp, {
+    vDE: g(p.Td - 1, p.Ph), gasM: lin(p.Td - 1, p.Td - 2, 1, p.Ph), gasOut: lin(p.Td - 2, p.Td - 5, 1, p.Ph), gasIn: lin(p.Td - 5, p.Td - 6, 1, p.Ph),
+    hxIn: cond(p.Td - 6), liqIn: lin(p.Tl, p.Tl - 0.5, 0, p.Ph), liqOut: lin(p.Tl - 0.5, p.Tl - 2, 0, p.Ph), eev2: g(p.Tl - 2, p.Ph, 0),
+    eev1: flash(p.Tl - 2), hxOut: evap(p.xf + 0.01), pC: g(p.Ts, p.Pl), vCS: g(p.Ts, p.Pl),
+  });
+}
+function evalKF(k, f) {
+  for (let i = 1; i < k.length; i++) if (f <= k[i][0] || i === k.length - 1) {
+    const a = k[i - 1], b = k[i], t = Math.min(1, Math.max(0, (f - a[0]) / (b[0] - a[0] || 1)));
+    return [a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t, a[3] + (b[3] - a[3]) * t];
+  }
+  return [k[0][1], k[0][2], k[0][3]];
+}
+const ORDER = {
+  cool: [['compIn'], ['compBore'], ['compUp'], ['dis'], ['vDC'], ['pC'], ['hxOut'], ['eev1'], ['eev2'], ['liqOut'], ['liqIn'], ['hxIn'], ['gasIn'], ['gasOut'], ['gasM'], ['vES'], ['suc1'], ['sucAcc'], ['suc2']],
+  heat: [['compIn'], ['compBore'], ['compUp'], ['dis'], ['vDE'], ['gasM', 1], ['gasOut', 1], ['gasIn', 1], ['hxIn', 1], ['liqIn', 1], ['liqOut', 1], ['eev2', 1], ['eev1', 1], ['hxOut', 1], ['pC', 1], ['vCS'], ['suc1'], ['sucAcc'], ['suc2']],
+};
+const VG = 1.15, VL = 0.3;
+let loop = null;
+function buildLoop(m) {
+  const kf = KF(m); const P = [], T = [], X = [], PR = [], RR = [], MU = [], JI = [], SN = [];
+  ORDER[m].forEach(([name, rev], si) => {
+    const s = SECS[name], n = s.pts.length;
+    for (let i = si === 0 ? 0 : 1; i < n; i++) {
+      const idx = rev ? n - 1 - i : i, st = evalKF(kf[name], i / (n - 1));
+      P.push(s.pts[idx]); T.push(st[0]); X.push(st[1]); PR.push(st[2]); RR.push(s.R); MU.push(s.mul); JI.push(s.jit); SN.push(name);
+    }
+  });
+  const n = P.length, tau = new Float32Array(n);
+  for (let i = 1; i < n; i++) {
+    const ds = P[i].distanceTo(P[i - 1]), x = (X[i] + X[i - 1]) / 2, mu = (MU[i] + MU[i - 1]) / 2;
+    tau[i] = tau[i - 1] + ds / ((VL + (VG - VL) * x) * mu);
+  }
+  return { P, T, X, PR, RR, JI, SN, tau, total: tau[n - 1], kf };
+}
+function stateNear(name, pos) {
+  let best = -1, bd = 1e9;
+  for (let i = 0; i < loop.P.length; i++) if (loop.SN[i] === name) { const d = loop.P[i].distanceToSquared(pos); if (d < bd) { bd = d; best = i; } }
+  return best < 0 ? null : { T: loop.T[best], x: loop.X[best], P: loop.PR[best] };
+}
+function phaseText(x) { return x > 0.995 ? '気体' : x < 0.005 ? '液体' : `液体と気体がまざる（気体 約${Math.round(x * 100)}%）`; }
+const COPPER = new THREE.Color(0xc27a4a);
+function colorTubes() {
+  const kf = KF(mode), c = new THREE.Color();
+  const revMap = {}; ORDER[mode].forEach(([n, r]) => revMap[n] = !!r);
+  for (const s of Object.values(SECS)) {
+    if (!s.drawn) continue;
+    const col = s.geo.attributes.color, rings = s.geo.userData.rings, ring = s.geo.userData.ring;
+    for (let i = 0; i < rings; i++) {
+      const f = i / (rings - 1), st = evalKF(kf[s.name], revMap[s.name] ? 1 - f : f);
+      tcol(st[0], c).lerp(COPPER, 0.28);
+      for (let j = 0; j < ring; j++) col.setXYZ(i * ring + j, c.r, c.g, c.b);
+    }
+    col.needsUpdate = true;
+  }
+}
+
+/* ================= refrigerant particles ================= */
+const NP = 1500;
+const sph = new THREE.SphereGeometry(1, 10, 8);
+const gasMesh = new THREE.InstancedMesh(sph, new THREE.MeshStandardMaterial({ transparent: true, opacity: 0.6, roughness: 0.25, metalness: 0 }), NP);
+const liqMesh = new THREE.InstancedMesh(sph, new THREE.MeshStandardMaterial({ roughness: 0.15, metalness: 0.1 }), NP);
+[gasMesh, liqMesh].forEach(m => { m.frustumCulled = false; m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); for (let i = 0; i < NP; i++) m.setColorAt(i, new THREE.Color(1, 1, 1)); scene.add(m); });
+const prnd = new Float32Array(NP), pjit = [];
+for (let i = 0; i < NP; i++) { prnd[i] = Math.random(); pjit.push(V(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5).multiplyScalar(2)); }
+const WHITE = new THREE.Color(1, 1, 1), tmpC = new THREE.Color();
+function updateRefrigerant(time) {
+  const L = loop, n = L.P.length, ga = gasMesh.instanceMatrix.array, la = liqMesh.instanceMatrix.array;
+  for (let i = 0; i < NP; i++) {
+    const tt = ((i / NP) * L.total + time) % L.total;
+    let lo = 0, hi = n - 1;
+    while (hi - lo > 1) { const mid = (lo + hi) >> 1; if (L.tau[mid] <= tt) lo = mid; else hi = mid; }
+    const f = (tt - L.tau[lo]) / ((L.tau[hi] - L.tau[lo]) || 1);
+    const A = L.P[lo], B = L.P[hi];
+    let x = A.x + (B.x - A.x) * f, y = A.y + (B.y - A.y) * f, z = A.z + (B.z - A.z) * f;
+    const T = L.T[lo] + (L.T[hi] - L.T[lo]) * f, X = L.X[lo] + (L.X[hi] - L.X[lo]) * f, R = L.RR[lo], J = L.JI[lo];
+    if (J > 0) { x += pjit[i].x * J; y += pjit[i].y * J; z += pjit[i].z * J; }
+    const gas = prnd[i] < X;
+    const s = gas ? R * 0.78 : R * 0.55;
+    const on = gas ? ga : la, off = gas ? la : ga, k = i * 16;
+    on[k] = s; on[k + 1] = 0; on[k + 2] = 0; on[k + 4] = 0; on[k + 5] = s; on[k + 6] = 0; on[k + 8] = 0; on[k + 9] = 0; on[k + 10] = s;
+    on[k + 12] = x; on[k + 13] = y; on[k + 14] = z; on[k + 15] = 1;
+    off[k] = 0; off[k + 5] = 0; off[k + 10] = 0; off[k + 15] = 1;
+    tcol(T, tmpC);
+    if (gas) { tmpC.lerp(WHITE, 0.3); gasMesh.setColorAt(i, tmpC); } else { tmpC.multiplyScalar(0.85); liqMesh.setColorAt(i, tmpC); }
+  }
+  gasMesh.instanceMatrix.needsUpdate = liqMesh.instanceMatrix.needsUpdate = true;
+  gasMesh.instanceColor.needsUpdate = liqMesh.instanceColor.needsUpdate = true;
+}
+
+/* ================= air flow ================= */
+const coneG = new THREE.ConeGeometry(0.0065, 0.022, 6);
+function makeAirPath(ctrl, hxIdx, tIn, tOut) {
+  let cl = 0; for (let i = 1; i <= hxIdx; i++) cl += ctrl[i].distanceTo(ctrl[i - 1]);
+  const pts = resample(rounded(ctrl, 0.03), 0.008);
+  const cum = [0]; for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + pts[i].distanceTo(pts[i - 1]));
+  return { pts, cum, len: cum[cum.length - 1], sHx: cl, tIn, tOut };
+}
+const airSys = [];
+function makeAirSystem(count, speed) {
+  const m = new THREE.InstancedMesh(coneG, new THREE.MeshBasicMaterial({ transparent: true, opacity: 0.9 }), count);
+  m.frustumCulled = false; m.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  for (let i = 0; i < count; i++) m.setColorAt(i, new THREE.Color(1, 1, 1));
+  scene.add(m);
+  const parts = []; for (let i = 0; i < count; i++) parts.push({ path: 0, u: Math.random(), zo: 0, spd: speed * (0.85 + Math.random() * 0.3) });
+  const sys = { mesh: m, parts, paths: [] }; airSys.push(sys); return sys;
+}
+const airIn = makeAirSystem(190, 0.2), airOut = makeAirSystem(240, 0.26);
+function buildAir() {
+  const p = MP[mode];
+  // indoor
+  const base = [
+    [[[0.075, 0.47], [0.075, 0.30], [0.08, 0.185], [0.095, 0.16], [0.108, 0.135], [0.105, 0.10], [0.08, 0.083], [0.10, 0.06], [0.14, 0.035], [0.19, 0.018]], 2],
+    [[[0.165, 0.47], [0.168, 0.30], [0.165, 0.205], [0.145, 0.168], [0.12, 0.135], [0.10, 0.10], [0.085, 0.08], [0.105, 0.058], [0.145, 0.033], [0.195, 0.016]], 2],
+    [[[0.228, 0.47], [0.232, 0.30], [0.233, 0.22], [0.225, 0.17], [0.19, 0.13], [0.155, 0.115], [0.125, 0.10], [0.095, 0.085], [0.11, 0.058], [0.15, 0.032], [0.2, 0.015]], 4],
+  ];
+  airIn.paths = base.map(([b, h]) => {
+    const O = b[b.length - 1]; const ang = mode === 'cool' ? -0.22 : -1.1, d = [Math.cos(ang), Math.sin(ang)];
+    const ad = (s, dx = 0, dy = 0) => [O[0] + d[0] * s + dx, O[1] + d[1] * s + dy];
+    const ext = mode === 'cool' ? [ad(0.07), ad(0.25, 0, -0.02), ad(0.5, 0, -0.08), ad(0.78, 0, -0.22)]
+      : [ad(0.07), ad(0.3), ad(0.6), ad(0.95), ad(0.95, 0.25, -0.12), ad(0.95, 0.55, -0.15)];
+    return makeAirPath(b.concat(ext).map(a => iu(a[0], a[1], 0)), h, p.Troom, p.TroomOut);
+  });
+  airIn.parts.forEach(q => { q.path = Math.floor(Math.random() * 3); q.zo = (Math.random() - 0.5) * 0.62; });
+  // outdoor
+  const rnd = mulberry(7); airOut.paths = [];
+  for (let k = 0; k < 60; k++) {
+    let ctrl;
+    const fanPt = (y, z, rf) => { const th = Math.atan2(z - FANO.z, y - FANO.y); return [th, rf]; };
+    if (k < 44) {
+      const y = 0.12 + 0.42 * rnd(), z = -0.31 + 0.40 * rnd();
+      const [th, rf] = fanPt(y, z, 0); const rr = 0.06 + 0.12 * rnd();
+      ctrl = [V(-0.12, y, z), V(-0.22, y, z), V(-0.33, y, z), V(-0.43, y + (FANO.y + rr * Math.cos(th) - y) * 0.6, z + (FANO.z + rr * Math.sin(th) - z) * 0.6)];
+      ctrl.push(...fanOut(th, rr));
+    } else {
+      const x = -0.34 - 0.15 * rnd(), y = 0.12 + 0.42 * rnd();
+      const th = Math.atan2(-0.3 - FANO.z, y - FANO.y) + (rnd() - 0.5) * 0.6, rr = 0.07 + 0.11 * rnd();
+      ctrl = [V(x, y, -0.68), V(x, y, -0.48), V(x, y, -0.33), V(-0.46, y + (FANO.y + rr * Math.cos(th) - y) * 0.6, -0.33 + (FANO.z + rr * Math.sin(th) + 0.33) * 0.6)];
+      ctrl.push(...fanOut(th, rr));
+    }
+    airOut.paths.push(makeAirPath(ctrl, 2, p.Tamb, p.TambOut));
+  }
+  airOut.parts.forEach(q => { q.path = Math.floor(Math.random() * airOut.paths.length); q.zo = 0; });
+}
+function fanOut(th, rr) {
+  const pt = (x, a, r) => V(x, FANO.y + r * Math.cos(a), FANO.z + r * Math.sin(a));
+  return [pt(-0.51, th, rr), pt(-0.62, th + 0.25, rr * 1.08), pt(-0.80, th + 0.5, rr * 1.2), pt(-1.0, th + 0.7, rr * 1.35)];
+}
+function mulberry(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const UP = V(0, 1, 0), qA = new THREE.Quaternion(), mA = new THREE.Matrix4(), sA = new THREE.Vector3(), pA = new THREE.Vector3(), tA = new THREE.Vector3();
+function updateAir(dt) {
+  for (const sys of airSys) {
+    const m = sys.mesh;
+    sys.parts.forEach((q, i) => {
+      const P = sys.paths[q.path]; q.u += q.spd * dt / P.len; if (q.u >= 1) { q.u -= 1; }
+      const s = q.u * P.len; let j = Math.min(P.pts.length - 2, Math.floor(q.u * (P.pts.length - 1)));
+      while (j > 0 && P.cum[j] > s) j--; while (j < P.pts.length - 2 && P.cum[j + 1] < s) j++;
+      const f = (s - P.cum[j]) / ((P.cum[j + 1] - P.cum[j]) || 1);
+      pA.copy(P.pts[j]).lerp(P.pts[j + 1], f); pA.z += q.zo;
+      tA.copy(P.pts[j + 1]).sub(P.pts[j]).normalize(); qA.setFromUnitVectors(UP, tA);
+      const fade = Math.min(1, q.u / 0.08, (1 - q.u) / 0.1);
+      sA.setScalar(Math.max(0.001, fade)); mA.compose(pA, qA, sA); m.setMatrixAt(i, mA);
+      const w = Math.min(1, Math.max(0, (s - (P.sHx - 0.015)) / 0.03));
+      tcol(P.tIn + (P.tOut - P.tIn) * w, tmpC); m.setColorAt(i, tmpC);
+    });
+    m.instanceMatrix.needsUpdate = true; m.instanceColor.needsUpdate = true;
+  }
+}
+
+/* ================= heat arrows & drain drops ================= */
+const heatGroup = new THREE.Group(); scene.add(heatGroup);
+const heatFlows = [];
+function makeHeatFlow() {
+  const arrows = [];
+  for (let k = 0; k < 3; k++) {
+    const g = new THREE.Group(), m = new THREE.MeshBasicMaterial({ color: 0xff8c1a, transparent: true, opacity: 0.9, depthWrite: false });
+    mesh(new THREE.CylinderGeometry(0.011, 0.011, 0.07, 12), m, g, V(0, 0.035, 0));
+    mesh(new THREE.ConeGeometry(0.027, 0.05, 16), m, g, V(0, 0.095, 0));
+    heatGroup.add(g); arrows.push({ g, m });
+  }
+  const hf = { arrows, a: V(0, 0, 0), b: V(0, 0, 0) }; heatFlows.push(hf); return hf;
+}
+const hfIn = makeHeatFlow(), hfOut = makeHeatFlow();
+function setHeatFlows() {
+  if (mode === 'cool') { hfIn.a.set(0.92, 1.43, 0.12); hfIn.b.set(0.42, 1.43, 0.12); hfOut.a.set(-0.6, 0.33, -0.125); hfOut.b.set(-1.05, 0.33, -0.125); }
+  else { hfIn.a.set(0.40, 1.43, 0.12); hfIn.b.set(0.92, 1.43, 0.12); hfOut.a.set(-0.30, 1.0, -0.12); hfOut.b.set(-0.30, 0.66, -0.12); }
+}
+function updateHeat(t) {
+  for (const hf of heatFlows) {
+    const dir = hf.b.clone().sub(hf.a).normalize(); qA.setFromUnitVectors(UP, dir);
+    hf.arrows.forEach((ar, k) => {
+      const u = (t * 0.32 + k / 3) % 1;
+      ar.g.position.copy(hf.a).lerp(hf.b, u).addScaledVector(dir, -0.06); ar.g.quaternion.copy(qA);
+      ar.m.opacity = 0.95 * Math.sin(Math.PI * u);
+    });
+  }
+}
+const ND = 26;
+const drops = new THREE.InstancedMesh(new THREE.SphereGeometry(0.0028, 8, 6), new THREE.MeshStandardMaterial({ color: 0x6cc0ff, roughness: 0.1 }), ND);
+drops.frustumCulled = false; scene.add(drops);
+const dropD = []; for (let i = 0; i < ND; i++) dropD.push({ z: -0.32 + Math.random() * 0.4, x: 0.198 + Math.random() * 0.03, ph: Math.random() });
+function updateDrops(t) {
+  const on = mode === 'cool'; drops.visible = on; panWater.visible = on; if (!on) return;
+  dropD.forEach((d, i) => {
+    let u = (t * 0.6 + d.ph) % 1, p;
+    if (i < ND - 4) p = iu(d.x, 0.066 - 0.016 * u * u, d.z);
+    else p = V(-0.17, 0.05 - 0.05 * u * u, 0.425);
+    mA.makeTranslation(p.x, p.y, p.z); drops.setMatrixAt(i, mA);
+  });
+  drops.instanceMatrix.needsUpdate = true;
+}
+
+/* ================= texts ================= */
+const PARTS = {
+  iu: ['室内機', '部屋の壁に付ける部分。部屋の空気を上から吸い込み、熱交換器に通してから下の吹き出し口から出します。'],
+  hxIn: ['熱交換器（室内機）', '銅管にアルミの薄い板（フィン）をたくさん付けて、空気とふれる面積を大きくしたもの。冷房では中の冷媒が蒸発して空気から熱を吸い（蒸発器）、暖房では冷媒が凝縮して空気に熱を出します（凝縮器）。'],
+  cff: ['クロスフローファン', '横に長い筒形の羽根車。回ると、上から吸い込んだ空気を熱交換器に通し、下の吹き出し口から横に広い風として送り出します。'],
+  filter: ['エアフィルター', '吸い込んだ空気のほこりを取る網。熱交換器がほこりでつまると熱が伝わりにくくなるため、ときどき掃除します。'],
+  louver: ['ルーバー（風向板）', '風の向きを変える板。冷たい空気は重く下にたまるので冷房では水平に、暖かい空気は軽く上にたまるので暖房では下向きに吹き出します。'],
+  drain: ['ドレンパン', '冷房のとき、冷たい熱交換器に空気中の水蒸気がふれて水滴になります（結露＝除湿）。その水を受けて、ドレンホースで屋外へ流します。'],
+  iMotor: ['ファンモーター（室内機）', 'クロスフローファンを回すモーター。回転の速さで風の強さを変えます。'],
+  ou: ['室外機', '屋外に置く部分。圧縮機・熱交換器・プロペラファン・膨張弁・四方弁などが入っています。'],
+  hxOut: ['熱交換器（室外機）', 'L字形に曲げた銅管とアルミフィンの熱交換器。冷房では冷媒の熱を外の空気に捨て（凝縮器）、暖房では外の空気から熱を吸います（蒸発器）。'],
+  prop: ['プロペラファン', '後ろと横から外の空気を吸い込んで熱交換器に通し、前へ吹き出します。'],
+  oMotor: ['ファンモーター（室外機）', 'プロペラファンを回すモーター。'],
+  comp: ['圧縮機（コンプレッサー）', 'エアコンの心臓部。モーターで軸を回し、偏心したローラーがシリンダーの中を転がって冷媒の気体を押し縮めます（ロータリー式）。気体は圧縮されると温度と圧力が上がります。ここで電気のエネルギーが冷媒に加わります。'],
+  acc: ['アキュムレーター', '圧縮機の手前のタンク。液体は押し縮められないので、液体が入ると圧縮機がこわれます。液体をためて、気体だけを圧縮機に送ります。'],
+  fourway: ['四方弁', '中のスライド弁が動いて、圧縮機から出た高温の冷媒を室外機の熱交換器へ送るか（冷房）、室内機へ送るか（暖房）を切り替えます。圧縮機自体はいつも同じ向きに送り出します。'],
+  eev: ['膨張弁（電子膨張弁）', '針（ニードル）で通り道をとても細くして、高圧の液体を低圧にします。圧力が下がると冷媒の一部が蒸発し、その蒸発熱で冷媒自身が冷えます。開き具合はモーターで調節します。'],
+  pcb: ['制御基板（インバーター）', '部屋の温度に合わせて圧縮機の回転の速さを変え、冷やす・暖める力を調節します。'],
+  valves: ['サービスバルブ', '室内機とつながる配管の接続口。取り付け工事のときに開け閉めします。'],
+  liq: ['細い配管（液管）', '冷房では膨張弁を出た低温・低圧の霧状の冷媒、暖房では室内機で液体になった冷媒が通ります。液体は体積が小さいので細い管で足ります。'],
+  gas: ['太い配管（ガス管）', '冷房では室内機で蒸発した低温の気体、暖房では圧縮機を出た高温の気体が通ります。気体は体積が大きいので太い管を使います。熱が逃げないよう断熱材で包んであります。'],
+  hose: ['ドレンホース', '冷房・除湿のときに室内機でできた水を屋外に流すホース。'],
+  cMotor: ['圧縮機のモーター', '電気で回転し、軸を通して下のローラーを動かします。周りの固定子（ステーター）と銅線のコイルで回転する力を作ります。'],
+  cPump: ['シリンダーとローラー', '軸の偏心部にはめたローラーがシリンダーの内側を転がり、ベーン（仕切り板）との間の空間を小さくして気体を圧縮します。左下の断面図も見てください。'],
+  refrig: ['冷媒（R32）', '配管の中を回って熱を運ぶ物質。圧力が低いと低い温度で沸騰（蒸発）し、圧力が高いと高い温度でも凝縮（液化）します。この性質を使い、吸う場所と捨てる場所で温度を変えています。'],
+  heatflow: ['熱の移動', '熱は温度の高い物から低い物へ移ります。冷媒の温度を、熱を吸う場所では空気より低く、熱を出す場所では空気より高くしているので、熱を運べます。'],
+};
+const SHORT = {
+  iu: '部屋の壁に付ける部分', hxIn: { cool: '冷媒が蒸発して熱を吸う（蒸発器）', heat: '冷媒が凝縮して熱を出す（凝縮器）' },
+  cff: '横長の羽根車で風を送る', filter: 'ほこりを取る網', louver: { cool: '冷風は水平に吹き出す', heat: '温風は下向きに吹き出す' },
+  drain: '結露した水を受ける', iMotor: 'ファンを回す', ou: '屋外に置く部分',
+  hxOut: { cool: '冷媒が凝縮して熱を捨てる（凝縮器）', heat: '冷媒が蒸発して熱を吸う（蒸発器）' },
+  prop: '外の空気を熱交換器に通す', oMotor: 'プロペラファンを回す', comp: '冷媒の気体を押し縮める',
+  acc: '気体だけを圧縮機に送る', fourway: '冷房と暖房で流れを切り替える', eev: '細いすき間で圧力を下げる',
+  pcb: '圧縮機の回転数を変える', valves: '配管のつなぎ口', liq: { cool: '低温の霧状の冷媒が通る', heat: '高圧の液体の冷媒が通る' },
+  gas: { cool: '低温の気体が通る', heat: '高温の気体が通る' }, hose: '結露水を外に流す', cMotor: '軸を回す', cPump: 'ここで気体を圧縮',
+};
+const STEPS = {
+  cool: [
+    ['① 圧縮', '圧縮機', '低温・低圧の気体を押し縮める。圧縮された気体は高温・高圧（約75℃）になる。', [], 'comp'],
+    ['② 凝縮＝熱を捨てる', '室外機の熱交換器', '外気（35℃）より熱いので熱が空気へ移り、冷媒は約45℃で液体になる。', ['hxOut', 'pC'], 'hxOut'],
+    ['③ 膨張', '膨張弁', '細いすき間で圧力を下げると一部が蒸発し、その蒸発熱で約10℃まで冷える。', ['eev2', 'liqOut'], 'eev'],
+    ['④ 蒸発＝熱を吸う', '室内機の熱交換器', '部屋の空気（27℃）より冷たいので熱を吸い、液体が蒸発して気体にもどる。', ['hxIn'], 'hxIn'],
+  ],
+  heat: [
+    ['① 圧縮', '圧縮機', '低温・低圧の気体を押し縮め、高温・高圧（約80℃）にして室内機へ送る。', ['gasOut', 'gasM'], 'comp'],
+    ['② 凝縮＝熱を出す', '室内機の熱交換器', '部屋の空気（20℃）より熱いので熱が空気へ移って温風になり、冷媒は液体になる。', ['hxIn'], 'hxIn'],
+    ['③ 膨張', '膨張弁（室外機）', '細いすき間で圧力を下げ、約0℃の霧状にする。', ['eev1'], 'eev'],
+    ['④ 蒸発＝熱を吸う', '室外機の熱交換器', '外気（7℃）より冷たいので、寒い外の空気からでも熱を吸って蒸発する。', ['hxOut'], 'hxOut'],
+  ],
+};
+const MODETXT = {
+  cool: ['冷房のしくみ', '室内機で冷媒が蒸発するときに部屋の空気から熱を奪い、その熱を室外機で外の空気に捨てます。熱を運ぶのは配管を回る冷媒（R32）です。',
+    '熱は温度の高い所から低い所へしか自然に流れません。圧力を変えて、冷媒を部屋では空気より冷たく、外では空気より熱くしています。<br><b>外に捨てる熱＝部屋から吸った熱＋圧縮機の仕事</b>'],
+  heat: ['暖房のしくみ', '四方弁で冷媒の流れを逆向きにします。室外機で冷媒が蒸発して外の空気から熱を吸い、室内機で凝縮して部屋に熱を出します（ヒートポンプ）。',
+    '外気が冷たくても、冷媒をそれより低い温度にすれば熱を吸えます。<br><b>部屋に出す熱＝外から吸った熱＋圧縮機の仕事</b>。使った電気の数倍の熱を部屋に運べます。'],
+};
+const SECTITLE = { hxIn: '室内機の熱交換器の銅管', hxOut: '室外機の熱交換器の銅管', liqOut: '細い配管（液管）', liqIn: '細い配管（液管）', gasIn: '太い配管（ガス管）', gasOut: '太い配管（ガス管）', gasM: '太い配管（ガス管）', dis: '吐出管（圧縮機→四方弁）', pC: '四方弁と室外熱交換器をつなぐ管', eev1: '膨張弁まわりの配管', eev2: '膨張弁まわりの配管', suc1: '吸入管（→アキュムレーター）', suc2: '吸入管（→圧縮機）' };
+
+/* ================= labels ================= */
+const labelLayer = $('labels'), svg = $('lines');
+const LABELS = [];
+function addLabel(o) {
+  const el = document.createElement('div'); el.className = 'lbl ' + (o.cls || '');
+  el.innerHTML = '<b></b><span class="d"></span>'; labelLayer.appendChild(el);
+  const line = document.createElementNS('http://www.w3.org/2000/svg', 'line'); line.setAttribute('stroke', 'rgba(190,215,245,.75)'); line.setAttribute('stroke-width', '1');
+  const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle'); dot.setAttribute('r', '2.6'); dot.setAttribute('fill', '#ffffff');
+  svg.appendChild(line); svg.appendChild(dot);
+  const L = Object.assign({ el, line, dot, pr: 5, cand: 0, full: false, shown: false, sz: { c: [0, 0], f: [0, 0] } }, o);
+  el.addEventListener('mouseenter', () => { L.hover = true; if (L.part) setPart(L.part); });
+  el.addEventListener('mouseleave', () => { L.hover = false; });
+  el.addEventListener('click', () => { if (L.part) setPart(L.part, true); });
+  LABELS.push(L); return L;
+}
+const PARTLBL = [
+  ['iu', iu(0.13, 0.33, -0.25), 7, 'in'], ['hxIn', iu(0.214, 0.13, 0.06), 9, 'in'], ['cff', iu(0.115, 0.125, 0.335), 7, 'in'],
+  ['filter', iu(0.12, 0.279, 0.08), 5, 'in'], ['louver', iu(0.225, 0.0, 0.25), 5, 'in'], ['drain', iu(0.215, 0.046, 0.08), 4, 'in'],
+  ['iMotor', iu(0.115, 0.125, -0.41), 2, 'in'], ['ou', V(-0.42, 0.61, -0.3), 7, 'out'], ['hxOut', V(-0.286, 0.45, -0.12), 9, 'out'],
+  ['prop', V(-0.50, 0.47, -0.06), 7, 'out'], ['oMotor', V(-0.445, 0.372, FANO.z), 2, 'out'], ['comp', V(CX, 0.24, CZ + 0.055), 9.5, 'out comp'],
+  ['acc', V(AX + 0.02, 0.26, AZ + 0.025), 6, 'out comp'], ['fourway', V(VX, 0.482, VZ + 0.012), 8, 'out comp'], ['eev', V(EX, 0.26, EZ + 0.016), 8.5, 'out comp'],
+  ['pcb', V(-0.50, 0.59, 0.30), 3, 'out'], ['valves', V(EX, 0.20, 0.41), 2, 'out'], ['liq', V(-0.13, 0.80, 0.355), 6, 'pipe'],
+  ['gas', V(-0.13, 0.66, 0.385), 6, 'pipe'], ['hose', V(-0.17, 0.36, 0.425), 2, 'pipe'],
+  ['cMotor', V(CX, 0.235, CZ + 0.03), 4, 'onlycomp'], ['cPump', V(CX + 0.01, 0.12, CZ + 0.025), 5, 'onlycomp'],
+];
+PARTLBL.forEach(([id, pos, pr, g]) => addLabel({ id, part: id, pos, pr, g }));
+const stateLbls = [0, 1, 2, 3].map(i => addLabel({ id: 'st' + i, part: 'refrig', pos: V(), pr: 10, cls: 'state', fixed: true }));
+const heatLbls = [0, 1].map(i => addLabel({ id: 'ht' + i, part: 'heatflow', pos: V(), pr: 9.8, cls: 'heat', fixed: true }));
+const regionLbls = [addLabel({ id: 'room', pos: V(1.0, 0.03, 0.4), pr: 3, cls: 'region', fixed: true }), addLabel({ id: 'outside', pos: V(-1.05, 0.03, 0.4), pr: 3, cls: 'region', fixed: true })];
+const STATE_TAGS = {
+  cool: [['dis', V(CX, 0.50, CZ), '① 高温・高圧の気体'], ['eev1', V(EX, 0.15, 0.165), '② 高圧の液体'], ['liqOut', V(-0.13, 0.50, 0.355), '③ 低温・低圧の液体＋気体（霧状）'], ['gasOut', V(-0.13, 1.02, 0.385), '④ 低温・低圧の気体']],
+  heat: [['gasOut', V(-0.13, 1.02, 0.385), '① 高温・高圧の気体'], ['liqOut', V(-0.13, 0.50, 0.355), '② 高圧の液体'], ['eev1', V(EX, 0.125, 0.14), '③ 低温・低圧の液体＋気体（霧状）'], ['pC', V(-0.276, 0.50, 0.20), '④ 低温・低圧の気体']],
+};
+let needMeasure = true;
+function setLabelTexts() {
+  LABELS.forEach(L => {
+    if (!PARTS[L.id]) return;
+    const s = SHORT[L.id]; L.el.querySelector('b').textContent = PARTS[L.id][0];
+    L.el.querySelector('.d').textContent = typeof s === 'object' ? s[mode] : s;
+  });
+  const p = MP[mode];
+  STATE_TAGS[mode].forEach(([secName, pos, txt], i) => {
+    const L = stateLbls[i]; L.pos.copy(pos); const st = stateNear(secName, pos);
+    L.el.querySelector('b').textContent = txt;
+    L.el.querySelector('.d').textContent = `約${Math.round(st.T)}℃・約${st.P.toFixed(1)}MPa`;
+    L.el.style.setProperty('--c', cssT(st.T));
+  });
+  const ht = mode === 'cool'
+    ? [['部屋の空気から熱を吸収', `吸い込み${p.Troom}℃ → 吹き出し約${p.TroomOut}℃`], ['外の空気へ熱を捨てる', `外気${p.Tamb}℃ → 吹き出し約${p.TambOut}℃`]]
+    : [['部屋の空気へ熱を出す', `吸い込み${p.Troom}℃ → 吹き出し約${p.TroomOut}℃`], ['外の空気から熱を吸収', `外気${p.Tamb}℃ → 吹き出し約${p.TambOut}℃`]];
+  heatLbls.forEach((L, i) => { const hf = i ? hfOut : hfIn; L.pos.copy(hf.a).lerp(hf.b, 0.5); L.el.querySelector('b').textContent = ht[i][0]; L.el.querySelector('.d').textContent = ht[i][1]; });
+  regionLbls[0].el.querySelector('b').textContent = `部屋の中（室温${p.Troom}℃）`;
+  regionLbls[1].el.querySelector('b').textContent = `屋外（外気${p.Tamb}℃）`;
+  needMeasure = true;
+}
+function measureLabels() {
+  LABELS.forEach(L => {
+    L.el.classList.add('full'); L.sz.f = [L.el.offsetWidth, L.el.offsetHeight];
+    if (L.fixed) L.sz.c = L.sz.f; else { L.el.classList.remove('full'); L.sz.c = [L.el.offsetWidth, L.el.offsetHeight]; }
+    L.el.classList.toggle('full', L.full || !!L.fixed);
+  });
+  needMeasure = false;
+}
+const G = 14;
+const CANDS = [(w, h) => [G, -G - h], (w, h) => [-G - w, -G - h], (w, h) => [G, G], (w, h) => [-G - w, G], (w, h) => [G * 2, -h / 2], (w, h) => [-G * 2 - w, -h / 2],
+  (w, h) => [G, -3 * G - h], (w, h) => [-G - w, -3 * G - h], (w, h) => [G, 3 * G], (w, h) => [-G - w, 3 * G], (w, h) => [-w / 2, -4 * G - h], (w, h) => [-w / 2, 4 * G],
+  (w, h) => [3 * G, -5 * G - h], (w, h) => [-3 * G - w, -5 * G - h], (w, h) => [3 * G, 5 * G], (w, h) => [-3 * G - w, 5 * G]];
+const pv = new THREE.Vector3();
+let showLabels = true, currentView = 'all', hlLabel = null;
+function overlaps(r, list, skip) {
+  for (const o of list) { if (o === skip) continue; if (r[0] < o.r[0] + o.r[2] + 4 && r[0] + r[2] + 4 > o.r[0] && r[1] < o.r[1] + o.r[3] + 4 && r[1] + r[3] + 4 > o.r[1]) return true; }
+  return false;
+}
+function layoutLabels() {
+  if (needMeasure) measureLabels();
+  const W = view.clientWidth, H = view.clientHeight, M = 3;
+  const placed = [];
+  const act = LABELS.filter(L => {
+    if (!showLabels) return false;
+    if (L.cls === 'heat' && !heatGroup.visible) return false;
+    if (L.g === 'onlycomp' && currentView !== 'comp') return false;
+    return true;
+  });
+  act.forEach(L => {
+    pv.copy(L.pos).project(camera);
+    L.ax = (pv.x + 1) / 2 * W; L.ay = (1 - pv.y) / 2 * H;
+    L.vis = pv.z < 1 && L.ax > 2 && L.ax < W - 2 && L.ay > 2 && L.ay < H - 2;
+    L.p = L.pr + (L === hlLabel ? 5 : 0) + (L.hover ? 6 : 0) + (L.g && L.g.includes(currentView) ? 1.5 : 0);
+  });
+  act.sort((a, b) => b.p - a.p);
+  const tryPlace = (L, sz, skip) => {
+    const order = [L.cand]; for (let k = 0; k < CANDS.length; k++) if (k !== L.cand) order.push(k);
+    for (const k of order) {
+      const [dx, dy] = CANDS[k](sz[0], sz[1]); const r = [Math.round(L.ax + dx), Math.round(L.ay + dy), sz[0], sz[1]];
+      if (r[0] < M || r[1] < M || r[0] + r[2] > W - M || r[1] + r[3] > H - M) continue;
+      if (overlaps(r, placed, skip)) continue;
+      return [k, r];
+    }
+    return null;
+  };
+  for (const L of act) {
+    if (!L.vis) continue;
+    const want = L.fixed || L.full ? L.sz.f : L.sz.c;
+    let res = tryPlace(L, want, null), full = L.fixed || L.full;
+    if (!res && !L.fixed && L.full) { res = tryPlace(L, L.sz.c, null); full = false; }
+    if (res) { L.cand = res[0]; L.r = res[1]; L.isFull = full; placed.push(L); }
+  }
+  // upgrade compact labels to the full (with description) version where space allows
+  for (const L of placed) {
+    if (L.fixed || L.isFull) continue;
+    const res = tryPlace(L, L.sz.f, L);
+    if (res) { L.cand = res[0]; L.r = res[1]; L.isFull = true; }
+  }
+  const P = new Set(placed);
+  for (const L of LABELS) {
+    if (!P.has(L)) { if (L.shown) { L.el.style.visibility = 'hidden'; L.line.style.display = 'none'; L.dot.style.display = 'none'; L.shown = false; } continue; }
+    if (!L.fixed && L.isFull !== L.full) { L.full = L.isFull; L.el.classList.toggle('full', L.full); }
+    L.el.style.transform = `translate(${L.r[0]}px,${L.r[1]}px)`;
+    L.el.classList.toggle('hl', L === hlLabel);
+    if (!L.shown) { L.el.style.visibility = 'visible'; L.line.style.display = ''; L.dot.style.display = ''; L.shown = true; }
+    const ex = Math.max(L.r[0], Math.min(L.ax, L.r[0] + L.r[2])), ey = Math.max(L.r[1], Math.min(L.ay, L.r[1] + L.r[3]));
+    L.line.setAttribute('x1', L.ax.toFixed(1)); L.line.setAttribute('y1', L.ay.toFixed(1)); L.line.setAttribute('x2', ex.toFixed(1)); L.line.setAttribute('y2', ey.toFixed(1));
+    L.dot.setAttribute('cx', L.ax.toFixed(1)); L.dot.setAttribute('cy', L.ay.toFixed(1));
+    L.dot.style.display = L.cls === 'region' ? 'none' : ''; if (L.cls === 'region') L.line.style.display = 'none';
+  }
+}
+
+/* ================= panel ================= */
+let stepIdx = 0, stepTimer = 0, stepHold = 0, selPart = 'comp';
+function setPart(id, hold) {
+  if (!PARTS[id]) return; selPart = id;
+  $('part').innerHTML = `<b>${PARTS[id][0]}</b><p>${PARTS[id][1]}</p>`;
+}
+function buildPanel() {
+  const t = MODETXT[mode];
+  $('mTitle').textContent = t[0]; $('mTitle').className = mode; $('mSum').textContent = t[1]; $('mNote').innerHTML = t[2];
+  const ol = $('steps'); ol.innerHTML = '';
+  STEPS[mode].forEach((s, i) => {
+    const li = document.createElement('li');
+    li.innerHTML = `<div class="st-t">${s[0]}<span>${s[1]}</span></div><div class="st-d">${s[2]}</div>`;
+    li.addEventListener('click', () => { stepIdx = i; stepHold = 20; stepTimer = 0; applyStep(); });
+    ol.appendChild(li);
+  });
+  applyStep();
+}
+function applyStep() {
+  [...$('steps').children].forEach((li, i) => li.classList.toggle('on', i === stepIdx));
+  const s = STEPS[mode][stepIdx];
+  hlLabel = LABELS.find(L => L.id === s[4]) || null;
+}
+$('grad').style.background = 'linear-gradient(90deg,' + [0, 10, 20, 30, 40, 50, 60, 70, 80].map((T, i) => `${cssT(T)} ${i * 12.5}%`).join(',') + ')';
+
+/* ================= mode ================= */
+let flapTarget = -0.22, slideTarget = -0.371;
+function setMode(m) {
+  mode = m;
+  $('bCool').classList.toggle('on', m === 'cool'); $('bHeat').classList.toggle('on', m === 'heat');
+  loop = buildLoop(m); colorTubes(); buildAir(); setHeatFlows(); setLabelTexts(); stepIdx = 0; stepTimer = 0; buildPanel();
+  flapTarget = m === 'cool' ? -0.22 : -1.1; slideTarget = m === 'cool' ? -0.371 : -0.349;
+}
+$('bCool').onclick = () => setMode('cool');
+$('bHeat').onclick = () => setMode('heat');
+
+/* ================= camera presets ================= */
+const PRESETS = {
+  all: { t: V(-0.08, 0.86, 0.05), d: V(-0.38, 0.22, 1), hw: 0.98, hh: 0.98 },
+  in: { t: V(0.27, 1.33, 0.08), d: V(0.25, 0.3, 1), hw: 0.33, hh: 0.27 },
+  out: { t: V(-0.40, 0.32, 0.05), d: V(-0.8, 0.55, 1), hw: 0.47, hh: 0.4 },
+  comp: { t: V(-0.37, 0.30, 0.27), d: V(-0.35, 0.3, 1), hw: 0.16, hh: 0.2 },
+};
+let camAnim = null, userMoved = false, elapsed = 0;
+function presetPose(name) {
+  const p = PRESETS[name], th = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+  const d = Math.max(p.hh / th, p.hw / (th * camera.aspect)) * 1.04;
+  return [p.t.clone().addScaledVector(p.d.clone().normalize(), d), p.t.clone()];
+}
+function goView(name, instant) {
+  currentView = name; userMoved = false;
+  [...$('views').children].forEach(b => b.classList.toggle('on', b.dataset.v === name));
+  const [pos, tg] = presetPose(name);
+  if (instant) { camAnim = null; camera.position.copy(pos); controls.target.copy(tg); controls.update(); }
+  else camAnim = { s: elapsed, p0: camera.position.clone(), t0: controls.target.clone(), p1: pos, t1: tg, dur: 1.1 };
+  LABELS.forEach(L => L.cand = 0);
+}
+[...$('views').children].forEach(b => b.onclick = () => goView(b.dataset.v));
+controls.addEventListener('start', () => { userMoved = true; camAnim = null; });
+
+/* ================= toggles ================= */
+$('cLbl').onchange = e => { showLabels = e.target.checked; };
+$('cAir').onchange = e => { airSys.forEach(s => s.mesh.visible = e.target.checked); };
+$('cHeat').onchange = e => { heatGroup.visible = e.target.checked; };
+$('cCase').onchange = e => { casingObjs.forEach(o => o.visible = e.target.checked); };
+
+/* ================= hover tooltip on pipes ================= */
+const ray = new THREE.Raycaster(), mouse = new THREE.Vector2(), tip = $('tip');
+let lastHover = 0, pointerDown = false;
+canvas.addEventListener('pointerdown', () => { pointerDown = true; tip.style.display = 'none'; });
+window.addEventListener('pointerup', () => { pointerDown = false; });
+canvas.addEventListener('pointerleave', () => { tip.style.display = 'none'; });
+canvas.addEventListener('pointermove', e => {
+  if (pointerDown) return;
+  const now = performance.now(); if (now - lastHover < 60) return; lastHover = now;
+  const r = canvas.getBoundingClientRect();
+  mouse.set((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1);
+  ray.setFromCamera(mouse, camera);
+  const hit = ray.intersectObjects(tubeMeshes, false)[0];
+  if (!hit) { tip.style.display = 'none'; return; }
+  const name = hit.object.userData.sec, st = stateNear(name, hit.point);
+  if (!st) { tip.style.display = 'none'; return; }
+  tip.innerHTML = `<b>${SECTITLE[name] || ''}</b><br>冷媒：${phaseText(st.x)}<br>約${Math.round(st.T)}℃・約${st.P.toFixed(1)}MPa`;
+  tip.style.borderColor = cssT(st.T); tip.style.display = 'block';
+  const x = e.clientX - r.left, y = e.clientY - r.top, w = tip.offsetWidth, h = tip.offsetHeight;
+  tip.style.left = Math.max(4, Math.min(r.width - w - 4, x + 14)) + 'px';
+  tip.style.top = Math.max(4, Math.min(r.height - h - 4, y + 14 + h > r.height ? y - h - 10 : y + 14)) + 'px';
+});
+
+/* ================= compressor inset (2D section) ================= */
+const ins = $('inset'), ictx = ins.getContext('2d');
+const SUC = 25 * Math.PI / 180;
+function rollerDist(ph, phE) { const c = ph - phE; return PUMP.e * Math.cos(c) + Math.sqrt(PUMP.rp * PUMP.rp - PUMP.e * PUMP.e * Math.sin(c) ** 2); }
+function chamber(a0, a1, phE, N = 36) {
+  const pts = [];
+  for (let k = 0; k <= N; k++) { const ph = -(a0 + (a1 - a0) * k / N); pts.push([PUMP.R * Math.cos(ph), PUMP.R * Math.sin(ph)]); }
+  for (let k = N; k >= 0; k--) { const ph = -(a0 + (a1 - a0) * k / N), d = rollerDist(ph, phE); pts.push([d * Math.cos(ph), d * Math.sin(ph)]); }
+  return pts;
+}
+function area(p) { let s = 0; for (let i = 0; i < p.length; i++) { const a = p[i], b = p[(i + 1) % p.length]; s += a[0] * b[1] - b[0] * a[1]; } return Math.abs(s) / 2; }
+const V0 = area(chamber(SUC, TAU, -SUC));
+function pumpState(psi) {
+  const p = MP[mode];
+  if (psi < SUC) return [p.Pl, '吸い込み口とつながっている'];
+  const Vc = area(chamber(psi, TAU, -psi));
+  const P = p.Pl * Math.pow(V0 / Math.max(Vc, 1e-9), 1.15);
+  return P >= p.Ph ? [p.Ph, '吐き出し中（吐出弁が開く）'] : [P, '圧縮中'];
+}
+function drawInset(psi) {
+  const dpr = Math.min(window.devicePixelRatio || 1, 2), W = ins.clientWidth, H = ins.clientHeight;
+  if (ins.width !== Math.round(W * dpr) || ins.height !== Math.round(H * dpr)) { ins.width = Math.round(W * dpr); ins.height = Math.round(H * dpr); }
+  const c = ictx; c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, W, H);
+  const S = Math.min((H - 16) / 0.135, (W - 20) / 0.15), cx = W / 2, cy = H / 2 + 0.006 * S;
+  const toC = (x, y) => [cx + S * y, cy - S * x];
+  const poly = (pts, fill) => { c.beginPath(); pts.forEach((p, i) => { const q = toC(p[0], p[1]); i ? c.lineTo(q[0], q[1]) : c.moveTo(q[0], q[1]); }); c.closePath(); c.fillStyle = fill; c.fill(); };
+  const circ = (x, y, r, fill, stroke) => { const q = toC(x, y); c.beginPath(); c.arc(q[0], q[1], r * S, 0, TAU); if (fill) { c.fillStyle = fill; c.fill(); } if (stroke) { c.strokeStyle = stroke; c.lineWidth = 1; c.stroke(); } };
+  const p = MP[mode], phE = -psi;
+  // shell & block
+  circ(0, 0, 0.064, '#1f252d', '#3a4654');
+  circ(0, 0, 0.054, '#5b636d');
+  // vane slot
+  poly([[0.026, -0.0028], [0.064, -0.0028], [0.064, 0.0028], [0.026, 0.0028]], '#2a3038');
+  // chambers
+  const [P] = pumpState(psi);
+  const Tk = (p.Ts + 273) * Math.pow(P / p.Pl, 0.2) - 273;
+  poly(chamber(0, psi, phE), cssT(p.Ts));
+  poly(chamber(psi, TAU, phE), cssT(Tk));
+  // roller, eccentric, shaft
+  const rx = PUMP.e * Math.cos(phE), ry = PUMP.e * Math.sin(phE);
+  circ(rx, ry, PUMP.rp, '#c9d1d9', '#8a96a3'); circ(rx, ry, 0.0122, '#76818d'); circ(0, 0, 0.008, '#4b545e');
+  const m1 = toC(0, 0), m2 = toC(0.008 * Math.cos(phE), 0.008 * Math.sin(phE));
+  c.strokeStyle = '#ff8a3a'; c.lineWidth = 2; c.beginPath(); c.moveTo(m1[0], m1[1]); c.lineTo(m2[0], m2[1]); c.stroke();
+  // vane + spring
+  const d = rollerDist(0, phE);
+  poly([[d, -0.002], [d + 0.024, -0.002], [d + 0.024, 0.002], [d, 0.002]], '#e8cc5c');
+  c.strokeStyle = '#c7d0da'; c.lineWidth = 1.2; c.beginPath();
+  const s0 = d + 0.024, s1 = 0.064; for (let k = 0; k <= 8; k++) { const x = s0 + (s1 - s0) * k / 8, y = (k % 2 ? 1 : -1) * 0.0022 * (k > 0 && k < 8 ? 1 : 0); const q = toC(x, y); k ? c.lineTo(q[0], q[1]) : c.moveTo(q[0], q[1]); } c.stroke();
+  // ports
+  const arrow = (r0, r1, ph, col) => {
+    const a = toC(r0 * Math.cos(ph), r0 * Math.sin(ph)), b = toC(r1 * Math.cos(ph), r1 * Math.sin(ph));
+    c.strokeStyle = col; c.fillStyle = col; c.lineWidth = 3; c.beginPath(); c.moveTo(a[0], a[1]); c.lineTo(b[0], b[1]); c.stroke();
+    const ang = Math.atan2(b[1] - a[1], b[0] - a[0]); c.beginPath(); c.moveTo(b[0], b[1]);
+    c.lineTo(b[0] - 8 * Math.cos(ang - 0.45), b[1] - 8 * Math.sin(ang - 0.45)); c.lineTo(b[0] - 8 * Math.cos(ang + 0.45), b[1] - 8 * Math.sin(ang + 0.45)); c.closePath(); c.fill();
+    return toC(Math.max(r0, r1) * Math.cos(ph), Math.max(r0, r1) * Math.sin(ph));
+  };
+  const sp = arrow(0.072, 0.03, -SUC, cssT(p.Ts));
+  const open = P >= p.Ph - 1e-6;
+  const dp = arrow(0.024, 0.072, SUC, open ? cssT(p.Td) : 'rgba(255,120,80,.35)');
+  c.font = `${Math.round(11 * (W > 260 ? 1.15 : 1))}px sans-serif`; c.fillStyle = '#dfe8f3'; c.textBaseline = 'middle';
+  c.textAlign = 'right'; c.fillText('吸入', sp[0] - 6, sp[1]);
+  c.textAlign = 'left'; c.fillText('吐出', dp[0] + 6, dp[1]);
+  // readout
+  $('pval').textContent = P.toFixed(1); $('pstate').textContent = pumpState(psi)[1];
+  const bar = $('pbar'); bar.style.width = (P / 3.0 * 100).toFixed(0) + '%'; bar.style.background = cssT(Tk);
+}
+
+/* ================= resize ================= */
+function resize() {
+  const w = view.clientWidth, h = view.clientHeight;
+  renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
+  if (!userMoved) goView(currentView, true);
+  needMeasure = true;
+}
+window.addEventListener('resize', resize);
+
+/* ================= init ================= */
+setMode(mode);
+setPart('comp');
+resize(); goView('all', true);
+$('loading').remove();
+
+/* ================= animate ================= */
+const clock = new THREE.Clock();
+let flowT = 0, psi = 0;
+function animate() {
+  const dt = Math.min(clock.getDelta(), 0.05); elapsed += dt; flowT += dt;
+  if (camAnim) {
+    const u = Math.min(1, (elapsed - camAnim.s) / camAnim.dur), e = u < 0.5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2;
+    camera.position.lerpVectors(camAnim.p0, camAnim.p1, e); controls.target.lerpVectors(camAnim.t0, camAnim.t1, e);
+    if (u >= 1) camAnim = null;
+  }
+  controls.update();
+  // moving parts
+  cff.rotation.z += dt * TAU * 1.4;
+  prop.rotation.x += dt * TAU * 0.9;
+  psi = (psi + dt * TAU * 0.55) % TAU;
+  SG.rotation.y = psi;
+  const phE = -psi; roller.position.set(PUMP.e * Math.cos(phE), 0, PUMP.e * Math.sin(phE));
+  vane.position.x = rollerDist(0, phE) + 0.012;
+  flap.rotation.z += (flapTarget - flap.rotation.z) * Math.min(1, dt * 3);
+  slide.position.x += (slideTarget - slide.position.x) * Math.min(1, dt * 3);
+  vanes.forEach(v => v.rotation.y = 0.25 * Math.sin(elapsed * 0.6));
+  needle.position.y = 0.222 + 0.002 * Math.sin(elapsed * 0.7);
+  updateRefrigerant(flowT);
+  if (airIn.mesh.visible) updateAir(dt);
+  if (heatGroup.visible) updateHeat(elapsed);
+  updateDrops(elapsed);
+  // step cycling + highlight
+  if (stepHold > 0) stepHold -= dt; else { stepTimer += dt; if (stepTimer > 6) { stepTimer = 0; stepIdx = (stepIdx + 1) % 4; applyStep(); } }
+  const hs = STEPS[mode][stepIdx][3], k = 0.18 + 0.14 * Math.sin(elapsed * 4);
+  for (const s of Object.values(SECS)) if (s.drawn) s.mat.emissive.setScalar(hs.includes(s.name) ? k : 0);
+  drawInset(psi);
+  renderer.render(scene, camera);
+  layoutLabels();
+  requestAnimationFrame(animate);
+}
+animate();
+</script>
+</body>
+</html>

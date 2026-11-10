@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>超伝導量子コンピューターの仕組み</title>
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #070b14; color: #e8eef8;
+    font-family: "Hiragino Sans", "Noto Sans JP", "Yu Gothic", "Meiryo", sans-serif; }
+  #app { position: relative; width: 100%; height: 100%; }
+  canvas { display: block; width: 100%; height: 100%; }
+  #hud {
+    position: absolute; left: 0; top: 0; bottom: 0; width: min(380px, 34vw);
+    padding: 14px 16px 12px; box-sizing: border-box;
+    background: linear-gradient(90deg, rgba(6,10,18,.92) 0%, rgba(6,10,18,.78) 72%, rgba(6,10,18,0) 100%);
+    pointer-events: none; display: flex; flex-direction: column; gap: 8px;
+  }
+  h1 { margin: 0; font-size: clamp(15px, 1.55vw, 22px); font-weight: 700; letter-spacing: .02em; line-height: 1.3; }
+  .sub { margin: 0; font-size: clamp(11px, 1.05vw, 13px); color: #9eb0c8; line-height: 1.45; }
+  #stage-box {
+    background: rgba(16, 28, 48, .72); border: 1px solid rgba(120, 170, 230, .35);
+    border-radius: 10px; padding: 8px 10px;
+  }
+  #stage-kicker { font-size: 11px; color: #8eb6e8; letter-spacing: .08em; }
+  #stage-title { font-size: clamp(14px, 1.35vw, 18px); font-weight: 700; margin: 2px 0 4px; line-height: 1.3; }
+  #stage-body { font-size: clamp(11.5px, 1.1vw, 13.5px); line-height: 1.55; color: #d5e0ee; }
+  #progress { height: 4px; border-radius: 99px; background: rgba(255,255,255,.12); margin-top: 8px; overflow: hidden; }
+  #progress > i { display: block; height: 100%; width: 0%; background: linear-gradient(90deg, #3ec6ff, #f0c14b); }
+  #circuit {
+    display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+    font-size: 12px; color: #c9d7ea;
+  }
+  #circuit .gate {
+    min-width: 34px; text-align: center; padding: 3px 6px; border-radius: 6px;
+    border: 1px solid rgba(180,200,230,.35); background: rgba(255,255,255,.04);
+  }
+  #circuit .gate.on { border-color: #f0c14b; color: #ffe7a3; background: rgba(240,193,75,.16); }
+  #circuit .wire { color: #6d829c; }
+  #hint { margin-top: auto; font-size: 11px; color: #8ea0b8; line-height: 1.4; }
+  #legend {
+    position: absolute; right: 12px; top: 12px; width: min(250px, 24vw);
+    background: rgba(8, 14, 26, .72); border: 1px solid rgba(140,170,210,.28);
+    border-radius: 10px; padding: 8px 10px; font-size: clamp(10.5px, 1vw, 12.5px);
+    line-height: 1.45; pointer-events: none;
+  }
+  #legend b { display: block; font-size: 12px; margin-bottom: 4px; color: #f3f7ff; }
+  .row { display: flex; gap: 6px; align-items: flex-start; margin: 2px 0; }
+  .sw { width: 10px; height: 10px; border-radius: 2px; margin-top: 3px; flex: none; }
+  #counts {
+    position: absolute; right: 12px; bottom: 12px; width: min(280px, 28vw);
+    background: rgba(8, 14, 26, .78); border: 1px solid rgba(140,170,210,.28);
+    border-radius: 10px; padding: 8px 10px 10px; pointer-events: none;
+  }
+  #counts h2 { margin: 0 0 4px; font-size: 12.5px; font-weight: 700; }
+  #counts p { margin: 0 0 6px; font-size: 11px; color: #b7c6da; line-height: 1.4; }
+  .barline { display: grid; grid-template-columns: 28px 1fr 36px; gap: 6px; align-items: center; margin: 3px 0; font-size: 12px; }
+  .track { height: 9px; background: rgba(255,255,255,.08); border-radius: 99px; overflow: hidden; }
+  .track > i { display: block; height: 100%; width: 0%; background: #5ec8ff; }
+  .track.hot > i { background: #f0c14b; }
+  #callout {
+    position: absolute; left: 42%; top: 14px; transform: none;
+    max-width: min(460px, 36vw); text-align: left;
+    background: rgba(8,14,26,.8); border: 1px solid rgba(240,193,75,.4);
+    color: #ffe7a8; border-radius: 999px; padding: 6px 14px;
+    font-size: clamp(11px, 1.05vw, 13.5px); line-height: 1.4; pointer-events: none;
+  }
+  @media (max-width: 1100px) {
+    #hud { width: min(340px, 38vw); }
+    #legend { width: min(210px, 26vw); }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="hud">
+    <h1>超伝導方式の量子コンピューター</h1>
+    <p class="sub">希釈冷凍機の中で、マイクロ波がトランズモン量子ビットを操作する様子を、1周約50秒で自動再生します。</p>
+    <div id="stage-box">
+      <div id="stage-kicker">段階 1 / 8</div>
+      <div id="stage-title">希釈冷凍機</div>
+      <div id="stage-body"></div>
+      <div id="progress"><i id="bar"></i></div>
+    </div>
+    <div id="circuit" aria-label="量子回路">
+      <span>q0</span><span class="wire">—</span>
+      <span class="gate" id="gH">H</span><span class="wire">—</span>
+      <span class="gate" id="gC">●</span><span class="wire">—</span>
+      <span class="gate" id="gM0">測</span>
+      <span style="width:8px"></span>
+      <span>q1</span><span class="wire">—</span>
+      <span class="gate" id="gI">I</span><span class="wire">—</span>
+      <span class="gate" id="gX">⊕</span><span class="wire">—</span>
+      <span class="gate" id="gM1">測</span>
+    </div>
+    <p id="hint">マウスドラッグで回転、ホイールで拡大。何もしなくても説明から測定まで進み、終わると最初に戻ります。</p>
+  </div>
+  <div id="legend">
+    <b>信号の通り道</b>
+    <div class="row"><i class="sw" style="background:#e23b3b"></i><span>入力（XY・Z制御）約5 GHzのマイクロ波と直流。段ごとに減衰させる。</span></div>
+    <div class="row"><i class="sw" style="background:#3ecf6e"></i><span>読み出し。チップで反射した弱いマイクロ波を、上へ増幅しながら戻す。</span></div>
+    <div class="row"><i class="sw" style="background:#5ec8ff"></i><span>ブロッホ球: 赤が X、緑が Y、青が Z。北極が｜0⟩、南極が｜1⟩。金色の矢印が状態。</span></div>
+  </div>
+  <div id="counts">
+    <h2>測定の出方（理想は 00 と 11 が半々）</h2>
+    <p id="count-note">測定段階になると、同じ回路を繰り返して回数を数えます。</p>
+    <div class="barline"><span>00</span><div class="track hot"><i id="b00"></i></div><span id="n00">0</span></div>
+    <div class="barline"><span>01</span><div class="track"><i id="b01"></i></div><span id="n01">0</span></div>
+    <div class="barline"><span>10</span><div class="track"><i id="b10"></i></div><span id="n10">0</span></div>
+    <div class="barline"><span>11</span><div class="track hot"><i id="b11"></i></div><span id="n11">0</span></div>
+  </div>
+  <div id="callout">チップは一番下の混合器（約15 mK）にあります</div>
+</div>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+  }
+}
+</script>
+<script type="module">
+import * as THREE from "three";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
+
+const app = document.getElementById("app");
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+renderer.setSize(app.clientWidth, app.clientHeight);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+app.insertBefore(renderer.domElement, app.firstChild);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x070b14);
+scene.fog = new THREE.Fog(0x070b14, 28, 62);
+
+const camera = new THREE.PerspectiveCamera(38, 1, 0.05, 200);
+camera.position.set(7.2, 2.4, 11.5);
+
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.set(0, 0.2, 0);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.minDistance = 4.2;
+controls.maxDistance = 28;
+controls.maxPolarAngle = Math.PI * 0.92;
+controls.update();
+
+scene.add(new THREE.AmbientLight(0x8ea4c4, 0.35));
+const key = new THREE.DirectionalLight(0xfff4e0, 1.35);
+key.position.set(6, 12, 8);
+scene.add(key);
+const fill = new THREE.DirectionalLight(0x88b7ff, 0.55);
+fill.position.set(-8, 4, -6);
+scene.add(fill);
+const rim = new THREE.PointLight(0xffc56a, 8, 30);
+rim.position.set(0, 6.5, 2);
+scene.add(rim);
+
+const gold = new THREE.MeshPhysicalMaterial({
+  color: 0xc9852a, metalness: 1, roughness: 0.28, clearcoat: 0.25, envMapIntensity: 1.1
+});
+const goldDark = new THREE.MeshPhysicalMaterial({
+  color: 0x8d5e22, metalness: 1, roughness: 0.38
+});
+const copper = new THREE.MeshPhysicalMaterial({
+  color: 0xb87333, metalness: 0.95, roughness: 0.32
+});
+const steel = new THREE.MeshStandardMaterial({ color: 0x9aa7b5, metalness: 0.85, roughness: 0.35 });
+const dark = new THREE.MeshStandardMaterial({ color: 0x1c2430, metalness: 0.4, roughness: 0.55 });
+const ceramic = new THREE.MeshStandardMaterial({ color: 0xd8dde6, metalness: 0.05, roughness: 0.45 });
+const blueMat = new THREE.MeshStandardMaterial({
+  color: 0x49b6ff, emissive: 0x123a66, metalness: 0.2, roughness: 0.35
+});
+const greenMat = new THREE.MeshStandardMaterial({
+  color: 0x3ddc78, emissive: 0x0c3d22, metalness: 0.15, roughness: 0.4
+});
+const redWire = new THREE.MeshStandardMaterial({ color: 0xe23b3b, emissive: 0x4a1010, roughness: 0.45, metalness: 0.3 });
+const grnWire = new THREE.MeshStandardMaterial({ color: 0x3ecf6e, emissive: 0x0e3a1c, roughness: 0.45, metalness: 0.3 });
+const pulseMat = new THREE.MeshStandardMaterial({
+  color: 0xfff1b0, emissive: 0xffc14a, emissiveIntensity: 2, roughness: 0.3
+});
+
+const cryo = new THREE.Group();
+scene.add(cryo);
+
+function plate(y, radius, thick) {
+  const g = new THREE.Group();
+  const disk = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, thick, 64), gold);
+  disk.castShadow = true;
+  g.add(disk);
+  const rimMesh = new THREE.Mesh(new THREE.TorusGeometry(radius * 0.98, thick * 0.22, 12, 48), goldDark);
+  rimMesh.rotation.x = Math.PI / 2;
+  g.add(rimMesh);
+  const holes = 10;
+  for (let i = 0; i < holes; i++) {
+    const a = (i / holes) * Math.PI * 2 + 0.2;
+    const bolt = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, thick + 0.02, 10), steel);
+    bolt.position.set(Math.cos(a) * radius * 0.82, 0, Math.sin(a) * radius * 0.82);
+    g.add(bolt);
+  }
+  g.position.y = y;
+  cryo.add(g);
+  return g;
+}
+
+const stages = [
+  { name: "室温フランジ", T: "約 300 K", y: 5.15, r: 2.55 },
+  { name: "50 K 段", T: "約 50 K", y: 3.85, r: 2.15 },
+  { name: "4 K 段（パルス管）", T: "約 4 K", y: 2.55, r: 1.85 },
+  { name: "スチル", T: "約 0.7 K", y: 1.25, r: 1.55 },
+  { name: "コールドプレート", T: "約 0.1 K", y: 0.15, r: 1.32 },
+  { name: "混合器 MXC", T: "約 15 mK", y: -0.95, r: 1.12 }
+];
+stages.forEach((s) => { s.mesh = plate(s.y, s.r, 0.09); });
+
+for (let i = 0; i < stages.length - 1; i++) {
+  const a = stages[i], b = stages[i + 1];
+  const n = i < 2 ? 6 : 4;
+  for (let k = 0; k < n; k++) {
+    const ang = (k / n) * Math.PI * 2 + i * 0.35;
+    const r = Math.min(a.r, b.r) * 0.72;
+    const h = a.y - b.y - 0.1;
+    const rod = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, h, 10), steel);
+    rod.position.set(Math.cos(ang) * r, (a.y + b.y) / 2, Math.sin(ang) * r);
+    cryo.add(rod);
+  }
+}
+
+const can = new THREE.Mesh(
+  new THREE.CylinderGeometry(3.05, 3.15, 7.55, 72, 1, true),
+  new THREE.MeshPhysicalMaterial({
+    color: 0xb7c4d4, metalness: 0.85, roughness: 0.18,
+    transparent: true, opacity: 0.045, side: THREE.DoubleSide, depthWrite: false
+  })
+);
+can.position.y = 1.7;
+cryo.add(can);
+const canRing = new THREE.Mesh(new THREE.TorusGeometry(3.16, 0.035, 8, 64), steel);
+canRing.rotation.x = Math.PI / 2;
+canRing.position.y = 5.45;
+cryo.add(canRing);
+
+function box(w, h, d, mat, x, y, z) {
+  const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+  m.position.set(x, y, z);
+  cryo.add(m);
+  return m;
+}
+box(0.55, 0.42, 0.38, dark, -1.15, 5.45, 0.4);
+box(0.42, 0.32, 0.3, blueMat, 0.95, 2.82, 0.55);
+box(0.36, 0.28, 0.26, blueMat, -0.7, 1.5, 0.45);
+const he3pot = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 0.34, 20), copper);
+he3pot.position.set(0.55, 0.42, 0.15);
+cryo.add(he3pot);
+const stillPot = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 0.3, 20), copper);
+stillPot.position.set(-0.45, 1.5, -0.2);
+cryo.add(stillPot);
+
+function tube(points, radius, mat) {
+  const curve = new THREE.CatmullRomCurve3(points);
+  const mesh = new THREE.Mesh(new THREE.TubeGeometry(curve, 40, radius, 8, false), mat);
+  cryo.add(mesh);
+  return mesh;
+}
+tube([
+  new THREE.Vector3(-0.45, 1.35, -0.2),
+  new THREE.Vector3(-0.15, 0.7, 0.05),
+  new THREE.Vector3(0.35, 0.55, 0.1),
+  new THREE.Vector3(0.55, 0.28, 0.15)
+], 0.03, copper);
+tube([
+  new THREE.Vector3(0.55, 0.25, 0.15),
+  new THREE.Vector3(0.2, -0.3, 0.05),
+  new THREE.Vector3(-0.15, -0.75, 0)
+], 0.028, copper);
+
+const chipGroup = new THREE.Group();
+chipGroup.position.set(0, -1.22, 0);
+cryo.add(chipGroup);
+const packageBase = new THREE.Mesh(new THREE.BoxGeometry(0.72, 0.06, 0.55), goldDark);
+chipGroup.add(packageBase);
+const chipDie = new THREE.Mesh(
+  new THREE.BoxGeometry(0.42, 0.025, 0.32),
+  new THREE.MeshStandardMaterial({ color: 0x1a2744, metalness: 0.6, roughness: 0.25, emissive: 0x102040 })
+);
+chipDie.position.y = 0.04;
+chipGroup.add(chipDie);
+const qubitMats = [];
+const qubitPads = [];
+[-0.09, 0.09].forEach((x, i) => {
+  const mat = new THREE.MeshStandardMaterial({
+    color: 0xd6e6ff, metalness: 1, roughness: 0.18, emissive: i ? 0x224466 : 0x663311, emissiveIntensity: 0.6
+  });
+  qubitMats.push(mat);
+  [-0.045, 0.045].forEach((z) => {
+    const pad = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.012, 0.055), mat);
+    pad.position.set(x, 0.058, z);
+    chipGroup.add(pad);
+    qubitPads.push(pad);
+  });
+  const bridge = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.01, 0.04), mat);
+  bridge.position.set(x, 0.06, 0);
+  chipGroup.add(bridge);
+});
+const coupler = new THREE.Mesh(
+  new THREE.BoxGeometry(0.05, 0.01, 0.02),
+  new THREE.MeshStandardMaterial({ color: 0xf0c14b, metalness: 0.8, roughness: 0.3, emissive: 0x5a4010 })
+);
+coupler.position.set(0, 0.055, 0);
+chipGroup.add(coupler);
+
+function coax(x, z, colorMat, kind) {
+  const top = 5.55, bot = -1.18;
+  const pts = [
+    new THREE.Vector3(x, top, z),
+    new THREE.Vector3(x * 0.92, 4.0, z * 0.95),
+    new THREE.Vector3(x * 0.8, 2.6, z * 0.9),
+    new THREE.Vector3(x * 0.62, 1.3, z * 0.8),
+    new THREE.Vector3(x * 0.45, 0.2, z * 0.55),
+    new THREE.Vector3(x * 0.22, bot, z * 0.25)
+  ];
+  tube(pts, 0.018, colorMat);
+  const beads = [];
+  for (let i = 0; i < 7; i++) {
+    const bead = new THREE.Mesh(new THREE.SphereGeometry(0.045, 12, 10), pulseMat);
+    bead.visible = false;
+    cryo.add(bead);
+    beads.push(bead);
+  }
+  return { pts, beads, kind };
+}
+const lines = [
+  coax(1.55, 0.35, redWire, "in"),
+  coax(1.35, -0.45, redWire, "in"),
+  coax(-1.45, 0.25, grnWire, "out")
+];
+const lineCurve = lines.map((L) => new THREE.CatmullRomCurve3(L.pts));
+
+const labelLayer = new THREE.Group();
+scene.add(labelLayer);
+const labelSprites = [];
+function makeLabel(text, sub, position) {
+  const c = document.createElement("canvas");
+  c.width = 512; c.height = 160;
+  const g = c.getContext("2d");
+  g.clearRect(0, 0, 512, 160);
+  g.fillStyle = "rgba(8,14,26,0.72)";
+  roundRect(g, 8, 18, 496, 124, 18);
+  g.fill();
+  g.strokeStyle = "rgba(240,193,75,0.55)";
+  g.lineWidth = 3;
+  g.stroke();
+  g.fillStyle = "#fff6df";
+  g.font = "700 42px sans-serif";
+  g.fillText(text, 28, 72);
+  g.fillStyle = "#d5e4f5";
+  g.font = "32px sans-serif";
+  g.fillText(sub, 28, 116);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false });
+  const sp = new THREE.Sprite(mat);
+  sp.position.copy(position);
+  sp.scale.set(1.7, 0.53, 1);
+  sp.renderOrder = 10;
+  labelLayer.add(sp);
+  labelSprites.push(sp);
+  return sp;
+}
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+const stageLabels = stages.map((s) =>
+  makeLabel(s.name, s.T, new THREE.Vector3(s.r + 0.15, s.y + 0.18, 0))
+);
+const chipLabel = makeLabel("量子ビットチップ", "トランズモン × 2", new THREE.Vector3(1.15, -1.35, 0.2));
+
+const blochGroup = new THREE.Group();
+blochGroup.position.set(4.15, 0.55, 0);
+scene.add(blochGroup);
+
+function makeBloch(x, title) {
+  const g = new THREE.Group();
+  g.position.x = x;
+  const sphere = new THREE.Mesh(
+    new THREE.SphereGeometry(0.72, 48, 32),
+    new THREE.MeshPhysicalMaterial({
+      color: 0x9fd0ff, metalness: 0.05, roughness: 0.15,
+      transparent: true, opacity: 0.16, side: THREE.DoubleSide
+    })
+  );
+  g.add(sphere);
+  const wire = new THREE.LineSegments(
+    new THREE.WireframeGeometry(new THREE.SphereGeometry(0.72, 16, 12)),
+    new THREE.LineBasicMaterial({ color: 0x8fb4d8, transparent: true, opacity: 0.35 })
+  );
+  g.add(wire);
+  const eq = new THREE.Mesh(
+    new THREE.TorusGeometry(0.72, 0.008, 8, 64),
+    new THREE.MeshBasicMaterial({ color: 0xc5d8ee })
+  );
+  eq.rotation.x = Math.PI / 2;
+  g.add(eq);
+  const axes = new THREE.Group();
+  const axMat = (c) => new THREE.MeshBasicMaterial({ color: c });
+  // Three.js の +Y を物理の +Z（｜0⟩）に合わせ、画面上で北極が上になるよう球を倒す。
+  [[1, 0, 0, 0xe23b3b], [0, 0, 1, 0x3ecf6e], [0, 1, 0, 0x5ec8ff]].forEach(([dx, dy, dz, col]) => {
+    const dir = new THREE.Vector3(dx, dy, dz);
+    const arrow = new THREE.ArrowHelper(dir.clone().normalize(), new THREE.Vector3(0, 0, 0), 0.9, col, 0.08, 0.045);
+    axes.add(arrow);
+  });
+  g.add(axes);
+  const arrow = new THREE.ArrowHelper(new THREE.Vector3(0, 1, 0), new THREE.Vector3(), 0.78, 0xf0c14b, 0.12, 0.06);
+  g.add(arrow);
+  const poleN = makeMini("｜0⟩");
+  poleN.position.set(0, 0.98, 0);
+  g.add(poleN);
+  const poleS = makeMini("｜1⟩");
+  poleS.position.set(0, -0.98, 0);
+  g.add(poleS);
+  const cap = makeMini(title);
+  cap.position.set(0, -1.15, 0);
+  cap.scale.set(1.4, 0.55, 1);
+  g.add(cap);
+  blochGroup.add(g);
+  g.rotation.x = -0.15;
+  return { group: g, arrow, dir: new THREE.Vector3(0, 1, 0) };
+}
+function makeMini(text) {
+  const c = document.createElement("canvas");
+  c.width = 256; c.height = 96;
+  const ctx = c.getContext("2d");
+  ctx.fillStyle = "rgba(7,11,20,0.55)";
+  ctx.fillRect(8, 16, 240, 64);
+  ctx.fillStyle = "#f4f8ff";
+  ctx.font = "600 40px sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillText(text, 128, 60);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false }));
+  sp.scale.set(0.7, 0.26, 1);
+  return sp;
+}
+const bloch = [makeBloch(-0.95, "q0"), makeBloch(0.95, "q1")];
+const linkMat = new THREE.MeshBasicMaterial({ color: 0xf0c14b, transparent: true, opacity: 0.0 });
+const link = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 1.5, 12), linkMat);
+link.rotation.z = Math.PI / 2;
+blochGroup.add(link);
+
+function setArrow(b, dir) {
+  const d = dir.clone().normalize();
+  b.dir.copy(d);
+  b.arrow.setDirection(d);
+  b.arrow.setLength(0.78, 0.12, 0.06);
+}
+
+const STAGES = [
+  {
+    id: "fridge", t: 7, title: "希釈冷凍機という魔法瓶",
+    body: "超伝導の量子ビットは、絶対零度に近い温度でないとすぐ壊れる。希釈冷凍機は金メッキ銅の段を何段も重ね、室温（約300 K）から約15 mK（−273.135 ℃）まで冷やす。見た目がシャンデリアに似ているのは、段と配線が多いため。",
+    cam: new THREE.Vector3(7.4, 2.2, 11.2), look: new THREE.Vector3(0, 1.6, 0),
+    call: "上から下へ、段ごとに温度が下がる"
+  },
+  {
+    id: "cold", t: 6.5, title: "なぜ 15 mK まで冷やすのか",
+    body: "使うマイクロ波は約5 GHz。そのエネルギーを温度に直すと hf/k ≈ 0.24 K。混合器を約15 mKまで冷やすと、熱エネルギー kT はこの約16分の1。量子ビットはほぼ確実にエネルギーが低い｜0⟩から始まる。",
+    cam: new THREE.Vector3(4.6, -0.2, 6.4), look: new THREE.Vector3(0, -0.4, 0),
+    call: "チップは一番下の混合器（約15 mK）"
+  },
+  {
+    id: "wires", t: 6.5, title: "信号の通り道",
+    body: "赤い線は室温の電子機器から来る制御信号。各段で減衰器がマイクロ波を弱め、熱も一緒に捨てる。緑の線は読み出しの帰り道。チップで反射したごく弱い波を、4 K 段の増幅器で増幅してから室温へ戻す。",
+    cam: new THREE.Vector3(6.2, 1.4, 7.6), look: new THREE.Vector3(0.4, 1.2, 0),
+    call: "赤: 制御の下り　緑: 読み出しの上り",
+    pulses: true
+  },
+  {
+    id: "qubit", t: 6, title: "トランズモン量子ビット",
+    body: "チップ上のアルミニウムの小さな回路が量子ビット。電荷が島に0個か1個余分にいる状態を｜0⟩と｜1⟩に対応させる。非線形なジョセフソン接合があるので、｜0⟩と｜1⟩の間だけを選んでマイクロ波で回転できる。右の球が状態の絵。",
+    cam: new THREE.Vector3(5.8, 0.3, 5.2), look: new THREE.Vector3(2.2, -0.3, 0),
+    call: "赤が X、緑が Y、青が Z。北極が｜0⟩",
+  },
+  {
+    id: "h", t: 6.5, title: "H ゲート：重ね合わせ",
+    body: "q0 にだけ、｜0⟩と｜1⟩のエネルギー差（約5 GHz）に合わせたマイクロ波を、π/2 パルスとして入れる。ブロッホ球では Y 軸（緑、画面の奥）まわりに 90° 回転し、矢印は赤道の +X（赤）を向く。｜0⟩と｜1⟩が半々の重ね合わせ。q1 は北極の｜0⟩のまま。",
+    cam: new THREE.Vector3(4.2, 1.6, 5.2), look: new THREE.Vector3(3.55, -0.05, 0),
+    call: "H のあと q0 は赤道上。測るまで 0 でも 1 でもない",
+    gate: "gH"
+  },
+  {
+    id: "cnot", t: 7.5, title: "CNOT：もつれを作る",
+    body: "制御が q0、標的が q1 の CNOT（回路では ● と ⊕）。q0 が｜1⟩の成分のときだけ q1 を反転する。終わると (｜00⟩+｜11⟩)/√2。この状態は1個の球の矢印では表しきれないので、矢印を短くし、2つの球を線で結んで「もつれ」を示す。片方を測れば、もう片方も必ず同じになる。",
+    cam: new THREE.Vector3(4.4, 1.7, 5.0), look: new THREE.Vector3(3.55, -0.05, 0),
+    call: "もつれのあと、球の矢印は「どの向きが確か」とは言えない",
+    gate: "gC"
+  },
+  {
+    id: "measure", t: 11, title: "測定を何度も繰り返す",
+    body: "読み出し共振器へ弱いマイクロ波を入れ、反射の位相で 0 か 1 かを判定する。もつれた状態を測ると 00 か 11 が出て、01 と 10 は（理想では）出ない。1回では確率しか見えないので、同じ準備を繰り返して回数を数える。",
+    cam: new THREE.Vector3(6.8, 0.6, 8.6), look: new THREE.Vector3(1.3, -0.35, 0),
+    call: "理想的なベル状態なら 00 と 11 がおよそ半々",
+    gate: "gM0"
+  },
+  {
+    id: "reset", t: 3.5, title: "最初に戻る",
+    body: "測定で状態は壊れる。次の計算では、また冷やされた｜0⟩から H と CNOT をやり直す。室温の古典コンピューターが、この繰り返しとパルスのタイミングを指揮している。",
+    cam: new THREE.Vector3(7.4, 2.2, 11.2), look: new THREE.Vector3(0, 1.6, 0),
+    call: "1周おわり。もう一度、冷凍機の説明から"
+  }
+];
+
+const $ = (id) => document.getElementById(id);
+let stageIndex = 0;
+let stageT = 0;
+const counts = { "00": 0, "01": 0, "10": 0, "11": 0 };
+let shots = 0;
+let nextShot = 0.4;
+const shotOrder = [];
+for (let i = 0; i < 16; i++) shotOrder.push(i % 2 === 0 ? "00" : "11");
+shotOrder[5] = "00";
+shotOrder[11] = "11";
+
+function resetCounts() {
+  counts["00"] = counts["01"] = counts["10"] = counts["11"] = 0;
+  shots = 0;
+  nextShot = 0.55;
+  ["00", "01", "10", "11"].forEach((k) => {
+    $("n" + k).textContent = "0";
+    $("b" + k).style.width = "0%";
+  });
+  $("count-note").textContent = "測定段階になると、同じ回路を繰り返して回数を数えます。";
+}
+resetCounts();
+
+function applyStage(i) {
+  const s = STAGES[i];
+  $("stage-kicker").textContent = "段階 " + (i + 1) + " / " + STAGES.length + "　·　自動再生";
+  $("stage-title").textContent = s.title;
+  $("stage-body").textContent = s.body;
+  $("callout").textContent = s.call;
+  ["gH", "gC", "gX", "gM0", "gM1"].forEach((id) => $(id).classList.remove("on"));
+  if (s.gate === "gH") $("gH").classList.add("on");
+  if (s.gate === "gC") { $("gC").classList.add("on"); $("gX").classList.add("on"); }
+  if (s.gate === "gM0") { $("gM0").classList.add("on"); $("gM1").classList.add("on"); }
+  if (s.id === "measure") resetCounts();
+  if (s.id !== "measure" && s.id !== "cnot") linkMat.opacity = 0;
+}
+applyStage(0);
+
+function smoothstep(a, b, x) {
+  const t = Math.min(1, Math.max(0, (x - a) / (b - a)));
+  return t * t * (3 - 2 * t);
+}
+function lerpVec(out, a, b, t) {
+  out.lerpVectors(a, b, t);
+}
+
+const camFrom = new THREE.Vector3();
+const lookFrom = new THREE.Vector3();
+const lookTo = new THREE.Vector3();
+let camLerp = 1;
+
+function goStage(i) {
+  camFrom.copy(camera.position);
+  lookFrom.copy(controls.target);
+  stageIndex = i;
+  stageT = 0;
+  camLerp = 0;
+  applyStage(i);
+}
+
+const zUp = new THREE.Vector3(0, 1, 0);
+const zDown = new THREE.Vector3(0, -1, 0);
+const xPos = new THREE.Vector3(1, 0, 0);
+
+function blochState(id, u) {
+  if (id === "fridge" || id === "cold" || id === "wires" || id === "qubit" || id === "reset") {
+    return [zUp, zUp, 0, 1, 1];
+  }
+  if (id === "h") {
+    const a = smoothstep(0.12, 0.78, u) * (Math.PI / 2);
+    const d0 = new THREE.Vector3(Math.sin(a), Math.cos(a), 0);
+    return [d0, zUp, 0, 1, 1];
+  }
+  if (id === "cnot") {
+    const a = smoothstep(0.12, 0.8, u);
+    return [xPos, zUp, a, Math.max(0.16, 1 - 0.84 * a), Math.max(0.16, 1 - 0.84 * a)];
+  }
+  const cycle = (u * 8) % 1;
+  const which = Math.floor(u * 8) % 2;
+  if (cycle < 0.62) return [xPos, zUp, 1, 0.16, 0.16];
+  const dir = which === 0 ? zUp : zDown;
+  return [dir, dir, 0.2, 1, 1];
+}
+
+function updateCounts(dt, u) {
+  if (STAGES[stageIndex].id !== "measure") return;
+  nextShot -= dt;
+  if (nextShot > 0 || shots >= 16) {
+    $("count-note").textContent = shots
+      ? ("繰り返し " + shots + " 回。00 と 11 がほぼ半々、01 と 10 は 0 回。")
+      : "最初の1回を測定しています。";
+    return;
+  }
+  const key = shotOrder[shots];
+  counts[key] += 1;
+  shots += 1;
+  nextShot = 0.48;
+  const max = Math.max(1, counts["00"], counts["11"]);
+  ["00", "01", "10", "11"].forEach((k) => {
+    $("n" + k).textContent = String(counts[k]);
+    $("b" + k).style.width = Math.round((counts[k] / max) * 100) + "%";
+  });
+  $("count-note").textContent = "いまの1回の結果は " + key + "。合計 " + shots + " 回（理想では 01・10 は出ない）。";
+}
+
+function updatePulses(time, on) {
+  lines.forEach((L, li) => {
+    const curve = lineCurve[li];
+    L.beads.forEach((bead, bi) => {
+      bead.visible = on;
+      if (!on) return;
+      const speed = L.kind === "in" ? 0.16 : -0.14;
+      let t = (time * speed + bi / L.beads.length) % 1;
+      if (t < 0) t += 1;
+      bead.position.copy(curve.getPointAt(t));
+    });
+  });
+}
+
+const clock = new THREE.Clock();
+function frame() {
+  requestAnimationFrame(frame);
+  const dt = Math.min(0.05, clock.getDelta());
+  const time = clock.elapsedTime;
+  stageT += dt;
+  const s = STAGES[stageIndex];
+  const u = Math.min(1, stageT / s.t);
+  $("bar").style.width = (u * 100).toFixed(1) + "%";
+
+  camLerp = Math.min(1, camLerp + dt / 1.3);
+  const e = camLerp * camLerp * (3 - 2 * camLerp);
+  camera.position.lerpVectors(camFrom, s.cam, e);
+  controls.target.lerpVectors(lookFrom, s.look, e);
+  controls.update();
+
+  const [d0, d1, ent, len0, len1] = blochState(s.id, u);
+  setArrow(bloch[0], d0);
+  setArrow(bloch[1], d1);
+  linkMat.opacity = ent * 0.9;
+  bloch[0].arrow.setLength(0.78 * len0, 0.11, 0.055);
+  bloch[1].arrow.setLength(0.78 * len1, 0.11, 0.055);
+  if (s.id === "measure") {
+    const cycle = (u * 8) % 1;
+    const collapsed = cycle >= 0.62;
+    qubitMats[0].emissive.set(collapsed ? 0x226644 : 0x664422);
+    qubitMats[1].emissive.set(collapsed ? 0x226644 : 0x224466);
+  } else if (s.id === "h") {
+    qubitMats[0].emissive.setHex(0xaa7722);
+    qubitMats[1].emissive.setHex(0x224466);
+  } else if (s.id === "cnot") {
+    qubitMats[0].emissive.setHex(0x886622);
+    qubitMats[1].emissive.setHex(0x886622);
+    coupler.material.emissiveIntensity = 0.4 + ent * 1.6;
+  } else {
+    qubitMats[0].emissive.setHex(0x663311);
+    qubitMats[1].emissive.setHex(0x224466);
+    coupler.material.emissiveIntensity = 0.35;
+  }
+
+  updateCounts(dt, u);
+  updatePulses(time, s.pulses || s.id === "h" || s.id === "cnot" || s.id === "measure");
+
+  const pulse = 0.5 + 0.5 * Math.sin(time * 2.2);
+  stageLabels.forEach((sp, i) => {
+    const focus = s.id === "fridge" || s.id === "cold" || s.id === "wires";
+    sp.material.opacity = focus ? 0.55 + (i === stages.length - 1 ? 0.45 : 0.2) : 0.28;
+  });
+  chipLabel.material.opacity = (s.id === "qubit" || s.id === "cold") ? 0.95 : 0.45;
+  if (s.id === "cold") {
+    stages[5].mesh.scale.setScalar(1 + 0.03 * pulse);
+  } else {
+    stages[5].mesh.scale.setScalar(1);
+  }
+
+  labelSprites.forEach((sp) => {
+    const dist = camera.position.distanceTo(sp.position);
+    const sc = THREE.MathUtils.clamp(dist / 14, 0.7, 1.5);
+    sp.scale.set(1.7 * sc, 0.53 * sc, 1);
+  });
+
+  renderer.render(scene, camera);
+  if (stageT >= s.t) goStage((stageIndex + 1) % STAGES.length);
+}
+camFrom.copy(camera.position);
+lookFrom.copy(controls.target);
+frame();
+
+function onResize() {
+  const w = app.clientWidth, h = app.clientHeight;
+  camera.aspect = w / Math.max(1, h);
+  camera.updateProjectionMatrix();
+  renderer.setSize(w, h);
+}
+window.addEventListener("resize", onResize);
+onResize();
+</script>
+</body>
+</html>

@@ -1,0 +1,1018 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>エアコンのしくみ 3D ― 室内機と室外機のヒートポンプ</title>
+<style>
+  :root{
+    --panel-w: 330px;
+    --bottom-h: 150px;
+    --fs: 12.5px;
+  }
+  html,body{margin:0;height:100%;overflow:hidden;background:#dfeeff;
+    font-family:"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP","Noto Sans CJK JP","Yu Gothic UI","Yu Gothic","Meiryo",sans-serif;
+    font-size:var(--fs);color:#1b2430;}
+  #c{position:fixed;inset:0;display:block}
+  .panel{position:fixed;background:rgba(255,255,255,.90);border:1px solid rgba(0,0,0,.12);
+    border-radius:10px;box-shadow:0 4px 18px rgba(0,0,0,.12);box-sizing:border-box;}
+  #left{left:12px;top:12px;width:var(--panel-w);max-height:calc(100vh - 24px);overflow-y:auto;padding:12px 14px;}
+  #left h1{font-size:17px;margin:0 0 2px;line-height:1.25}
+  #left .sub{font-size:11.5px;color:#55627a;margin:0 0 8px}
+  .modes{display:flex;gap:6px;margin-bottom:8px}
+  .modes button{flex:1;padding:7px 4px;font-size:14px;font-weight:700;border-radius:8px;border:2px solid #c8d0dc;background:#f3f5f8;cursor:pointer;font-family:inherit;color:#1b2430}
+  .modes button.cool.on{background:#dbeeff;border-color:#2f6bff;color:#1a4fd0}
+  .modes button.heat.on{background:#ffe3d6;border-color:#ff5a2a;color:#c53a10}
+  .principle{font-size:11.5px;line-height:1.5;background:#f4f7fb;border-radius:8px;padding:7px 9px;margin-bottom:8px}
+  .step{display:flex;gap:8px;padding:6px 8px;border-radius:8px;margin-bottom:5px;border:1px solid #e3e8ef;background:#fff}
+  .step .n{flex:0 0 20px;height:20px;border-radius:50%;background:#1b2430;color:#fff;font-weight:700;font-size:12px;display:flex;align-items:center;justify-content:center}
+  .step .t{font-weight:700;font-size:12.5px;line-height:1.3}
+  .step .d{font-size:11.5px;line-height:1.45;color:#2d3a4f}
+  .step .d b{color:#0b1a33}
+  .legend{font-size:11px;line-height:1.6;color:#2d3a4f;margin-top:6px}
+  .dot{display:inline-block;width:10px;height:10px;border-radius:50%;vertical-align:-1px;margin-right:3px;border:1px solid rgba(0,0,0,.25)}
+  .sw{display:inline-block;width:14px;height:8px;border-radius:2px;vertical-align:0;margin-right:3px;border:1px solid rgba(0,0,0,.25)}
+  #right{right:12px;top:12px;width:230px;padding:10px 12px}
+  #right .cap{font-size:11.5px;font-weight:700;margin-bottom:5px}
+  #right .views{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px}
+  #right .views button{font-size:11.5px;padding:4px 7px;border-radius:6px;border:1px solid #c8d0dc;background:#f3f5f8;cursor:pointer;font-family:inherit;color:#1b2430}
+  #right .views button:hover{background:#e3ebf7}
+  #right label{font-size:11px;display:flex;align-items:center;gap:6px}
+  #right input[type=range]{flex:1;min-width:0}
+  #right .hint{font-size:10.5px;color:#55627a;margin-top:5px;line-height:1.45}
+  #bottom{left:calc(var(--panel-w) + 24px);right:12px;bottom:12px;padding:8px 12px;max-width:820px;margin:0 auto}
+  .chips{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px}
+  .chips button{font-size:11.5px;padding:3px 8px;border-radius:14px;border:1px solid #c8d0dc;background:#f3f5f8;cursor:pointer;font-family:inherit;color:#1b2430;white-space:nowrap}
+  .chips button.on{background:#1b2430;color:#fff;border-color:#1b2430}
+  #desc{font-size:11.5px;line-height:1.5}
+  #desc b{font-size:12.5px}
+  #desc .go{font-size:11px;padding:2px 8px;margin-left:6px;border-radius:10px;border:1px solid #2f6bff;background:#eef3ff;color:#1a4fd0;cursor:pointer;font-family:inherit;vertical-align:1px}
+  /* 3D labels */
+  #labels{position:fixed;inset:0;pointer-events:none;overflow:hidden}
+  #leaders{position:fixed;inset:0;width:100%;height:100%;pointer-events:none}
+  .lbl{position:absolute;left:0;top:0;white-space:nowrap;font-size:11.5px;line-height:1.2;
+    padding:2px 7px;border-radius:4px;background:rgba(20,28,40,.78);color:#fff;pointer-events:auto;cursor:default;
+    border:1px solid rgba(255,255,255,.35);box-shadow:0 1px 4px rgba(0,0,0,.25);will-change:transform;}
+  .lbl.part{cursor:pointer}
+  .lbl.part:hover{background:rgba(47,107,255,.9)}
+  .lbl.unit{background:rgba(255,255,255,.88);color:#1b2430;font-weight:700;border-color:rgba(0,0,0,.25)}
+  .lbl.state{font-weight:700;border-width:2px}
+  .lbl.heat{font-weight:700;color:#fff}
+  .lbl.heat.absorb{background:rgba(224,120,0,.9);border-color:#ffd27a}
+  .lbl.heat.reject{background:rgba(214,34,34,.9);border-color:#ffb3b3}
+  .lbl.small{font-size:10.5px;padding:1px 5px;background:rgba(20,28,40,.7)}
+  .lbl.hidden{display:none}
+  #err{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);background:#fff;padding:16px 20px;border-radius:10px;display:none;max-width:80vw;font-size:14px}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="labels"></div>
+<svg id="leaders"></svg>
+
+<div id="left" class="panel">
+  <h1>エアコンのしくみ 3D</h1>
+  <p class="sub">家庭用壁掛けエアコン(室内機+室外機)のヒートポンプを 3D で見る</p>
+  <div class="modes">
+    <button id="btnCool" class="cool">❄ 冷房</button>
+    <button id="btnHeat" class="heat">☀ 暖房</button>
+  </div>
+  <div class="principle" id="principle"></div>
+  <div id="steps"></div>
+  <div class="legend" id="legend"></div>
+</div>
+
+<div id="right" class="panel">
+  <div class="cap">視点</div>
+  <div class="views">
+    <button data-view="all">全体</button>
+    <button data-view="indoor">室内機</button>
+    <button data-view="outdoor">室外機</button>
+    <button data-view="compressor">圧縮機の中</button>
+    <button data-view="valve">四方弁</button>
+  </div>
+  <label>外装の透け <input type="range" id="opa" min="0" max="100" value="18"></label>
+  <label><input type="checkbox" id="chkAir" checked> 空気の流れ</label>
+  <div class="hint">ドラッグで回転 / ホイールで拡大縮小 / 右ドラッグで移動。アニメーションは自動で動き続けます。</div>
+</div>
+
+<div id="bottom" class="panel">
+  <div class="chips" id="chips"></div>
+  <div id="desc"></div>
+</div>
+<div id="err"></div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+// ------------------------------------------------------------------
+// 基本設定  (単位: cm)
+// ------------------------------------------------------------------
+const params = new URLSearchParams(location.search);
+let mode = (params.get('mode') === 'heat') ? 'heat' : 'cool';
+
+const canvas = document.getElementById('c');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xdfeeff);
+const camera = new THREE.PerspectiveCamera(42, 1, 1, 3000);
+camera.position.set(190, 150, 280);
+const controls = new OrbitControls(camera, canvas);
+controls.target.set(10, 95, 0);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.minDistance = 20;
+controls.maxDistance = 900;
+controls.maxPolarAngle = Math.PI * 0.52;
+
+scene.add(new THREE.HemisphereLight(0xffffff, 0x6b7a8a, 1.0));
+const sun = new THREE.DirectionalLight(0xffffff, 1.7); sun.position.set(180, 300, 160); scene.add(sun);
+const fill = new THREE.DirectionalLight(0xdde8ff, 0.6); fill.position.set(-200, 120, -150); scene.add(fill);
+
+// ------------------------------------------------------------------
+// マテリアル・ヘルパー
+// ------------------------------------------------------------------
+const M = {
+  copper: new THREE.MeshStandardMaterial({ color: 0xc9772f, metalness: 0.85, roughness: 0.35, transparent: true, opacity: 0.45, depthWrite: false }),
+  copperSolid: new THREE.MeshStandardMaterial({ color: 0xc9772f, metalness: 0.85, roughness: 0.35 }),
+  fin: new THREE.MeshStandardMaterial({ color: 0xcfd6dd, metalness: 0.6, roughness: 0.4, transparent: true, opacity: 0.35, side: THREE.DoubleSide, depthWrite: false }),
+  casing: new THREE.MeshStandardMaterial({ color: 0xf4f6f8, metalness: 0.05, roughness: 0.7, transparent: true, opacity: 0.18, side: THREE.DoubleSide, depthWrite: false }),
+  casingOut: new THREE.MeshStandardMaterial({ color: 0xe8ecef, metalness: 0.1, roughness: 0.7, transparent: true, opacity: 0.18, side: THREE.DoubleSide, depthWrite: false }),
+  partition: new THREE.MeshStandardMaterial({ color: 0xb9c2cc, metalness: 0.3, roughness: 0.6, transparent: true, opacity: 0.45, side: THREE.DoubleSide, depthWrite: false }),
+  dark: new THREE.MeshStandardMaterial({ color: 0x2b2f36, metalness: 0.4, roughness: 0.5 }),
+  darkT: new THREE.MeshStandardMaterial({ color: 0x2b2f36, metalness: 0.4, roughness: 0.5, transparent: true, opacity: 0.55, side: THREE.DoubleSide, depthWrite: false }),
+  steel: new THREE.MeshStandardMaterial({ color: 0x9aa4ae, metalness: 0.7, roughness: 0.4 }),
+  steelT: new THREE.MeshStandardMaterial({ color: 0xaab3bc, metalness: 0.7, roughness: 0.4, transparent: true, opacity: 0.4, side: THREE.DoubleSide, depthWrite: false }),
+  brass: new THREE.MeshStandardMaterial({ color: 0xd4a84b, metalness: 0.8, roughness: 0.35 }),
+  brassT: new THREE.MeshStandardMaterial({ color: 0xd4a84b, metalness: 0.8, roughness: 0.35, transparent: true, opacity: 0.32, side: THREE.DoubleSide, depthWrite: false }),
+  white: new THREE.MeshStandardMaterial({ color: 0xf2f3f5, roughness: 0.6 }),
+  whiteT: new THREE.MeshStandardMaterial({ color: 0xf2f3f5, roughness: 0.6, transparent: true, opacity: 0.5, side: THREE.DoubleSide, depthWrite: false }),
+  blue: new THREE.MeshStandardMaterial({ color: 0x3b6fd9, roughness: 0.5 }),
+  rotor: new THREE.MeshStandardMaterial({ color: 0x6d7580, metalness: 0.8, roughness: 0.35 }),
+  winding: new THREE.MeshStandardMaterial({ color: 0xb8622a, metalness: 0.7, roughness: 0.45 }),
+  black: new THREE.MeshStandardMaterial({ color: 0x15171a, metalness: 0.5, roughness: 0.6 }),
+  blackT: new THREE.MeshStandardMaterial({ color: 0x1d2024, metalness: 0.5, roughness: 0.6, transparent: true, opacity: 0.6, side: THREE.DoubleSide, depthWrite: false }),
+  filter: new THREE.MeshStandardMaterial({ color: 0x8fa3b8, transparent: true, opacity: 0.35, side: THREE.DoubleSide, depthWrite: false }),
+  filterWire: new THREE.MeshBasicMaterial({ color: 0x5f7188, wireframe: true, transparent: true, opacity: 0.6 }),
+  floor: new THREE.MeshStandardMaterial({ color: 0xd8c9ae, roughness: 0.9 }),
+  ground: new THREE.MeshStandardMaterial({ color: 0xa6bf93, roughness: 0.95 }),
+  wall: new THREE.MeshStandardMaterial({ color: 0xf1f1ec, roughness: 0.9, transparent: true, opacity: 0.28, side: THREE.DoubleSide, depthWrite: false }),
+  edge: new THREE.LineBasicMaterial({ color: 0x3a4454, transparent: true, opacity: 0.55 }),
+  insul: new THREE.MeshStandardMaterial({ color: 0x8c8c8c, roughness: 0.9, transparent: true, opacity: 0.25, depthWrite: false }),
+};
+const casingMats = [M.casing, M.casingOut];
+
+const box = (w, h, d, mat, x = 0, y = 0, z = 0) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat); m.position.set(x, y, z); return m; };
+function cylY(r, h, mat, x = 0, y = 0, z = 0, seg = 28, thetaStart = 0, thetaLen = Math.PI * 2, rt) {
+  const g = new THREE.CylinderGeometry(rt === undefined ? r : rt, r, h, seg, 1, false, thetaStart, thetaLen);
+  const m = new THREE.Mesh(g, mat); m.position.set(x, y, z); return m;
+}
+function cylDir(r, h, mat, x, y, z, axis) { // axis: 'x' | 'z'
+  const m = cylY(r, h, mat, x, y, z);
+  if (axis === 'z') m.rotation.x = Math.PI / 2; else if (axis === 'x') m.rotation.z = Math.PI / 2;
+  return m;
+}
+function edges(mesh, mat = M.edge) { const e = new THREE.LineSegments(new THREE.EdgesGeometry(mesh.geometry, 20), mat); e.position.copy(mesh.position); e.rotation.copy(mesh.rotation); return e; }
+const V = (x, y, z) => new THREE.Vector3(x, y, z);
+
+// 角を丸めた折れ線 → CurvePath
+function roundedPath(pts, r = 2) {
+  const path = new THREE.CurvePath();
+  let prev = pts[0].clone();
+  for (let i = 1; i < pts.length - 1; i++) {
+    const p0 = pts[i - 1], p1 = pts[i], p2 = pts[i + 1];
+    const d1 = p1.clone().sub(p0), d2 = p2.clone().sub(p1);
+    const l1 = d1.length(), l2 = d2.length();
+    if (l1 < 1e-6 || l2 < 1e-6) continue;
+    d1.divideScalar(l1); d2.divideScalar(l2);
+    const rr = Math.min(r, l1 / 2, l2 / 2);
+    const a = p1.clone().sub(d1.clone().multiplyScalar(rr));
+    const b = p1.clone().add(d2.clone().multiplyScalar(rr));
+    if (a.distanceTo(prev) > 1e-4) path.add(new THREE.LineCurve3(prev.clone(), a.clone()));
+    path.add(new THREE.QuadraticBezierCurve3(a.clone(), p1.clone(), b.clone()));
+    prev = b;
+  }
+  const last = pts[pts.length - 1];
+  if (last.distanceTo(prev) > 1e-4) path.add(new THREE.LineCurve3(prev.clone(), last.clone()));
+  return path;
+}
+function tubeMesh(path, radius, mat, segPerCm = 0.7) {
+  const len = path.getLength();
+  const g = new THREE.TubeGeometry(path, Math.max(8, Math.min(400, Math.ceil(len * segPerCm))), radius, 10, false);
+  return new THREE.Mesh(g, mat);
+}
+
+// ------------------------------------------------------------------
+// 環境 (床・壁・地面)
+// ------------------------------------------------------------------
+{
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(260, 320), M.floor); floor.rotation.x = -Math.PI / 2; floor.position.set(-130, 0, 0); scene.add(floor);
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(260, 320), M.ground); ground.rotation.x = -Math.PI / 2; ground.position.set(142, -0.5, 0); scene.add(ground);
+  const wall = box(12, 240, 320, M.wall, 6, 120, 0); scene.add(wall); scene.add(edges(wall));
+  // 配管の貫通穴
+  const hole = cylDir(3.6, 12.4, M.darkT, 6, 182, 36.5, 'x'); scene.add(hole);
+  const grid = new THREE.GridHelper(520, 26, 0xffffff, 0xffffff); grid.position.y = 0.2; grid.material.transparent = true; grid.material.opacity = 0.18; scene.add(grid);
+}
+
+// ------------------------------------------------------------------
+// 熱交換器 (フィン + 銅管) の生成
+// ------------------------------------------------------------------
+// 室内機用: x-y 平面で S→E に伸びる板状スラブ (奥行き = z)
+function buildSlab(parent, S, E, T, width, pitch = 2.6) {
+  const d = new THREE.Vector2(E.x - S.x, E.y - S.y); const L = d.length(); d.divideScalar(L);
+  const n = new THREE.Vector2(-d.y, d.x);
+  const ang = Math.atan2(d.y, d.x);
+  // フィン
+  const finCount = Math.round(width / 2);
+  const finGeo = new THREE.BoxGeometry(T, L, 0.08);
+  const fins = new THREE.InstancedMesh(finGeo, M.fin, finCount);
+  const mtx = new THREE.Matrix4(), q = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, 0, ang - Math.PI / 2));
+  const mid = new THREE.Vector3((S.x + E.x) / 2, (S.y + E.y) / 2, 0);
+  for (let i = 0; i < finCount; i++) {
+    mtx.compose(V(mid.x, mid.y, -width / 2 + (i + 0.5) * width / finCount), q, V(1, 1, 1));
+    fins.setMatrixAt(i, mtx);
+  }
+  parent.add(fins);
+  // 管 (2列) : row0 = 冷媒の経路として使う, row1 = 飾り
+  const passes = [[], []];
+  for (let row = 0; row < 2; row++) {
+    const off = (row === 0 ? -1 : 1) * T / 4;
+    for (let s = 1.3 + (row === 1 ? pitch / 2 : 0); s <= L - 1.1; s += pitch) {
+      passes[row].push(new THREE.Vector2(S.x + d.x * s + n.x * off, S.y + d.y * s + n.y * off));
+    }
+  }
+  const tubeGeo = new THREE.CylinderGeometry(0.55, 0.55, width + 1, 10);
+  const deco = new THREE.InstancedMesh(tubeGeo, M.copper, passes[1].length);
+  const qz = new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.PI / 2, 0, 0));
+  passes[1].forEach((p, i) => { mtx.compose(V(p.x, p.y, 0), qz, V(1, 1, 1)); deco.setMatrixAt(i, mtx); });
+  parent.add(deco);
+  return { passes: passes[0], L, mid, fins, deco };
+}
+
+// ------------------------------------------------------------------
+// 室内機
+// ------------------------------------------------------------------
+const indoor = new THREE.Group(); indoor.position.set(0, 170, 0); scene.add(indoor);
+const IW = 80, IH = 29, ID = 22;
+const indoorParts = {};
+{
+  const casing = box(ID, IH, IW, M.casing, -ID / 2, IH / 2, 0); indoor.add(casing); indoor.add(edges(casing));
+  const back = box(1, IH, IW, M.steelT, -0.5, IH / 2, 0); indoor.add(back);
+  // 吸い込みグリル (上面)
+  const grille = new THREE.Group();
+  for (let x = -20; x <= -4; x += 2) grille.add(box(1.0, 0.4, 68, M.white, x, IH, 0));
+  indoor.add(grille); indoorParts.intake = grille;
+  // フィルター
+  const fgeo = new THREE.PlaneGeometry(16, 66, 8, 22);
+  const filter = new THREE.Mesh(fgeo, M.filter); filter.rotation.x = -Math.PI / 2; filter.position.set(-12, 27.4, 0);
+  const fw = new THREE.Mesh(fgeo, M.filterWire); fw.rotation.x = -Math.PI / 2; fw.position.set(-12, 27.45, 0);
+  const filterG = new THREE.Group(); filterG.add(filter, fw); indoor.add(filterG); indoorParts.filter = filterG;
+  // 熱交換器 (逆V字 + 前面下部)
+  const hx = new THREE.Group(); indoor.add(hx);
+  const slabC = buildSlab(hx, V(-21.5, 5.5, 0), V(-21.5, 12.8, 0), 2.6, 70);
+  const slabA = buildSlab(hx, V(-21.5, 13, 0), V(-11.5, 26, 0), 2.6, 70);
+  const slabB = buildSlab(hx, V(-11.5, 26, 0), V(-3.5, 17, 0), 2.6, 70);
+  indoorParts.hx = hx;
+  indoor.userData.hxPasses = [...slabC.passes, ...slabA.passes, ...slabB.passes];
+  // クロスフローファン
+  const fan = new THREE.Group(); fan.position.set(-11, 11, 0); indoor.add(fan); indoorParts.fan = fan;
+  const NB = 32, bladeGeo = new THREE.BoxGeometry(1.7, 0.22, 64);
+  const blades = new THREE.InstancedMesh(bladeGeo, M.white, NB);
+  for (let i = 0; i < NB; i++) {
+    const a = i / NB * Math.PI * 2;
+    const m = new THREE.Matrix4().compose(V(Math.cos(a) * 5.1, Math.sin(a) * 5.1, 0), new THREE.Quaternion().setFromEuler(new THREE.Euler(0, 0, a + 0.95)), V(1, 1, 1));
+    blades.setMatrixAt(i, m);
+  }
+  fan.add(blades);
+  for (let z = -32; z <= 32; z += 10.67) fan.add(cylDir(5.9, 0.3, M.whiteT, 0, 0, z, 'z'));
+  fan.add(cylDir(0.6, 66, M.steel, 0, 0, 0, 'z'));
+  // ファンモーター (右端)
+  indoor.add(cylDir(3.2, 5, M.dark, -11, 11, 36, 'z'));
+  // スタビライザー (舌) と後部ガイド
+  indoor.add(box(2.2, 2.5, 66, M.whiteT, -18.2, 6.8, 0));
+  indoor.add(box(1.2, 10, 66, M.whiteT, -3.2, 8, 0));
+  // ドレンパン
+  const pan = box(8, 1.2, 68, M.steelT, -18.8, 4.4, 0); indoor.add(pan); indoorParts.pan = pan;
+  // 吹き出し口 + ルーバー
+  const louverPivot = new THREE.Group(); louverPivot.position.set(-15.5, 1.2, 0); indoor.add(louverPivot);
+  louverPivot.add(box(7, 0.35, 62, M.white, -3.5, 0, 0));
+  indoorParts.louver = louverPivot;
+  indoor.add(box(7.5, 0.3, 64, M.darkT, -18.5, 0.15, 0));
+  // 電装箱
+  indoor.add(box(14, 20, 6, M.darkT, -12, 14, 36.5));
+}
+const crossFan = indoorParts.fan;
+const louver = indoorParts.louver;
+
+// ------------------------------------------------------------------
+// 室外機
+// ------------------------------------------------------------------
+const outdoor = new THREE.Group(); scene.add(outdoor);
+const outdoorParts = {};
+{
+  const casing = box(30, 55, 80, M.casingOut, 37, 32.5, 0); outdoor.add(casing); outdoor.add(edges(casing));
+  outdoor.add(box(30, 1, 80, M.steelT, 37, 5.5, 0)); // 底板
+  outdoor.add(box(6, 4, 70, M.dark, 30, 2.6, 0)); outdoor.add(box(6, 4, 70, M.dark, 45, 2.6, 0)); // 脚
+  // 仕切り板
+  outdoor.add(box(0.3, 53, 28, M.partition, 37, 32.5, 14));
+  // 前面グリル (リング)
+  const grille = new THREE.Group(); outdoor.add(grille);
+  for (const r of [5.5, 9.5, 13.5, 17.5]) { const t = new THREE.Mesh(new THREE.TorusGeometry(r, 0.25, 6, 40), M.white); t.rotation.y = Math.PI / 2; t.position.set(52.3, 33, -13); grille.add(t); }
+  grille.add(box(0.5, 40, 0.6, M.white, 52.3, 33, -13)); grille.add(box(0.5, 0.6, 40, M.white, 52.3, 33, -13));
+  // 側面吸い込みスリット
+  for (let y = 12; y <= 54; y += 4) outdoor.add(box(26, 0.3, 0.6, M.white, 37, y, -40.2));
+  // 熱交換器 (L字: 背面 + 左側面)
+  const hx = new THREE.Group(); outdoor.add(hx); outdoorParts.hx = hx;
+  const mtx = new THREE.Matrix4(), I3 = new THREE.Quaternion();
+  const finB = new THREE.InstancedMesh(new THREE.BoxGeometry(4.4, 42, 0.08), M.fin, 25);
+  for (let i = 0; i < 25; i++) { mtx.compose(V(25, 32, -36 + i * 2), I3, V(1, 1, 1)); finB.setMatrixAt(i, mtx); }
+  const finS = new THREE.InstancedMesh(new THREE.BoxGeometry(0.08, 42, 4.4), M.fin, 14);
+  for (let i = 0; i < 14; i++) { mtx.compose(V(24 + i * 2, 32, -37), I3, V(1, 1, 1)); finS.setMatrixAt(i, mtx); }
+  hx.add(finB, finS);
+  const hts = []; for (let k = 0; k < 8; k++) hts.push(52 - k * 5.6);
+  outdoor.userData.hxHeights = hts;
+  // 飾りの外側列
+  const qz = new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.PI / 2, 0, 0));
+  const qx = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, 0, Math.PI / 2));
+  const decoB = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.55, 0.55, 50, 10), M.copper, 8);
+  const decoS = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.55, 0.55, 26, 10), M.copper, 8);
+  hts.forEach((y, i) => {
+    mtx.compose(V(26, y + 2.8, -12), qz, V(1, 1, 1)); decoB.setMatrixAt(i, mtx);
+    mtx.compose(V(37, y + 2.8, -38), qx, V(1, 1, 1)); decoS.setMatrixAt(i, mtx);
+  });
+  hx.add(decoB, decoS);
+  // プロペラファン
+  const fan = new THREE.Group(); fan.position.set(40, 33, -13); fan.rotation.y = Math.PI / 2; outdoor.add(fan); outdoorParts.fan = fan;
+  const shape = new THREE.Shape();
+  shape.moveTo(3, -2); shape.quadraticCurveTo(12, -8, 18.5, -3.5); shape.quadraticCurveTo(20, 2, 16, 5.5); shape.quadraticCurveTo(10, 6.5, 3, 2); shape.closePath();
+  const bladeGeo = new THREE.ExtrudeGeometry(shape, { depth: 0.4, bevelEnabled: false });
+  for (let i = 0; i < 3; i++) {
+    const piv = new THREE.Group(); piv.rotation.z = i * Math.PI * 2 / 3;
+    const b = new THREE.Mesh(bladeGeo, M.blackT); b.rotation.x = 0.5; piv.add(b); fan.add(piv);
+  }
+  fan.add(cylDir(4, 3, M.dark, 0, 0, 0, 'z'));
+  outdoor.add(cylDir(4.2, 8, M.dark, 31, 33, -13, 'x'));  // モーター
+  outdoor.add(box(0.8, 46, 1.2, M.steel, 29, 32, -13));     // モーター台
+  outdoor.add(box(14, 1, 1.2, M.steel, 35, 55, -13));
+  // 電装箱 (上部)
+  outdoor.add(box(16, 8, 24, M.darkT, 38, 55.5, 27));
+  // サービスバルブ (液・ガス)
+  const sv = new THREE.Group(); outdoor.add(sv); outdoorParts.valves = sv;
+  sv.add(cylDir(1.6, 4, M.brass, 44, 16, 40.5, 'z')); sv.add(cylDir(1.6, 4, M.brass, 48, 22, 40.5, 'z'));
+  sv.add(box(1.2, 1.2, 1.2, M.dark, 44, 18.2, 40.5)); sv.add(box(1.2, 1.2, 1.2, M.dark, 48, 24.2, 40.5));
+  // 電子膨張弁
+  const eev = new THREE.Group(); outdoor.add(eev); outdoorParts.eev = eev;
+  eev.add(cylY(1.4, 5, M.brass, 27, 14, 18)); eev.add(cylY(2.2, 3, M.dark, 27, 18.3, 18)); eev.add(cylY(0.8, 1.2, M.steel, 27, 20.4, 18));
+  // アキュムレーター
+  const acc = new THREE.Group(); outdoor.add(acc); outdoorParts.acc = acc;
+  acc.add(cylY(3, 14, M.steel, 33, 24, 37)); acc.add(cylY(3, 1, M.steel, 33, 31.3, 37, 28, 0, Math.PI * 2, 1.8)); 
+  acc.add(cylY(1.8, 1, M.steel, 33, 16.7, 37, 28, 0, Math.PI * 2, 3));
+}
+const propFan = outdoorParts.fan;
+
+// ------------------------------------------------------------------
+// 圧縮機 (ロータリー式) : 前面 1/4 を切り欠いて内部を見せる
+// ------------------------------------------------------------------
+const comp = new THREE.Group(); comp.position.set(36, 22, 27); outdoor.add(comp);
+const COMP = { R: 3.6, e: 0.85, vane: 70 * Math.PI / 180, blockTop: -5.5 };
+const NSEG = 28;
+COMP.r = COMP.R - COMP.e;
+let compState = {};
+{
+  const cut0 = Math.PI / 2, cutL = Math.PI * 1.5; // +x+z の 1/4 を切る (Cylinder 用)
+  const ring0 = 0, ringL = Math.PI * 1.5;         // 同じ 1/4 を切る (Ring/Torus を x 軸回転したとき用)
+  const shell = cylY(6.5, 26, M.blackT, 0, 0, 0, 40, cut0, cutL); comp.add(shell);
+  comp.add(new THREE.Mesh(new THREE.TorusGeometry(6.4, 0.35, 8, 48), M.black)).rotation.x = Math.PI / 2;
+  comp.add(cylY(6.5, 0.4, M.black, 0, 13.2, 0, 40, cut0, cutL)); comp.add(cylY(6.5, 0.4, M.black, 0, -13.2, 0));
+  // モーター: ステーター (切り欠き) + 巻線 + ローター
+  const statorOut = new THREE.Mesh(new THREE.CylinderGeometry(6, 6, 7, 40, 1, true, cut0, cutL), M.steel); statorOut.position.y = 5;
+  const statorIn = new THREE.Mesh(new THREE.CylinderGeometry(3.7, 3.7, 7, 40, 1, true, cut0, cutL), M.steel); statorIn.position.y = 5;
+  const statorRingGeo = new THREE.RingGeometry(3.7, 6, 40, 1, ring0, ringL);
+  const stTop = new THREE.Mesh(statorRingGeo, M.steel); stTop.rotation.x = -Math.PI / 2; stTop.position.y = 8.5;
+  const stBot = new THREE.Mesh(statorRingGeo, M.steel); stBot.rotation.x = -Math.PI / 2; stBot.position.y = 1.5;
+  M.steel.side = THREE.DoubleSide;
+  comp.add(statorOut, statorIn, stTop, stBot);
+  for (const yy of [0.6, 9.4]) { const w = new THREE.Mesh(new THREE.TorusGeometry(4.8, 0.8, 8, 40, cutL), M.winding); w.rotation.x = Math.PI / 2; w.rotation.z = cut0; w.position.y = yy; comp.add(w); }
+  const rotor = cylY(3.4, 7.4, M.rotor, 0, 5, 0, 32); comp.add(rotor);
+  const shaft = cylY(0.8, 23, M.steel, 0, -1, 0, 16); comp.add(shaft);
+  // シリンダーブロック (リング, 同じ 1/4 を切る)
+  const blockGeo = new THREE.RingGeometry(COMP.R, 6, 48, 1, ring0, ringL);
+  const blockTop = new THREE.Mesh(blockGeo, M.steel); blockTop.rotation.x = -Math.PI / 2; blockTop.position.y = COMP.blockTop;
+  const blockBot = new THREE.Mesh(blockGeo, M.steel); blockBot.rotation.x = -Math.PI / 2; blockBot.position.y = -8.5;
+  const blockWallOut = new THREE.Mesh(new THREE.CylinderGeometry(6, 6, 3, 48, 1, true, cut0, cutL), M.steel); blockWallOut.position.y = -7;
+  const blockWallIn = new THREE.Mesh(new THREE.CylinderGeometry(COMP.R, COMP.R, 3, 48, 1, true, cut0, cutL), M.steel); blockWallIn.position.y = -7;
+  comp.add(blockTop, blockBot, blockWallOut, blockWallIn);
+  comp.add(cylY(COMP.R + 0.3, 0.3, M.steel, 0, -8.7, 0)); // 下蓋
+  // ローラー (偏心) ・ ベーン
+  const piston = cylY(COMP.r, 2.9, M.rotor, 0, -7, 0, 32); comp.add(piston);
+  const vane = new THREE.Mesh(new THREE.BoxGeometry(1, 2.9, 0.5), M.brass); comp.add(vane);
+  // 吸入ポート・吐出ポート
+  const ports = {};
+  const portPos = (ang, rad, y) => V(Math.cos(ang) * rad, y, Math.sin(ang) * rad);
+  ports.suction = portPos(COMP.vane + 15 * Math.PI / 180, 6.3, -7);
+  ports.discharge = portPos(COMP.vane - 15 * Math.PI / 180, 6.3, -7);
+  const sp = cylY(0.7, 2.6, M.copperSolid, 0, 0, 0, 12); sp.position.copy(portPos(COMP.vane + 15 * Math.PI / 180, 5.0, -7)); sp.rotation.z = Math.PI / 2; sp.rotation.y = -(COMP.vane + 15 * Math.PI / 180); comp.add(sp);
+  const dv = box(0.9, 0.2, 1.2, M.brass); dv.position.copy(portPos(COMP.vane - 15 * Math.PI / 180, 4.2, COMP.blockTop + 0.15)); dv.rotation.y = -(COMP.vane - 15 * Math.PI / 180); comp.add(dv);
+  // 吸入室 / 圧縮室 (三日月形の面, 毎フレーム更新)
+  function regionMesh(color) {
+    const g = new THREE.BufferGeometry();
+    const pos = new Float32Array(NSEG * 2 * 3);
+    g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    const idx = [];
+    for (let k = 0; k < NSEG - 1; k++) { const o = k * 2; idx.push(o, o + 1, o + 2, o + 1, o + 3, o + 2); }
+    g.setIndex(idx);
+    const m = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color, side: THREE.DoubleSide, transparent: true, opacity: 0.85, depthWrite: false }));
+    m.position.y = COMP.blockTop + 0.06; m.renderOrder = 2; comp.add(m); return m;
+  }
+  const suctionRegion = regionMesh(0x3b7bff), compRegion = regionMesh(0xff3030);
+  const dischargePuff = new THREE.Mesh(new THREE.SphereGeometry(0.7, 10, 8), new THREE.MeshBasicMaterial({ color: 0xff4a3a, transparent: true, opacity: 0.9 }));
+  dischargePuff.position.copy(portPos(COMP.vane - 15 * Math.PI / 180, 3.0, COMP.blockTop + 0.8)); dischargePuff.visible = false; comp.add(dischargePuff);
+  compState = { rotor, shaft, piston, vane, suctionRegion, compRegion, dischargePuff, ports, theta: 0 };
+}
+outdoor.updateMatrixWorld(true);
+// 内部パス用: 吸入口→圧縮室を一周→吐出口 (world 座標)
+{
+  const a0 = COMP.vane + 15 * Math.PI / 180, a1 = COMP.vane - 15 * Math.PI / 180 + Math.PI * 2;
+  const pp = (ang, rad, y) => comp.localToWorld(V(Math.cos(ang) * rad, y, Math.sin(ang) * rad));
+  const arc = [pp(a0, 6.6, -5.2)];
+  for (let k = 0; k <= 24; k++) { const a = a0 + (a1 - a0) * k / 24; arc.push(pp(a, 3.25, -5.2)); }
+  compState.innerPath = arc;
+  compState.dischargeWorld = pp(a1, 3.25, -5.2);
+  compState.riseWorld = [pp(a1, 5.1, -3), pp(a1, 5.1, 10), pp(0, 13.4, 0)];
+  compState.suctionWorld = pp(a0, 6.6, -5.2);
+}
+
+function updateCompressor(dt) {
+  const s = compState;
+  s.theta += dt * Math.PI * 2 * 0.9; // 表示用にゆっくり
+  const th = s.theta;
+  s.rotor.rotation.y = -th; s.shaft.rotation.y = -th;
+  const { R, e, r, vane } = COMP;
+  const cx = e * Math.cos(th), cz = e * Math.sin(th);
+  s.piston.position.set(cx, -7, cz);
+  // ベーン先端
+  const ux = Math.cos(vane), uz = Math.sin(vane);
+  const uc = ux * cx + uz * cz;
+  const t = uc + Math.sqrt(Math.max(0, uc * uc - e * e + r * r));
+  const vx = t * ux, vz = t * uz;
+  const psiV = Math.atan2(vz - cz, vx - cx);
+  const vLen = (R + 1.6) - t;
+  s.vane.scale.x = vLen; s.vane.position.set(ux * (t + R + 1.6) / 2, -7, uz * (t + R + 1.6) / 2); s.vane.rotation.y = -vane;
+  // 領域
+  const TWO = Math.PI * 2;
+  const thU = vane + ((th - vane) % TWO + TWO) % TWO;         // vane ≤ thU < vane+2π
+  const psiU = thU - (((thU - psiV) % TWO) + TWO) % TWO;         // psiU ≤ thU
+  const fill = (mesh, phiA, phiB, psiA, psiB) => {
+    const pos = mesh.geometry.attributes.position.array;
+    for (let k = 0; k < NSEG; k++) {
+      const f = k / (NSEG - 1);
+      const a = phiA + (phiB - phiA) * f, p = psiA + (psiB - psiA) * f;
+      pos[k * 6] = R * Math.cos(a); pos[k * 6 + 1] = 0; pos[k * 6 + 2] = R * Math.sin(a);
+      pos[k * 6 + 3] = cx + r * Math.cos(p); pos[k * 6 + 4] = 0; pos[k * 6 + 5] = cz + r * Math.sin(p);
+    }
+    mesh.geometry.attributes.position.needsUpdate = true;
+  };
+  const frac = (thU - vane) / TWO; // 吸入室の大きさ (0→1)
+  s.suctionRegion.visible = frac > 0.02;
+  if (s.suctionRegion.visible) fill(s.suctionRegion, vane, thU, psiU, thU);
+  s.compRegion.visible = frac < 0.985;
+  if (s.compRegion.visible) fill(s.compRegion, thU, vane + TWO, thU, psiU + TWO);
+  const c = s.compRegion.material.color; c.setHSL(0.66 - 0.66 * Math.min(1, frac * 1.15), 1, 0.5);
+  s.dischargePuff.visible = frac > 0.72;
+  if (s.dischargePuff.visible) { const k = (frac - 0.72) / 0.28; s.dischargePuff.scale.setScalar(0.6 + k); s.dischargePuff.position.y = COMP.blockTop + 0.8 + k * 1.5; }
+}
+
+// ------------------------------------------------------------------
+// 四方弁
+// ------------------------------------------------------------------
+const fourway = new THREE.Group(); outdoor.add(fourway);
+let slider;
+{
+  fourway.add(cylDir(2.2, 10, M.brassT, 30, 46, 27, 'z'));
+  fourway.add(cylDir(2.3, 0.6, M.brass, 30, 46, 22, 'z')); fourway.add(cylDir(2.3, 0.6, M.brass, 30, 46, 32, 'z'));
+  fourway.add(cylY(0.95, 2.2, M.brass, 30, 48.6, 27));      // D (上)
+  for (const z of [23, 27, 31]) fourway.add(cylY(0.95, 2.2, M.brass, 30, 43.0, z)); // E, S, C (下)
+  slider = box(2.6, 1.5, 5.4, M.dark, 30, 44.6, 25); fourway.add(slider);
+  slider.add(box(2.0, 0.9, 3.6, M.blue, 0, -0.35, 0));
+  fourway.add(cylDir(0.9, 2.4, M.dark, 30, 46, 33.3, 'z')); // パイロット弁 (省略形)
+}
+
+// ------------------------------------------------------------------
+// 配管と冷媒回路
+// ------------------------------------------------------------------
+const PIECES = {};
+function addPiece(name, path, radius, drawTube = true, mat = M.copper) {
+  const len = path.getLength();
+  const p = { name, path, len, radius };
+  if (drawTube) { p.mesh = tubeMesh(path, radius, mat); scene.add(p.mesh); }
+  PIECES[name] = p; return p;
+}
+const RG = 1.0, RL = 0.75, RC = 0.5; // ガス管 / 液管 / コイル
+{
+  const w2l = (v) => indoor.localToWorld(v.clone());
+  indoor.updateMatrixWorld(true);
+  // --- 圧縮機内部 + 吐出 ---
+  addPiece('compIn', new THREE.CatmullRomCurve3(compState.innerPath, false, 'centripetal', 0.5), 0.55, false);
+  addPiece('P1', roundedPath([compState.dischargeWorld, ...compState.riseWorld, V(36, 52, 27), V(30, 52, 27), V(30, 48.2, 27), V(30, 46.5, 27)], 2), RL, true);
+  // 四方弁の中
+  addPiece('vDC', roundedPath([V(30, 46.5, 27), V(30, 46, 31), V(30, 43.5, 31)], 0.8), RC, false);
+  addPiece('vDE', roundedPath([V(30, 46.5, 27), V(30, 46, 23), V(30, 43.5, 23)], 0.8), RC, false);
+  addPiece('vES', roundedPath([V(30, 43.5, 23), V(30, 44.6, 23), V(30, 44.6, 27), V(30, 43.5, 27)], 0.5), RC, false);
+  addPiece('vCS', roundedPath([V(30, 43.5, 31), V(30, 44.6, 31), V(30, 44.6, 27), V(30, 43.5, 27)], 0.5), RC, false);
+  // C → 室外熱交換器 上
+  const hts = outdoor.userData.hxHeights;
+  addPiece('P2', roundedPath([V(30, 43.5, 31), V(30, 39.5, 31), V(27.5, 39.5, 31), V(27.5, 39.5, 16.5), V(27.5, hts[0], 16.5), V(24, hts[0], 12)], 2.2), RL);
+  // 室外コイル (L字 8 パス)
+  const cp = [];
+  hts.forEach((y, k) => {
+    const A = V(24, y, 12), B = V(24, y, -36), C = V(49, y, -36);
+    if (k % 2 === 0) cp.push(A, B, C); else cp.push(C, B, A);
+  });
+  addPiece('P3', roundedPath(cp, 2.4), RC);
+  // コイル下 → 膨張弁 (P4a), 膨張弁 → 液サービスバルブ (P4b)
+  const last = hts[hts.length - 1];
+  addPiece('P4a', roundedPath([V(24, last, 12), V(24, last, 18), V(25.6, last, 18)], 1.5), RL);
+  addPiece('P4b', roundedPath([V(27, 11.5, 18), V(27, 7.5, 18), V(27, 7.5, 38), V(48, 7.5, 38), V(48, 22, 38), V(48, 22, 42.5)], 2), RL);
+  // 液管 (外→壁→室内機)
+  const ps = indoor.userData.hxPasses;
+  const first = ps[0], lastP = ps[ps.length - 1];
+  const liquidPts = [V(48, 22, 42.5), V(48, 22, 49), V(14, 22, 49), V(14, 22, 38), V(14, 180.5, 38), V(-3, 180.5, 38), V(-3, 178, 38),
+    w2l(V(first.x, first.y, 38.5)), w2l(V(first.x, first.y, 35))];
+  addPiece('P5', roundedPath(liquidPts, 3), RL);
+  // 室内コイル (12 パス)
+  const ip = [];
+  ps.forEach((p, k) => {
+    const a = w2l(V(p.x, p.y, 35)), b = w2l(V(p.x, p.y, -35));
+    if (k % 2 === 0) ip.push(a, b); else ip.push(b, a);
+    if (k < ps.length - 1) { // ヘアピン
+      const q = ps[k + 1]; const zz = (k % 2 === 0) ? -37.2 : 37.2;
+      ip.push(w2l(V(p.x, p.y, zz)), w2l(V(q.x, q.y, zz)));
+    }
+  });
+  addPiece('P6', roundedPath(ip, 1.3), RC);
+  const zEnd = (ps.length % 2 === 0) ? 35 : -35;
+  // ガス管 (室内機 → 壁 → 室外機 ガスバルブ)
+  const gasPts = [w2l(V(lastP.x, lastP.y, zEnd)), w2l(V(lastP.x, lastP.y, 37)), V(-3, lastP.y + 170, 37), V(-3, 183.5, 35), V(14, 183.5, 35),
+    V(14, 16, 35), V(14, 16, 46), V(44, 16, 46), V(44, 16, 42.5)];
+  if (zEnd < 0) gasPts.splice(1, 0, w2l(V(lastP.x, lastP.y, -37)), w2l(V(-1.5, lastP.y, -37)), w2l(V(-1.5, lastP.y, 37)));
+  addPiece('P7', roundedPath(gasPts, 3), RG);
+  // ガスバルブ → 四方弁 E
+  addPiece('P8', roundedPath([V(44, 16, 42.5), V(44, 16, 38), V(44, 38, 38), V(44, 38, 23), V(30, 38, 23), V(30, 43.5, 23)], 2), RG);
+  // 四方弁 S → アキュムレーター → 圧縮機吸入口
+  addPiece('P9', roundedPath([V(30, 43.5, 27), V(30, 40, 27), V(33, 40, 37), V(33, 31.8, 37), V(33, 20, 37), V(33, 16.2, 37), V(33, 14.8, 37), V(34.5, 14.8, 36), compState.suctionWorld], 1.5), RL);
+  // 断熱材 (壁外の 2 本, 見た目)
+  const insG = tubeMesh(roundedPath([V(14, 179, 35), V(14, 20, 35)], 1), 2.0, M.insul); scene.add(insG);
+  const insL = tubeMesh(roundedPath([V(14, 176, 38), V(14, 26, 38)], 1), 1.6, M.insul); scene.add(insL);
+}
+
+// 冷媒の状態
+const STATE = {
+  hotgas:  { color: new THREE.Color(0xff2a2a), v: 55, name: '高温・高圧の気体' },
+  liquid:  { color: new THREE.Color(0xffa030), v: 22, name: '高圧の液体' },
+  twophase:{ color: new THREE.Color(0x7fd8ff), v: 34, name: '低温・低圧の霧(液+気)' },
+  coldgas: { color: new THREE.Color(0x2f6bff), v: 48, name: '低温・低圧の気体' },
+};
+const LOOPS = {
+  cool: [
+    ['compIn', false, 'coldgas', 'hotgas'], ['P1', false, 'hotgas', 'hotgas'], ['vDC', false, 'hotgas', 'hotgas'], ['P2', false, 'hotgas', 'hotgas'],
+    ['P3', false, 'hotgas', 'liquid'], ['P4a', false, 'liquid', 'liquid'], ['P4b', false, 'twophase', 'twophase'], ['P5', false, 'twophase', 'twophase'],
+    ['P6', false, 'twophase', 'coldgas'], ['P7', false, 'coldgas', 'coldgas'], ['P8', false, 'coldgas', 'coldgas'], ['vES', false, 'coldgas', 'coldgas'], ['P9', false, 'coldgas', 'coldgas'],
+  ],
+  heat: [
+    ['compIn', false, 'coldgas', 'hotgas'], ['P1', false, 'hotgas', 'hotgas'], ['vDE', false, 'hotgas', 'hotgas'], ['P8', true, 'hotgas', 'hotgas'],
+    ['P7', true, 'hotgas', 'hotgas'], ['P6', true, 'hotgas', 'liquid'], ['P5', true, 'liquid', 'liquid'], ['P4b', true, 'liquid', 'liquid'],
+    ['P4a', true, 'twophase', 'twophase'], ['P3', true, 'twophase', 'coldgas'], ['P2', true, 'coldgas', 'coldgas'], ['vCS', false, 'coldgas', 'coldgas'], ['P9', false, 'coldgas', 'coldgas'],
+  ],
+};
+let loop = null; // {segs:[{piece,rev,a,b,t0,dur}], T}
+function buildLoop(m) {
+  const segs = []; let T = 0;
+  for (const [name, rev, a, b] of LOOPS[m]) {
+    const piece = PIECES[name];
+    const v = (STATE[a].v + STATE[b].v) / 2;
+    const dur = piece.len / v;
+    segs.push({ piece, rev, a: STATE[a], b: STATE[b], t0: T, dur, trans: a !== b });
+    T += dur;
+  }
+  loop = { segs, T };
+}
+const NP = 520;
+const refr = new THREE.InstancedMesh(new THREE.SphereGeometry(1, 8, 6), new THREE.MeshBasicMaterial({ color: 0xffffff }), NP);
+refr.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+scene.add(refr);
+const refrPhase = new Float32Array(NP);
+for (let i = 0; i < NP; i++) refrPhase[i] = Math.random();
+let refrTime = 0;
+const smooth = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+const _m = new THREE.Matrix4(), _c = new THREE.Color(), _q = new THREE.Quaternion();
+function updateRefrigerant(dt) {
+  refrTime += dt;
+  const { segs, T } = loop;
+  for (let i = 0; i < NP; i++) {
+    let t = (refrPhase[i] * T + refrTime) % T;
+    // 区間探索
+    let lo = 0, hi = segs.length - 1;
+    while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (segs[mid].t0 <= t) lo = mid; else hi = mid - 1; }
+    const sg = segs[lo];
+    const u = Math.min(0.9999, (t - sg.t0) / sg.dur);
+    const p = sg.piece.path.getPointAt(sg.rev ? 1 - u : u);
+    const k = sg.trans ? smooth(0.12, 0.88, u) : 0;
+    _c.copy(sg.a.color).lerp(sg.b.color, k);
+    const sc = sg.piece.radius * 0.78;
+    _m.compose(p, _q, V(sc, sc, sc));
+    refr.setMatrixAt(i, _m); refr.setColorAt(i, _c);
+  }
+  refr.instanceMatrix.needsUpdate = true; refr.instanceColor.needsUpdate = true;
+}
+
+// ------------------------------------------------------------------
+// 空気の流れ (Points)
+// ------------------------------------------------------------------
+function makeSprite() {
+  const cv = document.createElement('canvas'); cv.width = cv.height = 64;
+  const g = cv.getContext('2d'); const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+  gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.4, 'rgba(255,255,255,0.6)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
+  const tx = new THREE.CanvasTexture(cv); tx.colorSpace = THREE.SRGBColorSpace; return tx;
+}
+const sprite = makeSprite();
+class AirFlow {
+  constructor(pathsFn, count, size) {
+    this.count = count; this.pathsFn = pathsFn;
+    const geo = new THREE.BufferGeometry();
+    this.pos = new Float32Array(count * 3); this.col = new Float32Array(count * 3);
+    geo.setAttribute('position', new THREE.BufferAttribute(this.pos, 3).setUsage(THREE.DynamicDrawUsage));
+    geo.setAttribute('color', new THREE.BufferAttribute(this.col, 3).setUsage(THREE.DynamicDrawUsage));
+    this.points = new THREE.Points(geo, new THREE.PointsMaterial({ size, map: sprite, vertexColors: true, transparent: true, depthWrite: false, opacity: 0.9, sizeAttenuation: true }));
+    scene.add(this.points);
+    this.ph = new Float32Array(count); this.sp = new Float32Array(count); this.pi = new Uint16Array(count);
+    for (let i = 0; i < count; i++) { this.ph[i] = Math.random(); this.sp[i] = 0.7 + Math.random() * 0.6; }
+    this.rebuild();
+  }
+  rebuild() { this.paths = this.pathsFn(); for (let i = 0; i < this.count; i++) this.pi[i] = i % this.paths.length; this.cA = new THREE.Color(); this.cB = new THREE.Color(); }
+  setColors(a, b, tA, tB) { this.cA.set(a); this.cB.set(b); this.tA = tA; this.tB = tB; }
+  update(dt, period) {
+    const _p = new THREE.Vector3();
+    for (let i = 0; i < this.count; i++) {
+      this.ph[i] = (this.ph[i] + dt * this.sp[i] / period) % 1;
+      const u = this.ph[i];
+      this.paths[this.pi[i]].getPoint(u, _p);
+      this.pos[i * 3] = _p.x; this.pos[i * 3 + 1] = _p.y; this.pos[i * 3 + 2] = _p.z;
+      const k = smooth(this.tA, this.tB, u);
+      _c.copy(this.cA).lerp(this.cB, k);
+      // 両端でフェード (明るさで代用)
+      const fade = Math.min(1, u * 8, (1 - u) * 8);
+      this.col[i * 3] = _c.r * fade; this.col[i * 3 + 1] = _c.g * fade; this.col[i * 3 + 2] = _c.b * fade;
+    }
+    this.points.geometry.attributes.position.needsUpdate = true;
+    this.points.geometry.attributes.color.needsUpdate = true;
+  }
+}
+function indoorAirPaths() {
+  const out = [];
+  const L = (x, y, z) => indoor.localToWorld(V(x, y, z));
+  for (let i = 0; i < 16; i++) {
+    const z = -30 + (i / 15) * 60 + (Math.random() - 0.5) * 2;
+    const top = i % 2 === 0;
+    const pts = top ? [L(-12 + (Math.random() - .5) * 8, 46, z), L(-12, 31, z), L(-13, 25, z), L(-11, 11, z)]
+                    : [L(-52, 24 + (Math.random() - .5) * 6, z), L(-30, 21, z), L(-22.5, 18, z), L(-11, 11, z)];
+    if (mode === 'cool') pts.push(L(-18, 2.5, z), L(-32, 0.5, z), L(-62, -1, z), L(-100, -4, z));
+    else pts.push(L(-18, 2.5, z), L(-27, -4, z), L(-42, -28, z), L(-58, -70, z));
+    out.push(new THREE.CatmullRomCurve3(pts, false, 'catmullrom', 0.3));
+  }
+  return out;
+}
+function outdoorAirPaths() {
+  const out = [];
+  for (let i = 0; i < 18; i++) {
+    const back = i % 3 !== 2;
+    const y = 12 + Math.random() * 40, z = -34 + Math.random() * 42;
+    const pts = back ? [V(2, y, z), V(16, y, z), V(26, 33 + (y - 33) * 0.4, -13 + (z + 13) * 0.3)]
+                     : [V(40 + (Math.random() - .5) * 10, y, -72), V(38, y, -46), V(34, 33 + (y - 33) * 0.4, -24)];
+    pts.push(V(40, 33 + (y - 33) * 0.35, -13 + (z + 13) * 0.25), V(62, 33 + (y - 33) * 0.6, -13 + (z + 13) * 0.4), V(140, 33 + (y - 33) * 1.4, -13 + (z + 13) * 0.9));
+    out.push(new THREE.CatmullRomCurve3(pts, false, 'catmullrom', 0.3));
+  }
+  return out;
+}
+const airIn = new AirFlow(indoorAirPaths, 260, 4.5);
+const airOut = new AirFlow(outdoorAirPaths, 300, 5.5);
+
+// ------------------------------------------------------------------
+// 熱の移動を表す矢印
+// ------------------------------------------------------------------
+const heatArrows = [];
+function makeArrow(color) {
+  const g = new THREE.Group();
+  const mat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.9 });
+  g.add(new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.45, 4, 8), mat)).position.y = -1;
+  g.add(new THREE.Mesh(new THREE.ConeGeometry(1.4, 2.6, 10), mat)).position.y = 2.3;
+  g.userData.mat = mat; scene.add(g); return g;
+}
+{
+  const up = V(0, 1, 0);
+  const add = (base, dir, side) => { const a = makeArrow(0xff8800); a.userData = { ...a.userData, base, dir: dir.clone().normalize(), side, seed: Math.random() }; heatArrows.push(a); };
+  // 室内機: 前面 (スラブA の外側) と上面 (スラブB の外側)
+  for (let z = -28; z <= 28; z += 14) { add(indoor.localToWorld(V(-27, 20.5, z)), V(0.79, 0.61, 0), 'in'); add(indoor.localToWorld(V(-6, 34, z)), V(-0.4, -1, 0), 'in'); }
+  // 室外機: 背面 (壁側) と左側面
+  for (let z = -30; z <= 6; z += 12) add(V(17, 33, z), V(1, 0, 0), 'out');
+  for (let x = 28; x <= 46; x += 9) add(V(x, 33, -45), V(0, 0, 1), 'out');
+}
+function updateHeatArrows(time) {
+  for (const a of heatArrows) {
+    const absorb = (a.userData.side === 'in') ? (mode === 'cool') : (mode === 'heat'); // コイルが熱を吸う?
+    const dir = absorb ? a.userData.dir : a.userData.dir.clone().negate();
+    a.quaternion.setFromUnitVectors(V(0, 1, 0), dir);
+    const ph = (time * 0.6 + a.userData.seed) % 1;
+    const off = absorb ? (-7 + ph * 9) : (2 - ph * 9);
+    a.position.copy(a.userData.base).addScaledVector(a.userData.dir, off);
+    a.userData.mat.color.set(absorb ? 0xff9a00 : 0xff3a1a);
+    a.userData.mat.opacity = 0.25 + 0.75 * Math.sin(ph * Math.PI);
+  }
+}
+
+// ------------------------------------------------------------------
+// ラベル (HTML, 重なり回避つき)
+// ------------------------------------------------------------------
+const labelRoot = document.getElementById('labels');
+const leaders = document.getElementById('leaders');
+const labels = [];
+function addLabel(text, pos, cls = 'part', opts = {}) {
+  const el = document.createElement('div'); el.className = 'lbl ' + cls; el.textContent = text;
+  labelRoot.appendChild(el);
+  const ln = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+  ln.setAttribute('stroke', 'rgba(20,28,40,.55)'); ln.setAttribute('stroke-width', '1'); leaders.appendChild(ln);
+  const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+  dot.setAttribute('r', '2.2'); dot.setAttribute('fill', '#1b2430'); dot.setAttribute('stroke', '#fff'); dot.setAttribute('stroke-width', '1'); leaders.appendChild(dot);
+  const L = { el, ln, dot, pos: pos.clone(), near: opts.near || 0, part: opts.part || null, priority: opts.priority || 0 };
+  if (L.part) { el.classList.add('part'); el.addEventListener('click', () => selectPart(L.part)); }
+  labels.push(L); return L;
+}
+const IL = (x, y, z) => indoor.localToWorld(V(x, y, z));
+const LBL = {};
+LBL.indoorUnit = addLabel('室内機', IL(-11, 31, -40), 'unit');
+LBL.outdoorUnit = addLabel('室外機', V(37, 62, -40), 'unit');
+addLabel('部屋の中 (室内)', V(-110, 1, 40), 'unit');
+addLabel('屋外', V(120, 1, 40), 'unit');
+LBL.crossFan = addLabel('クロスフローファン', IL(-11, 11, -18), 'part', { part: 'crossFan' });
+LBL.indoorHX = addLabel('室内熱交換器 (蒸発器)', IL(-17, 20, 6), 'part', { part: 'indoorHX' });
+LBL.filter = addLabel('フィルター', IL(-12, 27.5, -28), 'part', { part: 'filter' });
+LBL.intake = addLabel('吸い込み口', IL(-12, 29.5, 26), 'part', { part: 'intake' });
+LBL.louver = addLabel('吹き出し口・ルーバー', IL(-19, 1, 18), 'part', { part: 'louver' });
+LBL.pan = addLabel('ドレンパン', IL(-19, 4.4, -10), 'part', { part: 'drain' });
+LBL.comp = addLabel('圧縮機', V(36, 24, 33), 'part', { part: 'compressor' });
+LBL.acc = addLabel('アキュムレーター', V(33, 26, 39), 'part', { part: 'accumulator' });
+LBL.fourway = addLabel('四方弁', V(30, 46, 29), 'part', { part: 'fourway' });
+LBL.eev = addLabel('電子膨張弁', V(27, 16, 18), 'part', { part: 'eev' });
+LBL.outdoorHX = addLabel('室外熱交換器 (凝縮器)', V(25, 40, -14), 'part', { part: 'outdoorHX' });
+LBL.propFan = addLabel('プロペラファン', V(42, 33, -13), 'part', { part: 'propFan' });
+LBL.liquidPipe = addLabel('液管 (細い銅管)', V(14, 150, 38), 'part', { part: 'pipes' });
+LBL.gasPipe = addLabel('ガス管 (太い銅管)', V(14, 118, 35), 'part', { part: 'pipes' });
+LBL.valves = addLabel('サービスバルブ', V(46, 19, 43), 'small', { part: 'pipes' });
+// 状態タグ
+LBL.sDis = addLabel('', V(36, 56, 27), 'state');
+LBL.sGas = addLabel('', V(14, 75, 35), 'state');
+LBL.sLiq = addLabel('', V(14, 105, 38), 'state');
+LBL.sEev = addLabel('', V(24, 9, 15), 'state');
+LBL.sSuc = addLabel('', V(33, 36, 37), 'state');
+// 熱の出入り
+LBL.hIn = addLabel('', IL(-30, 30, -12), 'heat');
+LBL.hOut = addLabel('', V(12, 44, -16), 'heat');
+// 近づいたときだけ出る細かいラベル
+const CL = (x, y, z) => comp.localToWorld(V(x, y, z));
+addLabel('モーター (ローター/ステーター)', CL(0, 5, 0), 'small', { near: 75 });
+addLabel('ローラー (偏心して回る)', CL(0, -5.4, 0), 'small', { near: 75 });
+addLabel('ベーン (仕切り板)', CL(Math.cos(COMP.vane) * 4.8, -5.4, Math.sin(COMP.vane) * 4.8), 'small', { near: 75 });
+addLabel('吸入口', CL(Math.cos(COMP.vane + 0.26) * 6.6, -7, Math.sin(COMP.vane + 0.26) * 6.6), 'small', { near: 75 });
+addLabel('吐出口 (リード弁)', CL(Math.cos(COMP.vane - 0.26) * 4.2, -5.2, Math.sin(COMP.vane - 0.26) * 4.2), 'small', { near: 75 });
+addLabel('青: 吸い込み中 / 赤: 圧縮中', CL(1.5, -5.4, 1.5), 'small', { near: 60 });
+addLabel('D: 圧縮機から (高圧)', V(30, 49.5, 27), 'small', { near: 70 });
+addLabel('E: 室内機へ/から', V(30, 42.5, 23), 'small', { near: 70 });
+addLabel('S: 圧縮機の吸入へ', V(30, 42.5, 27), 'small', { near: 70 });
+addLabel('C: 室外熱交換器へ/から', V(30, 42.5, 31), 'small', { near: 70 });
+LBL.slider = addLabel('スライダー', V(30, 44.6, 25), 'small', { near: 70 });
+
+const _v = new THREE.Vector3();
+function updateLabels() {
+  const W = innerWidth, H = innerHeight;
+  const left = document.getElementById('left').getBoundingClientRect();
+  const right = document.getElementById('right').getBoundingClientRect();
+  const bottom = document.getElementById('bottom').getBoundingClientRect();
+  const minX = left.right + 6, maxX = W - 6, minY = 6, maxY = bottom.top - 6;
+  const placed = [];
+  const camPos = camera.position;
+  for (const L of labels) {
+    if (L.near && camPos.distanceTo(L.pos) > L.near) { L.vis = false; continue; }
+    _v.copy(L.pos).project(camera);
+    if (_v.z > 1 || _v.z < -1) { L.vis = false; continue; }
+    L.ax = (_v.x + 1) / 2 * W; L.ay = (1 - _v.y) / 2 * H;
+    if (L.ax < -50 || L.ax > W + 50 || L.ay < -50 || L.ay > H + 50) { L.vis = false; continue; }
+    L.vis = true;
+    if (!L.w) { const r = L.el.getBoundingClientRect(); L.w = r.width || 60; L.h = r.height || 18; }
+    L.x = L.ax; L.y = L.ay - L.h / 2 - 8; // 少し上に
+    L.depth = _v.z;
+  }
+  const vis = labels.filter(l => l.vis).sort((a, b) => a.depth - b.depth);
+  for (const L of vis) {
+    const w = L.w + 4, h = L.h + 4;
+    L.x = Math.min(Math.max(L.x, minX + w / 2), maxX - w / 2);
+    L.y = Math.min(Math.max(L.y, minY + h / 2), maxY - h / 2);
+    if (L.x + w / 2 > right.left - 4 && L.y - h / 2 < right.bottom + 4) L.y = right.bottom + 4 + h / 2;
+    // 既に置いたラベルとの重なりを解消 (下へ, 無理なら上へ)
+    for (let iter = 0; iter < 12; iter++) {
+      let hit = null;
+      for (const P of placed) {
+        if (Math.abs(P.x - L.x) < (P.w + w) / 2 + 2 && Math.abs(P.y - L.y) < (P.h + h) / 2 + 2) { hit = P; break; }
+      }
+      if (!hit) break;
+      const down = hit.y + (hit.h + h) / 2 + 3, upv = hit.y - (hit.h + h) / 2 - 3;
+      if (down + h / 2 <= maxY) L.y = down; else if (upv - h / 2 >= minY) L.y = upv; else { L.x = hit.x + (hit.w + w) / 2 + 3; }
+    }
+    placed.push({ x: L.x, y: L.y, w, h });
+    L.el.style.transform = `translate(${L.x - L.w / 2}px, ${L.y - L.h / 2}px)`;
+    L.el.classList.remove('hidden');
+    const dx = L.x - L.ax, dy = L.y - L.ay;
+    const show = Math.hypot(dx, dy) > L.h / 2 + 10;
+    L.ln.setAttribute('x1', L.ax); L.ln.setAttribute('y1', L.ay);
+    const ey = L.y + (dy < 0 ? L.h / 2 : -L.h / 2);
+    L.ln.setAttribute('x2', L.x); L.ln.setAttribute('y2', ey);
+    L.ln.style.display = show ? '' : 'none';
+    L.dot.setAttribute('cx', L.ax); L.dot.setAttribute('cy', L.ay); L.dot.style.display = (show || L.el.classList.contains('part')) ? '' : 'none';
+  }
+  for (const L of labels) if (!L.vis) { L.el.classList.add('hidden'); L.ln.style.display = 'none'; L.dot.style.display = 'none'; }
+}
+for (const L of labels) L.el.style.transform = 'translate(-9999px,-9999px)';
+
+// ------------------------------------------------------------------
+// 部品の説明 / UI
+// ------------------------------------------------------------------
+const PARTS = [
+  { id: 'overview', chip: '全体のしくみ', title: 'ヒートポンプのしくみ', text: 'エアコンは熱を「作る」のではなく「運ぶ」機械です。冷媒という物質を、圧縮機→凝縮器→膨張弁→蒸発器の順に循環させます。冷媒は蒸発するとき周りから熱を奪い(気化熱)、凝縮するとき熱を出します。圧縮機で圧力を上げ下げして「どこで蒸発し、どこで凝縮するか」を決めることで、冷房では部屋の熱を外へ、暖房では外の熱を部屋へ運びます。' },
+  { id: 'refrigerant', chip: '冷媒', title: '冷媒 (R32 など)', text: '圧力しだいで沸点が大きく変わる物質。低い圧力(約1MPa)では約5〜10℃で蒸発し、高い圧力(約3MPa)では約45℃で凝縮します。つまり圧力を変えるだけで「部屋より冷たい状態」と「外より熱い状態」を作れるので、熱を低温側から高温側へくみ上げられます。' },
+  { id: 'compressor', chip: '圧縮機', title: '圧縮機 (ロータリーコンプレッサー)', view: 'compressor', text: '低温・低圧の冷媒ガスを吸い込み、押し縮めて高温・高圧のガスにします(気体は圧縮すると温度が上がる)。密閉容器の中でモーターが偏心したローラーを回し、シリンダーとベーン(仕切り板)で区切られた三日月形のすき間が狭くなることでガスを圧縮します。青い部分が吸い込み中、赤い部分が圧縮中の室です。インバーターで回転数を変えて能力を調整します。' },
+  { id: 'accumulator', chip: 'アキュムレーター', title: 'アキュムレーター (気液分離器)', text: '圧縮機の手前にある容器。蒸発しきれずに液のまま戻ってきた冷媒を底にため、気体だけを圧縮機に送ります。液体は圧縮できないので、液が入ると圧縮機が壊れるのを防ぐ役目です。' },
+  { id: 'fourway', chip: '四方弁', title: '四方弁 (冷暖房の切り替え弁)', view: 'valve', text: '圧縮機から出た高温・高圧のガスを、冷房では室外熱交換器(C)へ、暖房では室内熱交換器(E)へ送る切り替え弁です。中のスライダーが動いて配管のつながり方を変え、冷媒の流れる向きが逆になります。これで室内機と室外機の役割(蒸発器/凝縮器)が入れ替わります。' },
+  { id: 'outdoorHX', chip: '室外熱交換器', title: '室外熱交換器 (フィンチューブ式)', view: 'outdoor', text: '銅管にアルミの薄いフィンをたくさん付け、外気と冷媒の間で熱をやりとりします。冷房では高温高圧のガスが外気に熱を捨てて液体になり(凝縮器)、暖房では低温の冷媒が外気から熱を吸って気体になります(蒸発器)。暖房時は冷媒が外気より冷たいので、冬でも熱を集められます。' },
+  { id: 'eev', chip: '膨張弁', title: '電子膨張弁', text: '細い通路で高圧の液体冷媒を絞り、圧力を一気に下げます。圧力が下がると冷媒の一部が蒸発して自分自身を冷やし、低温・低圧の霧状(液と気の混ざり)になります。モーターでニードルの開き具合を変え、流れる量を調整します。' },
+  { id: 'propFan', chip: 'プロペラファン', title: 'プロペラファン', text: '外気を背面と側面の熱交換器に通し、前面から吹き出します。冷房中は熱を捨てた後の暖かい空気、暖房中は熱を奪われた冷たい空気が前から出てきます。' },
+  { id: 'pipes', chip: '配管', title: '連絡配管 (液管・ガス管)', text: '室内機と室外機をつなぐ2本の銅管。細い液管は液体(冷房時は膨張弁を通った低温の霧状冷媒)、太いガス管は気体の冷媒が流れます。気体は体積が大きいので管を太くします。どちらも断熱材を巻いて熱の損失と結露を防ぎます。' },
+  { id: 'indoorHX', chip: '室内熱交換器', title: '室内熱交換器 (フィンチューブ式)', view: 'indoor', text: 'ファンを囲むように逆V字に折り曲げた熱交換器。冷房では低温の冷媒が蒸発しながら部屋の空気から熱を吸い(蒸発器)、空気が冷えます。暖房では高温のガスが凝縮しながら熱を放し(凝縮器)、空気が暖まります。冷房中は表面の結露水がドレンパンに落ちます。' },
+  { id: 'crossFan', chip: 'クロスフローファン', title: 'クロスフローファン (貫流ファン)', text: '細長い筒形の羽根車。上面と前面から部屋の空気を吸い込み、熱交換器を通してから下の吹き出し口へ送ります。横に長いので薄い本体でも幅いっぱいに静かに風を送れます。' },
+  { id: 'filter', chip: 'フィルター', title: 'エアフィルター', text: '吸い込んだ空気のほこりを取る網。目詰まりすると風量が落ちて熱交換が悪くなり、効率が下がります。' },
+  { id: 'intake', chip: '吸い込み口', title: '吸い込み口 (上面グリル)', text: '部屋の空気を取り込む入口。天井近くの空気を吸い込みます。' },
+  { id: 'louver', chip: 'ルーバー', title: '吹き出し口とルーバー (風向板)', text: '冷房では冷たい空気が自然に下へ降りるので、ルーバーを水平にして遠くまで届かせます。暖房では暖かい空気が上にたまるので、ルーバーを下向きにして床へ送ります。' },
+  { id: 'drain', chip: 'ドレンパン', title: 'ドレンパン', text: '冷房中、蒸発器の表面は空気の露点より低いので水滴(結露)が付きます。その水を受けて、ドレンホースで屋外へ流します。暖房中は室外機側で霜や水が出ます。' },
+];
+const partGroups = {
+  compressor: comp, accumulator: outdoorParts.acc, fourway, outdoorHX: outdoorParts.hx, eev: outdoorParts.eev, propFan: propFan,
+  indoorHX: indoorParts.hx, crossFan, filter: indoorParts.filter, intake: indoorParts.intake, louver, drain: indoorParts.pan, pipes: null,
+};
+const hiBox = new THREE.Box3Helper(new THREE.Box3(V(0, 0, 0), V(1, 1, 1)), 0xffd400); hiBox.visible = false; scene.add(hiBox);
+let selected = 'overview';
+const chips = document.getElementById('chips'), descEl = document.getElementById('desc');
+for (const p of PARTS) { const b = document.createElement('button'); b.textContent = p.chip; b.dataset.id = p.id; b.addEventListener('click', () => selectPart(p.id)); chips.appendChild(b); }
+function selectPart(id) {
+  selected = id;
+  const p = PARTS.find(x => x.id === id);
+  chips.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.id === id));
+  descEl.innerHTML = '';
+  const b = document.createElement('b'); b.textContent = p.title; descEl.appendChild(b);
+  const target = partGroups[id] || (id === 'pipes' ? PIECES.P5.mesh : null);
+  if (target || p.view) {
+    const go = document.createElement('button'); go.className = 'go'; go.textContent = 'この部品に寄る';
+    go.addEventListener('click', () => { if (p.view) setView(p.view); else if (target) focusObject(target); });
+    descEl.appendChild(go);
+  }
+  const t = document.createElement('div'); t.textContent = p.text; descEl.appendChild(t);
+  if (target) { hiBox.box.setFromObject(target, true); hiBox.box.expandByScalar(1); hiBox.visible = true; } else hiBox.visible = false;
+}
+function focusObject(obj) {
+  const b = new THREE.Box3().setFromObject(obj, true); const c = b.getCenter(V(0, 0, 0)); const s = b.getSize(V(0, 0, 0)).length();
+  flyTo(c.clone().add(V(1, 0.7, 1).normalize().multiplyScalar(Math.max(30, s * 1.4))), c);
+}
+
+// 視点
+const VIEWS = {
+  all: [V(190, 150, 280), V(10, 95, 0)],
+  indoor: [V(-30, 215, 125), V(-11, 184, 0)],
+  outdoor: [V(120, 85, 95), V(37, 32, 0)],
+  compressor: [V(60, 42, 52), V(36, 22, 28)],
+  valve: [V(43, 56, 44), V(30, 46, 27)],
+};
+let fly = null;
+function flyTo(pos, target) { fly = { p0: camera.position.clone(), t0: controls.target.clone(), p1: pos, t1: target, k: 0 }; }
+function setView(name) { const v = VIEWS[name]; flyTo(v[0].clone(), v[1].clone()); }
+document.querySelectorAll('#right .views button').forEach(b => b.addEventListener('click', () => setView(b.dataset.view)));
+document.getElementById('opa').addEventListener('input', (e) => { const o = e.target.value / 100; casingMats.forEach(m => m.opacity = o); });
+document.getElementById('chkAir').addEventListener('change', (e) => { airIn.points.visible = airOut.points.visible = e.target.checked; });
+
+// モード表示
+const stepsEl = document.getElementById('steps'), principleEl = document.getElementById('principle'), legendEl = document.getElementById('legend');
+const TEXT = {
+  cool: {
+    principle: '<b>冷房</b>: 部屋の熱を冷媒に吸わせて外へ運び、外の空気に捨てます。室内機が<b>蒸発器</b>、室外機が<b>凝縮器</b>になります。',
+    steps: [
+      ['圧縮機', '低温・低圧の<b>気体</b> → 高温・高圧の<b>気体</b><br>約10℃・約1MPa → 約80℃・約3MPa'],
+      ['室外熱交換器 (凝縮器)', '気体 → <b>液体</b> (約45℃・高圧のまま)<br>外の空気へ熱を捨てる。ファンから熱風が出る'],
+      ['膨張弁', '液体 → 低温・低圧の<b>霧</b> (液+気)<br>約45℃・3MPa → 約5℃・1MPa (減圧で一部が蒸発し冷える)'],
+      ['室内熱交換器 (蒸発器)', '霧 → <b>気体</b> (約5℃ → 約10℃)<br>部屋の空気から熱を吸う。空気が冷えて吹き出す'],
+    ],
+    sDis: '高温・高圧の気体 約80℃', sGas: 'ガス管: 低温・低圧の気体 約10℃', sLiq: '液管: 低温・低圧の霧 約5℃', sEev: '高圧の液体 約45℃ → 膨張弁へ', sSuc: '吸入: 低温・低圧の気体 約10℃',
+    hIn: '部屋の空気から熱を吸う (空気が冷える)', hOut: '外の空気へ熱を捨てる (空気が熱くなる)',
+    inHX: '室内熱交換器 (蒸発器)', outHX: '室外熱交換器 (凝縮器)',
+  },
+  heat: {
+    principle: '<b>暖房</b>: 四方弁で冷媒の流れを逆にし、外の空気の熱を冷媒に吸わせて部屋へ運びます。室内機が<b>凝縮器</b>、室外機が<b>蒸発器</b>になります。',
+    steps: [
+      ['圧縮機', '低温・低圧の<b>気体</b> → 高温・高圧の<b>気体</b><br>約0℃・約0.7MPa → 約70℃・約2.8MPa'],
+      ['室内熱交換器 (凝縮器)', '気体 → <b>液体</b> (約40℃・高圧のまま)<br>部屋の空気へ熱を渡す。暖かい空気が吹き出す'],
+      ['膨張弁', '液体 → 低温・低圧の<b>霧</b> (液+気)<br>約40℃・2.8MPa → 約-5℃・0.7MPa (減圧で冷える)'],
+      ['室外熱交換器 (蒸発器)', '霧 → <b>気体</b> (約-5℃ → 約0℃)<br>外の空気から熱を吸う (冷媒は外気より冷たい)'],
+    ],
+    sDis: '高温・高圧の気体 約70℃', sGas: 'ガス管: 高温・高圧の気体 約70℃', sLiq: '液管: 高圧の液体 約40℃', sEev: '膨張弁を出た霧 約-5℃', sSuc: '吸入: 低温・低圧の気体 約0℃',
+    hIn: '部屋の空気へ熱を渡す (空気が暖まる)', hOut: '外の空気から熱を吸う (空気が冷える)',
+    inHX: '室内熱交換器 (凝縮器)', outHX: '室外熱交換器 (蒸発器)',
+  },
+};
+legendEl.innerHTML = '<b>冷媒の色</b>: <span class="dot" style="background:#ff2a2a"></span>高温高圧の気体　<span class="dot" style="background:#ffa030"></span>高圧の液体　<span class="dot" style="background:#7fd8ff"></span>低温低圧の霧　<span class="dot" style="background:#2f6bff"></span>低温低圧の気体<br>'
+  + '<b>空気</b>: <span class="sw" style="background:#ffb080"></span>暖かい　<span class="sw" style="background:#8ec8ff"></span>冷たい　<b>矢印</b>: <span class="sw" style="background:#ff9a00"></span>熱を吸う　<span class="sw" style="background:#ff3a1a"></span>熱を捨てる';
+function applyMode(m, instant = false) {
+  mode = m;
+  document.getElementById('btnCool').classList.toggle('on', m === 'cool');
+  document.getElementById('btnHeat').classList.toggle('on', m === 'heat');
+  const T = TEXT[m];
+  principleEl.innerHTML = T.principle;
+  stepsEl.innerHTML = T.steps.map((s, i) => `<div class="step"><div class="n">${i + 1}</div><div><div class="t">${s[0]}</div><div class="d">${s[1]}</div></div></div>`).join('');
+  for (const k of ['sDis', 'sGas', 'sLiq', 'sEev', 'sSuc', 'hIn', 'hOut']) { LBL[k].el.textContent = T[k]; LBL[k].w = 0; }
+  LBL.indoorHX.el.textContent = T.inHX; LBL.indoorHX.w = 0;
+  LBL.outdoorHX.el.textContent = T.outHX; LBL.outdoorHX.w = 0;
+  LBL.hIn.el.classList.toggle('absorb', m === 'cool'); LBL.hIn.el.classList.toggle('reject', m !== 'cool');
+  LBL.hOut.el.classList.toggle('absorb', m !== 'cool'); LBL.hOut.el.classList.toggle('reject', m === 'cool');
+  const sc = (k, col) => { LBL[k].el.style.borderColor = col; LBL[k].el.style.background = 'rgba(20,28,40,.8)'; };
+  sc('sDis', '#ff2a2a'); sc('sGas', m === 'cool' ? '#2f6bff' : '#ff2a2a'); sc('sLiq', m === 'cool' ? '#7fd8ff' : '#ffa030'); sc('sEev', m === 'cool' ? '#ffa030' : '#7fd8ff'); sc('sSuc', '#2f6bff');
+  buildLoop(m);
+  airIn.rebuild(); airOut.rebuild();
+  if (m === 'cool') { airIn.setColors(0xffb080, 0x8ec8ff, 0.3, 0.5); airOut.setColors(0xffd0a0, 0xff6a40, 0.3, 0.55); }
+  else { airIn.setColors(0xa8d0ff, 0xffa060, 0.3, 0.5); airOut.setColors(0xb8d8ff, 0x6c9cff, 0.3, 0.55); }
+  try { history.replaceState(null, '', '?mode=' + m); } catch (e) { /* file:// では不可の場合がある */ }
+  if (instant) { slider.position.z = m === 'cool' ? 25 : 29; louver.rotation.z = m === 'cool' ? 0.12 : 1.0; }
+}
+document.getElementById('btnCool').addEventListener('click', () => applyMode('cool'));
+document.getElementById('btnHeat').addEventListener('click', () => applyMode('heat'));
+applyMode(mode, true);
+selectPart('overview');
+
+// ------------------------------------------------------------------
+// リサイズ & ループ
+// ------------------------------------------------------------------
+function resize() {
+  const W = innerWidth, H = innerHeight;
+  renderer.setSize(W, H, false);
+  const left = document.getElementById('left').getBoundingClientRect();
+  const bottom = document.getElementById('bottom').getBoundingClientRect();
+  const Lw = Math.min(left.width + 12, W * 0.4), Bh = Math.min(H - bottom.top + 12, H * 0.3);
+  camera.aspect = (W + Lw) / (H + Bh);
+  camera.setViewOffset(W + Lw, H + Bh, 0, Bh, W, H);
+  camera.updateProjectionMatrix();
+  for (const L of labels) L.w = 0;
+}
+addEventListener('resize', resize);
+resize();
+
+const clock = new THREE.Clock();
+let elapsed = 0;
+function animate() {
+  requestAnimationFrame(animate);
+  const dt = Math.min(0.05, clock.getDelta()); elapsed += dt;
+  if (fly) {
+    fly.k = Math.min(1, fly.k + dt / 0.9); const k = fly.k * fly.k * (3 - 2 * fly.k);
+    camera.position.lerpVectors(fly.p0, fly.p1, k); controls.target.lerpVectors(fly.t0, fly.t1, k);
+    if (fly.k >= 1) fly = null;
+  }
+  controls.update();
+  crossFan.rotation.z -= dt * 7;
+  propFan.rotation.z += dt * 4.5;
+  updateCompressor(dt);
+  updateRefrigerant(dt);
+  airIn.update(dt, 7); airOut.update(dt, 7);
+  updateHeatArrows(elapsed);
+  // 四方弁スライダー・ルーバーの切り替え (なめらかに)
+  const sz = mode === 'cool' ? 25 : 29; slider.position.z += (sz - slider.position.z) * Math.min(1, dt * 3);
+  const lz = mode === 'cool' ? 0.12 : 1.0; louver.rotation.z += (lz - louver.rotation.z) * Math.min(1, dt * 3);
+  if (hiBox.visible) { hiBox.material.opacity = 0.5 + 0.5 * Math.sin(elapsed * 4); hiBox.material.transparent = true; }
+  renderer.render(scene, camera);
+  updateLabels();
+}
+animate();
+</script>
+</body>
+</html>
