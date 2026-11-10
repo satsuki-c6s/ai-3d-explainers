@@ -7,6 +7,8 @@
 
 ブラウザで見る: https://satsuki-c6s.github.io/ai-3d-explainers/
 
+測定と記事: さつきの note「Claude Fable 5.2 と GPT-6 Astra に『エアコンの中身』を 3D で説明させた」 https://note.com/happy_hound3166/n/nf0fba18a933b
+
 作った日: 2026 年 11 月 10 日
 
 ## 作品
