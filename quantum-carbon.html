@@ -1,0 +1,1392 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>超伝導方式 量子コンピューターの仕組み 3D解説</title>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"
+      }
+    }
+  </script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #060a14;
+      color: #eef4ff;
+      font-family: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic", "Meiryo", sans-serif;
+      user-select: none;
+    }
+    #canvas-container {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+    }
+    #labels-layer {
+      position: fixed;
+      inset: 0;
+      z-index: 2;
+      pointer-events: none;
+      overflow: hidden;
+    }
+    #ui-layer {
+      position: fixed;
+      inset: 0;
+      z-index: 3;
+      pointer-events: none;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      grid-template-columns: minmax(270px, 340px) 1fr minmax(270px, 330px);
+      gap: 10px 14px;
+      padding: 12px 16px;
+    }
+    .panel {
+      background: rgba(9, 16, 32, 0.84);
+      border: 1px solid rgba(110, 175, 255, 0.28);
+      border-radius: 10px;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+      pointer-events: auto;
+    }
+    #top-bar {
+      grid-column: 1 / 4;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 7px 12px;
+    }
+    .brand-box {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      white-space: nowrap;
+    }
+    .brand-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #f8d57e;
+      letter-spacing: 0.02em;
+    }
+    .brand-sub {
+      font-size: 11.5px;
+      color: #9ec0e8;
+    }
+    @media (max-width: 1520px) {
+      .brand-sub { display: none; }
+    }
+    .step-pills {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-wrap: nowrap;
+    }
+    .step-pill {
+      padding: 4px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #9ab2d4;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+    .step-pill:hover {
+      background: rgba(110, 180, 255, 0.18);
+      color: #ffffff;
+    }
+    .step-pill.active {
+      background: linear-gradient(135deg, #2b7fff, #00c8ff);
+      color: #041022;
+      border-color: #7ee2ff;
+      box-shadow: 0 0 12px rgba(0, 200, 255, 0.45);
+    }
+    .controls-box {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+    }
+    .btn {
+      background: rgba(45, 115, 210, 0.28);
+      color: #e6f2ff;
+      border: 1px solid rgba(110, 180, 255, 0.45);
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 11.5px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn:hover { background: rgba(65, 145, 245, 0.45); }
+    .timer-text {
+      font-size: 12px;
+      font-variant-numeric: tabular-nums;
+      color: #b8d4f5;
+      min-width: 72px;
+      text-align: right;
+    }
+    #left-panel {
+      grid-column: 1 / 2;
+      grid-row: 2 / 3;
+      align-self: start;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 100%;
+    }
+    .stage-badge {
+      display: inline-block;
+      align-self: flex-start;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 700;
+      background: rgba(248, 213, 126, 0.18);
+      color: #f8d57e;
+      border: 1px solid rgba(248, 213, 126, 0.4);
+    }
+    .stage-heading {
+      font-size: 17px;
+      font-weight: 700;
+      color: #ffffff;
+      line-height: 1.3;
+    }
+    .stage-desc {
+      font-size: 12.5px;
+      line-height: 1.58;
+      color: #d6e6fa;
+    }
+    .physics-box {
+      margin-top: 2px;
+      padding: 8px 10px;
+      border-radius: 7px;
+      background: rgba(20, 42, 78, 0.68);
+      border-left: 3px solid #38bdf8;
+      font-size: 11.8px;
+      line-height: 1.5;
+      color: #bfe0ff;
+    }
+    .mouse-hint {
+      font-size: 11px;
+      color: #88a8cf;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding-top: 2px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    #right-panel {
+      grid-column: 3 / 4;
+      grid-row: 2 / 3;
+      align-self: start;
+      padding: 11px 13px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-height: 100%;
+    }
+    .sub-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: #8fd3ff;
+      letter-spacing: 0.04em;
+      margin-bottom: 4px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .circuit-wrap {
+      background: rgba(5, 11, 22, 0.72);
+      border: 1px solid rgba(110, 175, 255, 0.2);
+      border-radius: 7px;
+      padding: 6px;
+    }
+    .circuit-svg {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+    .state-readout {
+      background: rgba(16, 33, 62, 0.65);
+      border-radius: 6px;
+      padding: 7px 9px;
+      font-size: 12px;
+      line-height: 1.45;
+      color: #eaf4ff;
+      border: 1px solid rgba(125, 211, 252, 0.22);
+    }
+    .state-formula {
+      font-family: "Cambria Math", "Times New Roman", monospace;
+      font-size: 13.5px;
+      font-weight: 700;
+      color: #7ee2ff;
+      margin-top: 2px;
+    }
+    .hist-box {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .hist-row {
+      display: grid;
+      grid-template-columns: 34px 1fr 64px;
+      align-items: center;
+      gap: 7px;
+      font-size: 11.5px;
+    }
+    .hist-label {
+      font-family: monospace;
+      font-weight: 700;
+      color: #d8ebff;
+    }
+    .hist-track {
+      height: 11px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+    .hist-bar {
+      height: 100%;
+      width: 0%;
+      border-radius: 99px;
+      transition: width 0.16s ease;
+    }
+    .bar-00 { background: linear-gradient(90deg, #3b82f6, #60a5fa); }
+    .bar-01 { background: linear-gradient(90deg, #64748b, #94a3b8); }
+    .bar-10 { background: linear-gradient(90deg, #64748b, #94a3b8); }
+    .bar-11 { background: linear-gradient(90deg, #a855f7, #ec4899); }
+    .hist-val {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      color: #b8d4f5;
+      font-size: 11px;
+    }
+    .temp-list {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .temp-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 4px 8px;
+      border-radius: 5px;
+      background: rgba(255, 255, 255, 0.04);
+      font-size: 11.5px;
+      border-left: 3px solid transparent;
+    }
+    .temp-item.highlight {
+      background: rgba(56, 189, 248, 0.16);
+      border-left-color: #38bdf8;
+    }
+    #bottom-bar {
+      grid-column: 1 / 4;
+      grid-row: 3 / 4;
+      padding: 6px 14px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .timeline-track {
+      flex: 1;
+      height: 7px;
+      background: rgba(255, 255, 255, 0.12);
+      border-radius: 99px;
+      position: relative;
+      cursor: pointer;
+      overflow: hidden;
+    }
+    .timeline-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #f8d57e, #38bdf8, #c084fc);
+      border-radius: 99px;
+    }
+    .callout {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      padding: 4px 8px;
+      border-radius: 6px;
+      background: rgba(7, 14, 28, 0.86);
+      border: 1px solid rgba(248, 213, 126, 0.55);
+      color: #f4f8ff;
+      font-size: 11px;
+      line-height: 1.32;
+      white-space: nowrap;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.55);
+      transition: opacity 0.25s ease;
+    }
+    .callout strong {
+      color: #f8d57e;
+      font-weight: 700;
+      display: block;
+    }
+    .callout.cyan { border-color: rgba(56, 189, 248, 0.65); }
+    .callout.cyan strong { color: #7dd3fc; }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <div id="canvas-container"></div>
+  <div id="labels-layer"></div>
+
+  <div id="ui-layer">
+    <header id="top-bar" class="panel">
+      <div class="brand-box">
+        <span class="brand-title">超伝導量子コンピューター 3D図鑑</span>
+        <span class="brand-sub">極低温の希釈冷凍機から量子もつれ・測定まで</span>
+      </div>
+      <nav class="step-pills" id="step-pills">
+        <button class="step-pill active" data-step="0">1. 希釈冷凍機</button>
+        <button class="step-pill" data-step="1">2. 信号の通り道</button>
+        <button class="step-pill" data-step="2">3. 量子チップ</button>
+        <button class="step-pill" data-step="3">4. 初期化</button>
+        <button class="step-pill" data-step="4">5. Hゲート</button>
+        <button class="step-pill" data-step="5">6. CNOTゲート</button>
+        <button class="step-pill" data-step="6">7. 繰り返し測定</button>
+      </nav>
+      <div class="controls-box">
+        <button class="btn" id="btn-play">一時停止</button>
+        <button class="btn" id="btn-cam">視点リセット</button>
+        <span class="timer-text" id="timer-text">0.0 / 54.0秒</span>
+      </div>
+    </header>
+
+    <section id="left-panel" class="panel">
+      <span class="stage-badge" id="stage-badge">STAGE 1 / 7 ・ 装置のしくみ</span>
+      <h1 class="stage-heading" id="stage-heading">希釈冷凍機：宇宙より冷たい「金のシャンデリア」</h1>
+      <p class="stage-desc" id="stage-desc">
+        超伝導量子ビットは、わずかな熱（赤外線や分子の振動）でも計算状態が壊れてしまいます。そのため、真空容器の中で上から下へ段階的に冷やし、最下段を約15ミリケルビン（−273.135℃、絶対零度のすぐ上）まで冷却します。
+      </p>
+      <div class="physics-box" id="physics-box">
+        豆知識：金メッキされた銅プレートは熱をよく伝え、外からの熱放射を反射して中の極低温を守ります。
+      </div>
+      <div class="mouse-hint">
+        <span>マウス操作：左ドラッグで回転 ／ ホイールで拡大縮小 ／ 右ドラッグで移動</span>
+      </div>
+    </section>
+
+    <div id="center-viewport-spacer"></div>
+
+    <aside id="right-panel" class="panel">
+      <div id="temp-section">
+        <div class="sub-title">
+          <span>希釈冷凍機 各段の温度</span>
+          <span style="font-size:10.5px;color:#9ab2d4;">上から下へ冷却</span>
+        </div>
+        <div class="temp-list" id="temp-list">
+          <div class="temp-item" data-plate="0"><span>室温フランジ (最上段)</span><strong>約 300 K (27℃)</strong></div>
+          <div class="temp-item" data-plate="1"><span>50K プレート</span><strong>50 K (−223℃)</strong></div>
+          <div class="temp-item" data-plate="2"><span>4K プレート</span><strong>4 K (−269℃)</strong></div>
+          <div class="temp-item" data-plate="3"><span>スティル (Still) 段</span><strong>0.8 K (800 mK)</strong></div>
+          <div class="temp-item" data-plate="4"><span>コールドプレート</span><strong>0.1 K (100 mK)</strong></div>
+          <div class="temp-item highlight" data-plate="5"><span>混合室 (MXC) 最下段</span><strong style="color:#7ee2ff;">0.015 K (15 mK)</strong></div>
+        </div>
+      </div>
+
+      <div id="circuit-section">
+        <div class="sub-title">
+          <span>量子回路（ベル状態の生成と測定）</span>
+          <span id="shot-badge" style="font-size:11px;color:#f8d57e;">待機中</span>
+        </div>
+        <div class="circuit-wrap">
+          <svg class="circuit-svg" viewBox="0 0 280 96" xmlns="http://www.w3.org/2000/svg">
+            <line x1="34" y1="28" x2="262" y2="28" stroke="#6488b8" stroke-width="2"/>
+            <line x1="34" y1="68" x2="262" y2="68" stroke="#6488b8" stroke-width="2"/>
+            <text x="8" y="32" fill="#9fd6ff" font-size="12" font-weight="bold">q0</text>
+            <text x="8" y="72" fill="#d8b4fe" font-size="12" font-weight="bold">q1</text>
+            <!-- Init -->
+            <g id="svg-init" opacity="0.45">
+              <rect x="42" y="16" width="28" height="24" rx="4" fill="#102342" stroke="#60a5fa" stroke-width="1.5"/>
+              <text x="56" y="32" fill="#e0f2fe" font-size="11" text-anchor="middle">|0⟩</text>
+              <rect x="42" y="56" width="28" height="24" rx="4" fill="#102342" stroke="#c084fc" stroke-width="1.5"/>
+              <text x="56" y="72" fill="#f3e8ff" font-size="11" text-anchor="middle">|0⟩</text>
+            </g>
+            <!-- H Gate -->
+            <g id="svg-h" opacity="0.45">
+              <rect x="88" y="14" width="32" height="28" rx="5" fill="#173868" stroke="#38bdf8" stroke-width="1.8"/>
+              <text x="104" y="33" fill="#ffffff" font-size="14" font-weight="bold" text-anchor="middle">H</text>
+            </g>
+            <!-- CNOT Gate -->
+            <g id="svg-cnot" opacity="0.45">
+              <line x1="156" y1="28" x2="156" y2="68" stroke="#c084fc" stroke-width="2.2"/>
+              <circle cx="156" cy="28" r="5" fill="#38bdf8"/>
+              <circle cx="156" cy="68" r="10" fill="#1e1640" stroke="#c084fc" stroke-width="2"/>
+              <line x1="150" y1="68" x2="162" y2="68" stroke="#ffffff" stroke-width="1.8"/>
+              <line x1="156" y1="62" x2="156" y2="74" stroke="#ffffff" stroke-width="1.8"/>
+            </g>
+            <!-- Measure -->
+            <g id="svg-meas" opacity="0.45">
+              <rect x="200" y="14" width="34" height="28" rx="5" fill="#2a1f3d" stroke="#f8d57e" stroke-width="1.6"/>
+              <path d="M206 34 A11 11 0 0 1 228 34" fill="none" stroke="#f8d57e" stroke-width="1.5"/>
+              <line x1="217" y1="35" x2="225" y2="21" stroke="#f8d57e" stroke-width="1.5"/>
+              <rect x="200" y="54" width="34" height="28" rx="5" fill="#2a1f3d" stroke="#f8d57e" stroke-width="1.6"/>
+              <path d="M206 74 A11 11 0 0 1 228 74" fill="none" stroke="#f8d57e" stroke-width="1.5"/>
+              <line x1="217" y1="75" x2="225" y2="61" stroke="#f8d57e" stroke-width="1.5"/>
+            </g>
+          </svg>
+        </div>
+      </div>
+
+      <div class="state-readout">
+        <div style="font-size:11px;color:#9ec0e8;">現在の2量子ビット状態 |q0 q1⟩</div>
+        <div class="state-formula" id="state-formula">|ψ⟩ = |00⟩</div>
+        <div id="bloch-note" style="font-size:11px;color:#cbd5e1;margin-top:2px;">
+          超伝導チップを極低温に保ち、マイクロ波で操作します
+        </div>
+      </div>
+
+      <div id="hist-section">
+        <div class="sub-title">
+          <span>測定結果の回数（合計 <span id="total-shots">0</span> 回）</span>
+          <span style="font-size:10.5px;color:#9ab2d4;">|00⟩と|11⟩が約50%ずつ</span>
+        </div>
+        <div class="hist-box">
+          <div class="hist-row"><span class="hist-label">|00⟩</span><div class="hist-track"><div class="hist-bar bar-00" id="bar-00"></div></div><span class="hist-val" id="val-00">0回 (0%)</span></div>
+          <div class="hist-row"><span class="hist-label">|01⟩</span><div class="hist-track"><div class="hist-bar bar-01" id="bar-01"></div></div><span class="hist-val" id="val-01">0回 (0%)</span></div>
+          <div class="hist-row"><span class="hist-label">|10⟩</span><div class="hist-track"><div class="hist-bar bar-10" id="bar-10"></div></div><span class="hist-val" id="val-10">0回 (0%)</span></div>
+          <div class="hist-row"><span class="hist-label">|11⟩</span><div class="hist-track"><div class="hist-bar bar-11" id="bar-11"></div></div><span class="hist-val" id="val-11">0回 (0%)</span></div>
+        </div>
+      </div>
+    </aside>
+
+    <footer id="bottom-bar" class="panel">
+      <span style="font-size:11.5px;color:#f8d57e;font-weight:700;white-space:nowrap;" id="footer-stage-label">自動解説ループ（1周 54秒）</span>
+      <div class="timeline-track" id="timeline-track" title="クリックして好きな場面へ移動">
+        <div class="timeline-fill" id="timeline-fill"></div>
+      </div>
+      <span style="font-size:11px;color:#9ec0e8;white-space:nowrap;">段階ボタンやバーをクリックして移動できます</span>
+    </footer>
+  </div>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+    const container = document.getElementById('canvas-container');
+    const labelsLayer = document.getElementById('labels-layer');
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x060a14);
+    scene.fog = new THREE.FogExp2(0x060a14, 0.014);
+
+    const camera = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.1, 200);
+    camera.position.set(0, 1.5, 16);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.18;
+    container.appendChild(renderer.domElement);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.06;
+    controls.minDistance = 2.8;
+    controls.maxDistance = 32;
+    controls.target.set(0, 0.4, 0);
+
+    // Lighting & Metallic Environment
+    const pmremGenerator = new THREE.PMREMGenerator(renderer);
+    scene.environment = pmremGenerator.fromScene(new RoomEnvironment(), 0.04).texture;
+    scene.environmentIntensity = 0.85;
+
+    const ambientLight = new THREE.AmbientLight(0x6b8cff, 0.45);
+    scene.add(ambientLight);
+
+    const keyLight = new THREE.DirectionalLight(0xfff1d0, 2.2);
+    keyLight.position.set(8, 12, 10);
+    scene.add(keyLight);
+
+    const rimLight = new THREE.DirectionalLight(0x38bdf8, 1.4);
+    rimLight.position.set(-10, 4, -8);
+    scene.add(rimLight);
+
+    const bottomGlow = new THREE.PointLight(0x60a5fa, 1.5, 16);
+    bottomGlow.position.set(0, -5.5, 2);
+    scene.add(bottomGlow);
+
+    // Subtle laboratory floor grid
+    const gridHelper = new THREE.GridHelper(34, 34, 0x1e3a5f, 0x0f1f38);
+    gridHelper.position.y = -6.8;
+    gridHelper.material.transparent = true;
+    gridHelper.material.opacity = 0.45;
+    scene.add(gridHelper);
+
+    // Shared Materials
+    const mats = {
+      goldPlate: new THREE.MeshStandardMaterial({ color: 0xf4c44e, metalness: 0.92, roughness: 0.16 }),
+      goldBrass: new THREE.MeshStandardMaterial({ color: 0xd99b26, metalness: 0.88, roughness: 0.24 }),
+      copper: new THREE.MeshStandardMaterial({ color: 0xd97742, metalness: 0.86, roughness: 0.22 }),
+      steel: new THREE.MeshStandardMaterial({ color: 0xb8c4d4, metalness: 0.85, roughness: 0.25 }),
+      darkSteel: new THREE.MeshStandardMaterial({ color: 0x2a3648, metalness: 0.75, roughness: 0.35 }),
+      coaxSemi: new THREE.MeshStandardMaterial({ color: 0xeab308, metalness: 0.8, roughness: 0.28 }),
+      nbSuper: new THREE.MeshStandardMaterial({ color: 0x93c5fd, metalness: 0.9, roughness: 0.18 }),
+      attenuator: new THREE.MeshStandardMaterial({ color: 0x1d4ed8, metalness: 0.65, roughness: 0.32 }),
+      hemtAmp: new THREE.MeshStandardMaterial({ color: 0x059669, metalness: 0.7, roughness: 0.28 }),
+      cryoperm: new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.82, roughness: 0.22, transparent: true, opacity: 0.38 }),
+      vacuumShell: new THREE.MeshPhysicalMaterial({
+        color: 0x94a3b8, metalness: 0.1, roughness: 0.1, transmission: 0.72,
+        transparent: true, opacity: 0.22, side: THREE.DoubleSide, depthWrite: false
+      }),
+      silicon: new THREE.MeshStandardMaterial({ color: 0x0f172a, metalness: 0.65, roughness: 0.15 }),
+      pcbGold: new THREE.MeshStandardMaterial({ color: 0xfacc15, metalness: 0.9, roughness: 0.2 })
+    };
+
+    const LOOP_DURATION = 54.0;
+    const STAGES = [
+      {
+        start: 0, end: 8,
+        badge: 'STAGE 1 / 7 ・ 装置の全体構造',
+        heading: '希釈冷凍機：宇宙より冷たい「金のシャンデリア」',
+        desc: '超伝導量子ビットは、わずかな熱ノイズでも重ね合わせ状態が壊れてしまいます。そのため真空容器の中で上から下へ段階的に冷やし、最下段の混合室（MXC）を約15ミリケルビン（−273.135℃、宇宙空間より低温）に保ちます。',
+        physics: 'ポイント：金メッキした無酸素銅の円盤（プレート）を使うのは、熱を素早く逃がしつつ表面の酸化を防ぎ、赤外線（熱放射）を鏡のように反射するためです。',
+        camPos: [0.0, 0.8, 15.2], camTarget: [0, 0.1, 0], mode: 'hardware'
+      },
+      {
+        start: 8, end: 15,
+        badge: 'STAGE 2 / 7 ・ 信号の通り道',
+        heading: 'マイクロ波の入力線と読み出し線',
+        desc: '室温の制御装置から同軸ケーブルを通って、約5GHzのマイクロ波パルスを最下段のチップへ送ります（水色の光）。計算結果の微弱な信号は、超伝導ケーブルと低温アンプで増幅しながら上へ戻します（オレンジの光）。',
+        physics: 'ポイント：上の温かい段からケーブルを伝って熱や雑音が入らないよう、各段に「減衰器（アッテネータ）」を入れて信号を冷やしながら届けます。',
+        camPos: [4.2, 0.6, 11.4], camTarget: [0, -0.2, 0], mode: 'signals'
+      },
+      {
+        start: 15, end: 22,
+        badge: 'STAGE 3 / 7 ・ 量子ビットチップ',
+        heading: '最下段15mKの心臓部：超伝導量子プロセッサ',
+        desc: '磁気シールドの中のシリコン基板上に、電気抵抗ゼロの超伝導回路（トランズモン量子ビット）が作られています。十字型のコンデンサと「ジョセフソン接合」で、人工の原子のように|0⟩と|1⟩のエネルギー準位を作ります。',
+        physics: 'ポイント：通常の金属では電流がエネルギーを失って止まりますが、15mKの超伝導体ではエネルギー損失なしに量子の振動（重ね合わせ）を維持できます。',
+        camPos: [0.0, -3.5, 5.4], camTarget: [0, -4.35, 0], mode: 'chip'
+      },
+      {
+        start: 22, end: 27,
+        badge: 'STAGE 4 / 7 ・ 量子計算の開始',
+        heading: '初期化：2つの量子ビットを |0⟩ にそろえる',
+        desc: '計算を始める前に、量子ビット q0 と q1 を最もエネルギーの低い基底状態 |0⟩ に落ち着かせます。3Dの「ブロッホ球」では、どちらの矢印（ブロッホベクトル）も北極（真上の +Z 方向）を指します。',
+        physics: 'ブロッホ球の見方：純粋な1量子ビットの状態は球面上の長さ1の矢印で表せます。北極が |0⟩、南極が |1⟩、赤道上が0と1の重ね合わせ状態です。',
+        camPos: [0.0, -0.9, 10.6], camTarget: [0, -1.0, 0], mode: 'init'
+      },
+      {
+        start: 27, end: 34,
+        badge: 'STAGE 5 / 7 ・ 重ね合わせを作る',
+        heading: 'H（アダマール）ゲート：q0 を重ね合わせ状態へ',
+        desc: 'q0 にマイクロ波パルスを当てて Hゲートをかけると、q0 の矢印が北極 |0⟩ から赤道上の |+⟩（+X方向）へ90°回転して移ります。これで q0 は |0⟩ と |1⟩ を半分ずつ併せ持つ「重ね合わせ状態」になります。',
+        physics: '物理として正確には：Hゲートは X軸とZ軸の中間軸まわりに180°回転させる操作です。|0⟩ は赤道上の |+⟩ = (|0⟩+|1⟩)/√2 に移り、q1 は |0⟩ のままです。',
+        camPos: [0.0, -0.9, 10.6], camTarget: [0, -1.0, 0], mode: 'h_gate'
+      },
+      {
+        start: 34, end: 42,
+        badge: 'STAGE 6 / 7 ・ 量子もつれ（ベル状態）',
+        heading: 'CNOTゲート：2つが強く結びつく「量子もつれ」',
+        desc: 'q0 を制御、q1 を標的として CNOTゲート（q0が1ならq1を反転）をかけます。q0 が0と1の重ね合わせなので、全体が (|00⟩+|11⟩)/√2 という切り離せない「量子もつれ（ベル状態）」になります。',
+        physics: '重要：最大もつれ状態では、各ビット単独の状態（部分トレース）は完全な混合状態（ρ = I/2）になるため、ブロッホベクトルは球の中心（長さ0）へ縮みます！',
+        camPos: [0.0, -0.8, 10.8], camTarget: [0, -1.0, 0], mode: 'cnot_gate'
+      },
+      {
+        start: 42, end: 54,
+        badge: 'STAGE 7 / 7 ・ 繰り返し測定と統計',
+        heading: '測定：確率的に確定し、必ず「00」か「11」にそろう',
+        desc: '読み出しマイクロ波で測定すると、重ね合わせが収縮して |0⟩（北極）か |1⟩（南極）に確定します。もつれているため、片方が0ならもう片方も必ず0、1なら必ず1になり、何回も測定すると |00⟩ と |11⟩ が約50%ずつ現れます。',
+        physics: '量子計算では1回の測定では確率的な1つの結果しか得られないため、「初期化→ゲート→測定」を何百・何千回も繰り返して確率分布を読み取ります。',
+        camPos: [0.0, -0.9, 10.8], camTarget: [0, -1.0, 0], mode: 'measure'
+      }
+    ];
+
+    // 1. Dilution Refrigerator ("Golden Chandelier") 3D Model
+    const fridgeGroup = new THREE.Group();
+    scene.add(fridgeGroup);
+
+    const plateSpecs = [
+      { y: 4.5,  r: 3.05, h: 0.20, mat: mats.steel,     name: '室温フランジ', temp: '約 300 K (室温)' },
+      { y: 3.1,  r: 2.65, h: 0.14, mat: mats.goldPlate, name: '50K プレート', temp: '50 K (−223℃)' },
+      { y: 1.5,  r: 2.30, h: 0.14, mat: mats.goldPlate, name: '4K プレート',  temp: '4 K (−269℃)' },
+      { y: -0.1, r: 1.92, h: 0.13, mat: mats.goldPlate, name: 'スティル段',   temp: '0.8 K (800 mK)' },
+      { y: -1.6, r: 1.56, h: 0.12, mat: mats.goldPlate, name: 'コールドプレート', temp: '0.1 K (100 mK)' },
+      { y: -3.0, r: 1.25, h: 0.14, mat: mats.goldPlate, name: '混合室 (MXC)', temp: '0.015 K (15 mK)' }
+    ];
+
+    const plateMeshes = [];
+    plateSpecs.forEach((p, idx) => {
+      const grp = new THREE.Group();
+      grp.position.y = p.y;
+
+      const disk = new THREE.Mesh(new THREE.CylinderGeometry(p.r, p.r, p.h, 56), p.mat);
+      grp.add(disk);
+
+      // Machined bevel rim ring & bolt heads
+      const rim = new THREE.Mesh(
+        new THREE.TorusGeometry(p.r - 0.03, 0.025, 12, 56),
+        idx === 0 ? mats.darkSteel : mats.goldBrass
+      );
+      rim.rotation.x = Math.PI / 2;
+      rim.position.y = p.h * 0.5;
+      grp.add(rim);
+
+      const boltCount = 12;
+      const boltGeo = new THREE.CylinderGeometry(0.035, 0.035, 0.04, 8);
+      for (let b = 0; b < boltCount; b++) {
+        const ang = (b / boltCount) * Math.PI * 2;
+        const bolt = new THREE.Mesh(boltGeo, idx === 0 ? mats.darkSteel : mats.steel);
+        bolt.position.set(Math.cos(ang) * (p.r - 0.14), p.h * 0.5 + 0.015, Math.sin(ang) * (p.r - 0.14));
+        grp.add(bolt);
+      }
+      fridgeGroup.add(grp);
+      plateMeshes.push(disk);
+    });
+
+    // Top room-temperature microwave feedthrough ports
+    for (let i = 0; i < 6; i++) {
+      const ang = (i / 6) * Math.PI * 2 + 0.3;
+      const port = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.28, 0.45, 20), mats.steel);
+      port.position.set(Math.cos(ang) * 1.65, 4.82, Math.sin(ang) * 1.65);
+      fridgeGroup.add(port);
+      const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.30, 0.30, 0.07, 20), mats.darkSteel);
+      cap.position.set(Math.cos(ang) * 1.65, 5.06, Math.sin(ang) * 1.65);
+      fridgeGroup.add(cap);
+    }
+
+    // Support pillars between consecutive stages (hexagonal brass/gold standoffs)
+    for (let s = 0; s < plateSpecs.length - 1; s++) {
+      const upper = plateSpecs[s];
+      const lower = plateSpecs[s + 1];
+      const len = upper.y - lower.y;
+      const midY = (upper.y + lower.y) * 0.5;
+      const rad = lower.r - 0.24;
+      const rodMat = s < 2 ? mats.steel : mats.goldBrass;
+      for (let k = 0; k < 4; k++) {
+        const ang = (k / 4) * Math.PI * 2 + Math.PI * 0.25;
+        const rod = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.055, len, 12), rodMat);
+        rod.position.set(Math.cos(ang) * rad, midY, Math.sin(ang) * rad);
+        fridgeGroup.add(rod);
+      }
+    }
+
+    // Pulse Tube Cryocooler Cylinders (300K -> 50K -> 4K) & Still/Mixing Chamber Cans
+    const pt1 = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.32, 1.4, 24), mats.copper);
+    pt1.position.set(-0.95, 3.8, -0.55);
+    fridgeGroup.add(pt1);
+    const pt2 = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.24, 1.6, 24), mats.goldBrass);
+    pt2.position.set(-0.95, 2.3, -0.55);
+    fridgeGroup.add(pt2);
+
+    // He-3 / He-4 Mixing Chamber Vessel under MXC plate
+    const mxcVessel = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.38, 0.62, 28), mats.goldPlate);
+    mxcVessel.position.set(0, -3.38, 0);
+    fridgeGroup.add(mxcVessel);
+
+    // Cutaway outer vacuum/radiation shield (back half arc so inside is always clear)
+    const shieldGeo = new THREE.CylinderGeometry(2.95, 2.55, 9.2, 48, 1, true, Math.PI * 0.68, Math.PI * 1.64);
+    const outerShield = new THREE.Mesh(shieldGeo, mats.vacuumShell);
+    outerShield.position.y = 0.0;
+    fridgeGroup.add(outerShield);
+
+    // Coaxial Cables, Thermalization Loops, Attenuators, HEMT Amp & Signal Pulses
+    function buildCableCurve(angleRad, isReadout = false) {
+      const pts = [];
+      const topR = plateSpecs[0].r * 0.62;
+      pts.push(new THREE.Vector3(Math.cos(angleRad) * topR, 4.95, Math.sin(angleRad) * topR));
+      for (let i = 0; i < plateSpecs.length; i++) {
+        const p = plateSpecs[i];
+        const r = p.r * 0.62;
+        const x = Math.cos(angleRad) * r;
+        const z = Math.sin(angleRad) * r;
+        pts.push(new THREE.Vector3(x, p.y + 0.14, z));
+        pts.push(new THREE.Vector3(x, p.y - 0.16, z));
+        if (i < plateSpecs.length - 1) {
+          const nextP = plateSpecs[i + 1];
+          const midY = (p.y + nextP.y) * 0.5;
+          const midR = ((p.r + nextP.r) * 0.5) * 0.62;
+          // Characteristic S-loop / thermal expansion bend between stages
+          const sideAng = angleRad + (isReadout ? -0.18 : 0.18);
+          pts.push(new THREE.Vector3(
+            Math.cos(sideAng) * (midR + 0.18),
+            midY + 0.18,
+            Math.sin(sideAng) * (midR + 0.18)
+          ));
+          pts.push(new THREE.Vector3(
+            Math.cos(angleRad - (isReadout ? -0.12 : 0.12)) * (midR - 0.08),
+            midY - 0.18,
+            Math.sin(angleRad - (isReadout ? -0.12 : 0.12)) * (midR - 0.08)
+          ));
+        }
+      }
+      // Route down into the QPU package at y = -4.32
+      pts.push(new THREE.Vector3(Math.cos(angleRad) * 0.42, -3.75, Math.sin(angleRad) * 0.42));
+      pts.push(new THREE.Vector3(Math.cos(angleRad) * 0.22, -4.30, Math.sin(angleRad) * 0.22));
+      return new THREE.CatmullRomCurve3(pts);
+    }
+
+    const inputCableAngles = [-0.55, -0.15, 0.35, 2.35, 2.85, -2.25];
+    const readoutCableAngles = [0.85, 1.25];
+    const signalPulses = [];
+
+    inputCableAngles.forEach((ang, idx) => {
+      const curve = buildCableCurve(ang, false);
+      const tube = new THREE.Mesh(new THREE.TubeGeometry(curve, 96, 0.022, 8, false), mats.coaxSemi);
+      fridgeGroup.add(tube);
+
+      // Add inline microwave attenuators below 4K, Still, MXC plates on front cables
+      if (idx < 3) {
+        [1, 2, 3, 5].forEach((sIdx) => {
+          const py = plateSpecs[sIdx].y - 0.24;
+          const pr = plateSpecs[sIdx].r * 0.62;
+          const att = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.055, 0.20, 12), mats.attenuator);
+          att.position.set(Math.cos(ang) * pr, py, Math.sin(ang) * pr);
+          fridgeGroup.add(att);
+        });
+        // Glowing microwave input pulse sphere (travels top -> bottom)
+        const pulseMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
+        const pulse = new THREE.Mesh(new THREE.SphereGeometry(0.075, 12, 12), pulseMat);
+        fridgeGroup.add(pulse);
+        signalPulses.push({ mesh: pulse, curve, dir: 1, phase: idx * 0.33 });
+      }
+    });
+
+    readoutCableAngles.forEach((ang, idx) => {
+      const curve = buildCableCurve(ang, true);
+      const tube = new THREE.Mesh(new THREE.TubeGeometry(curve, 96, 0.026, 8, false), mats.nbSuper);
+      fridgeGroup.add(tube);
+
+      // Cryogenic 4K HEMT Low-Noise Amplifier block & Isolator at MXC
+      const r4k = plateSpecs[2].r * 0.62;
+      const hemt = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.34, 0.16), mats.hemtAmp);
+      hemt.position.set(Math.cos(ang) * r4k, plateSpecs[2].y - 0.32, Math.sin(ang) * r4k);
+      hemt.lookAt(0, hemt.position.y, 0);
+      fridgeGroup.add(hemt);
+
+      const rMxc = plateSpecs[5].r * 0.62;
+      const iso = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.22, 0.18), mats.copper);
+      iso.position.set(Math.cos(ang) * rMxc, plateSpecs[5].y - 0.28, Math.sin(ang) * rMxc);
+      fridgeGroup.add(iso);
+
+      // Glowing readout signal pulse (travels bottom -> top)
+      const pulseMat = new THREE.MeshBasicMaterial({ color: 0xfb923c });
+      const pulse = new THREE.Mesh(new THREE.SphereGeometry(0.08, 12, 12), pulseMat);
+      fridgeGroup.add(pulse);
+      signalPulses.push({ mesh: pulse, curve, dir: -1, phase: idx * 0.5 });
+    });
+
+    // Bottom QPU Cold Finger, Cryoperm Shield & Detailed Superconducting Quantum Chip
+    const qpuGroup = new THREE.Group();
+    qpuGroup.position.set(0, -4.35, 0);
+    fridgeGroup.add(qpuGroup);
+
+    const coldFinger = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, 0.85, 20), mats.copper);
+    coldFinger.position.set(0, 0.65, 0);
+    qpuGroup.add(coldFinger);
+
+    // Cutaway Cryoperm Magnetic Shield Can around the QPU
+    const cryoCan = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.76, 0.76, 0.95, 32, 1, true, Math.PI * 0.55, Math.PI * 1.9),
+      mats.cryoperm
+    );
+    cryoCan.position.y = 0.05;
+    qpuGroup.add(cryoCan);
+
+    // Gold-plated Copper Sample Holder & Dark Silicon Transmon Chip
+    const sampleHolder = new THREE.Mesh(new THREE.BoxGeometry(1.02, 0.10, 1.02), mats.pcbGold);
+    sampleHolder.position.y = -0.08;
+    qpuGroup.add(sampleHolder);
+
+    const siliconDie = new THREE.Mesh(new THREE.BoxGeometry(0.68, 0.05, 0.68), mats.silicon);
+    siliconDie.position.y = -0.01;
+    qpuGroup.add(siliconDie);
+
+    // 2 Transmon Xmon Crosses (q0 left, q1 right) + Coupling Bus + Readout Meanders + Josephson Junction glow
+    const circuitTraceMat = new THREE.MeshBasicMaterial({ color: 0x7dd3fc });
+    const jjMat = new THREE.MeshBasicMaterial({ color: 0xf472b6 });
+    [-0.17, 0.17].forEach((qx) => {
+      const arm1 = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.015, 0.032), circuitTraceMat);
+      arm1.position.set(qx, 0.022, 0);
+      const arm2 = new THREE.Mesh(new THREE.BoxGeometry(0.032, 0.015, 0.16), circuitTraceMat);
+      arm2.position.set(qx, 0.022, 0);
+      const jjDot = new THREE.Mesh(new THREE.SphereGeometry(0.022, 10, 10), jjMat);
+      jjDot.position.set(qx, 0.028, 0.095);
+      qpuGroup.add(arm1, arm2, jjDot);
+    });
+    const busResonator = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.014, 0.018), new THREE.MeshBasicMaterial({ color: 0xc084fc }));
+    busResonator.position.set(0, 0.022, -0.06);
+    qpuGroup.add(busResonator);
+
+    // 2. 3D Quantum Bloch Spheres & Entanglement Bridge Scene
+    const quantumGroup = new THREE.Group();
+    quantumGroup.position.set(0, -1.05, 1.8);
+    scene.add(quantumGroup);
+
+    function makeTextSprite(text, color = '#e2f1ff', bgColor = 'rgba(8,16,34,0.78)', fontSize = 38) {
+      const canvas = document.createElement('canvas');
+      canvas.width = 256;
+      canvas.height = 80;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = bgColor;
+      ctx.beginPath();
+      ctx.roundRect(18, 10, 220, 60, 14);
+      ctx.fill();
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+      ctx.font = `bold ${fontSize}px sans-serif`;
+      ctx.fillStyle = color;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(text, 128, 41);
+      const tex = new THREE.CanvasTexture(canvas);
+      const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false });
+      const sprite = new THREE.Sprite(mat);
+      sprite.scale.set(0.95, 0.30, 1);
+      return sprite;
+    }
+
+    // Bloch vector (bx, by, bz) -> Three.js local coordinates:
+    // Physics +Z (|0⟩ North Pole) -> +Y
+    // Physics +X (|+⟩ Front-Right) -> +Z
+    // Physics +Y (|+i⟩ Right)      -> +X
+    function blochToWorld(bx, by, bz, radius = 1.35) {
+      return new THREE.Vector3(by * radius, bz * radius, bx * radius);
+    }
+
+    function createBlochSphere(centerX, titleText, accentHex) {
+      const root = new THREE.Group();
+      root.position.set(centerX, 0, 0);
+      const R = 1.35;
+
+      // Translucent Sphere Shell
+      const shellMat = new THREE.MeshPhysicalMaterial({
+        color: accentHex, metalness: 0.05, roughness: 0.15,
+        transparent: true, opacity: 0.16, depthWrite: false, side: THREE.DoubleSide
+      });
+      const shell = new THREE.Mesh(new THREE.SphereGeometry(R, 36, 28), shellMat);
+      root.add(shell);
+
+      // Equator & Meridian Wireframe Rings
+      const ringMat = new THREE.MeshBasicMaterial({ color: 0x6495ed, transparent: true, opacity: 0.42 });
+      const eqRing = new THREE.Mesh(new THREE.TorusGeometry(R, 0.012, 8, 64), ringMat);
+      eqRing.rotation.x = Math.PI / 2;
+      root.add(eqRing);
+
+      const mer1 = new THREE.Mesh(new THREE.TorusGeometry(R, 0.009, 8, 64), ringMat);
+      root.add(mer1);
+      const mer2 = new THREE.Mesh(new THREE.TorusGeometry(R, 0.009, 8, 64), ringMat);
+      mer2.rotation.y = Math.PI / 2;
+      root.add(mer2);
+
+      // X, Y, Z Coordinate Axes inside Sphere
+      const axisMat = new THREE.LineBasicMaterial({ color: 0x94a3b8, transparent: true, opacity: 0.55 });
+      const axesPts = [
+        new THREE.Vector3(0, -R * 1.12, 0), new THREE.Vector3(0, R * 1.12, 0),
+        new THREE.Vector3(-R * 1.08, 0, 0), new THREE.Vector3(R * 1.08, 0, 0),
+        new THREE.Vector3(0, 0, -R * 1.08), new THREE.Vector3(0, 0, R * 1.08)
+      ];
+      root.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(axesPts), axisMat));
+
+      // Pole & Basis State Sprites: |0⟩ (North), |1⟩ (South), |+⟩ (+X),title
+      const lbl0 = makeTextSprite('|0⟩ (北極)', '#7ee2ff');
+      lbl0.position.set(0, R + 0.34, 0);
+      const lbl1 = makeTextSprite('|1⟩ (南極)', '#fca5a5');
+      lbl1.position.set(0, -R - 0.34, 0);
+      const lblPlus = makeTextSprite('|+⟩ (+X)', '#fde047');
+      lblPlus.position.set(0, -0.05, R + 0.32);
+      lblPlus.scale.set(0.78, 0.25, 1);
+      const lblTitle = makeTextSprite(titleText, '#ffffff', 'rgba(30,58,138,0.88)', 34);
+      lblTitle.position.set(0, R + 0.76, 0);
+      lblTitle.scale.set(1.38, 0.38, 1);
+      root.add(lbl0, lbl1, lblPlus, lblTitle);
+
+      // State Vector Shaft + Cone Tip + Mixed-State Center Core Glow
+      const arrowMat = new THREE.MeshStandardMaterial({
+        color: accentHex, emissive: accentHex, emissiveIntensity: 0.65, roughness: 0.2
+      });
+      const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.036, 0.036, 1, 16), arrowMat);
+      const head = new THREE.Mesh(new THREE.ConeGeometry(0.11, 0.26, 18), arrowMat);
+      root.add(shaft, head);
+
+      // Center sphere representing Mixed State ρ = I/2 when Bloch vector shrinks to r = 0
+      const mixedCore = new THREE.Mesh(
+        new THREE.SphereGeometry(0.18, 20, 20),
+        new THREE.MeshBasicMaterial({ color: 0xe879f9, transparent: true, opacity: 0.0 })
+      );
+      root.add(mixedCore);
+
+      // H-gate rotation axis indicator: (X+Z)/sqrt(2)
+      const hAxisDir = blochToWorld(Math.SQRT1_2, 0, Math.SQRT1_2, R * 1.18);
+      const hAxisLine = new THREE.Line(
+        new THREE.BufferGeometry().setFromPoints([hAxisDir.clone().negate(), hAxisDir]),
+        new THREE.LineBasicMaterial({ color: 0xfacc15, transparent: true, opacity: 0.0 })
+      );
+      root.add(hAxisLine);
+
+      function setBlochVector(bx, by, bz) {
+        const vec = blochToWorld(bx, by, bz, R);
+        const len = vec.length();
+        if (len < 0.06) {
+          shaft.visible = false;
+          head.visible = false;
+        } else {
+          shaft.visible = true;
+          head.visible = true;
+          const dir = vec.clone().normalize();
+          const shaftLen = Math.max(0.02, len - 0.22);
+          shaft.scale.set(1, shaftLen, 1);
+          shaft.position.copy(dir).multiplyScalar(shaftLen * 0.5);
+          shaft.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
+          head.position.copy(dir).multiplyScalar(shaftLen + 0.11);
+          head.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
+        }
+        // Highlight mixed-state core when vector shrinks inside sphere (entanglement)
+        const mixedFactor = Math.max(0, 1 - (len / R));
+        mixedCore.material.opacity = mixedFactor * 0.88;
+        mixedCore.scale.setScalar(0.6 + mixedFactor * 0.85);
+      }
+
+      setBlochVector(0, 0, 1);
+      quantumGroup.add(root);
+      return { root, shellMat, setBlochVector, hAxisLine, mixedCore };
+    }
+
+    const blochQ0 = createBlochSphere(-2.15, '量子ビット q0 (制御)', 0x38bdf8);
+    const blochQ1 = createBlochSphere( 2.15, '量子ビット q1 (標的)', 0xc084fc);
+
+    // Entanglement Glowing Energy Bridge & Correlation Rings between q0 and q1
+    const entangleGroup = new THREE.Group();
+    quantumGroup.add(entangleGroup);
+    const bridgeMat = new THREE.MeshBasicMaterial({ color: 0xe879f9, transparent: true, opacity: 0 });
+    const bridgeBeam = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.055, 4.3, 16), bridgeMat);
+    bridgeBeam.rotation.z = Math.PI / 2;
+    entangleGroup.add(bridgeBeam);
+
+    const waveRings = [];
+    for (let w = 0; w < 5; w++) {
+      const rMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0 });
+      const rMesh = new THREE.Mesh(new THREE.TorusGeometry(0.32, 0.02, 10, 32), rMat);
+      rMesh.rotation.y = Math.PI / 2;
+      entangleGroup.add(rMesh);
+      waveRings.push(rMesh);
+    }
+    const entangleSprite = makeTextSprite('量子もつれ (|00⟩+|11⟩)/√2', '#f0abfc', 'rgba(46,16,78,0.9)', 26);
+    entangleSprite.position.set(0, 0.52, 0);
+    entangleSprite.scale.set(1.65, 0.36, 1);
+    entangleSprite.material.opacity = 0;
+    entangleGroup.add(entangleSprite);
+
+    // 3. 3D Projected Callout Labels (Non-overlapping & Viewport-clamped)
+    const callouts = [
+      { pos: new THREE.Vector3(-3.2, 4.5, 0), title: '室温フランジ (約300K)', sub: '外部の制御装置と接続', stages: [0], cls: '' },
+      { pos: new THREE.Vector3( 2.8, 3.1, 0), title: '50K プレート (−223℃)', sub: 'パルス管冷凍機 第1段', stages: [0], cls: '' },
+      { pos: new THREE.Vector3(-2.5, 1.5, 0), title: '4K プレート (−269℃)', sub: '液体ヘリウム温度域', stages: [0], cls: '' },
+      { pos: new THREE.Vector3( 2.1,-0.1, 0), title: 'スティル段 (0.8K)', sub: 'ヘリウム3を循環・蒸発', stages: [0], cls: '' },
+      { pos: new THREE.Vector3(-1.8,-1.6, 0), title: 'コールドプレート (0.1K)', sub: '熱流入をさらに遮断', stages: [0], cls: '' },
+      { pos: new THREE.Vector3( 1.5,-3.0, 0), title: '混合室 MXC (15 mK)', sub: 'ヘリウム3/4混合で極低温へ', stages: [0], cls: 'cyan' },
+      { pos: new THREE.Vector3( 0.0,-4.55,0.6), title: '超伝導量子チップ', sub: '磁気シールド内で動作', stages: [0], cls: 'cyan' },
+
+      { pos: new THREE.Vector3(-1.5, 2.7, 0.8), title: 'マイクロ波入力線 (同軸)', sub: '約5GHzの制御パルスを送る', stages: [1], cls: 'cyan' },
+      { pos: new THREE.Vector3(-1.2,-0.35,0.6), title: '減衰器 (アッテネータ)', sub: '室温からの熱雑音をカット', stages: [1], cls: '' },
+      { pos: new THREE.Vector3( 1.2, 1.18,1.1), title: '低温HEMTアンプ (4K)', sub: '微弱な読み出し信号を増幅', stages: [1], cls: '' },
+      { pos: new THREE.Vector3( 0.8,-3.28,0.8), title: 'アイソレータ (逆流防止)', sub: '増幅器の雑音がチップへ戻るのを防ぐ', stages: [1], cls: 'cyan' },
+
+      { pos: new THREE.Vector3(-0.75,-3.95,0.2), title: 'クライオパーム磁気シールド', sub: '地磁気や外部磁場を遮蔽', stages: [2], cls: '' },
+      { pos: new THREE.Vector3( 0.65,-4.32,0.3), title: 'トランズモン量子ビット ×2', sub: 'ジョセフソン接合による人工原子', stages: [2], cls: 'cyan' },
+      { pos: new THREE.Vector3( 0.0,-4.65, 0.5), title: '結合共振器 (バス)', sub: '2つの量子ビット間でCNOTを実現', stages: [2], cls: '' }
+    ];
+
+    callouts.forEach((c) => {
+      const el = document.createElement('div');
+      el.className = `callout ${c.cls}`;
+      el.innerHTML = `<strong>${c.title}</strong>${c.sub}`;
+      labelsLayer.appendChild(el);
+      c.el = el;
+    });
+
+    const projVec = new THREE.Vector3();
+    function updateCallouts(activeStageIdx) {
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      // Keep labels strictly inside center safe viewport away from left/right/top/bottom panels
+      const minX = 465;
+      const maxX = w - 455;
+      const minY = 82;
+      const maxY = h - 72;
+
+      const visibleList = [];
+      callouts.forEach((c) => {
+        if (!c.stages.includes(activeStageIdx)) {
+          c.el.style.opacity = '0';
+          c.el.style.display = 'none';
+          return;
+        }
+        projVec.copy(c.pos);
+        projVec.project(camera);
+        if (projVec.z > 1) {
+          c.el.style.opacity = '0';
+          c.el.style.display = 'none';
+          return;
+        }
+        let sx = (projVec.x * 0.5 + 0.5) * w;
+        let sy = (-projVec.y * 0.5 + 0.5) * h;
+        sx = Math.max(minX, Math.min(maxX, sx));
+        sy = Math.max(minY, Math.min(maxY, sy));
+        visibleList.push({ c, sx, sy });
+      });
+
+      // Multi-pass vertical collision resolution so callout boxes never overlap each other
+      visibleList.sort((a, b) => a.sy - b.sy);
+      for (let pass = 0; pass < 4; pass++) {
+        for (let i = 1; i < visibleList.length; i++) {
+          const prev = visibleList[i - 1];
+          const curr = visibleList[i];
+          if (Math.abs(curr.sx - prev.sx) < 240 && curr.sy - prev.sy < 52) {
+            const mid = (curr.sy + prev.sy) * 0.5;
+            prev.sy = Math.max(minY, mid - 26);
+            curr.sy = Math.min(maxY, prev.sy + 52);
+          }
+        }
+      }
+
+      visibleList.forEach(({ c, sx, sy }) => {
+        c.el.style.display = 'block';
+        c.el.style.opacity = '1';
+        c.el.style.left = `${sx}px`;
+        c.el.style.top = `${sy}px`;
+      });
+    }
+
+    // 4. Physics Timeline Engine, Exact Bloch Trajectories & Repeated Measurement Statistics
+    const uiRefs = {
+      pills: Array.from(document.querySelectorAll('.step-pill')),
+      btnPlay: document.getElementById('btn-play'),
+      btnCam: document.getElementById('btn-cam'),
+      timer: document.getElementById('timer-text'),
+      badge: document.getElementById('stage-badge'),
+      heading: document.getElementById('stage-heading'),
+      desc: document.getElementById('stage-desc'),
+      physics: document.getElementById('physics-box'),
+      formula: document.getElementById('state-formula'),
+      blochNote: document.getElementById('bloch-note'),
+      shotBadge: document.getElementById('shot-badge'),
+      totalShots: document.getElementById('total-shots'),
+      timelineTrack: document.getElementById('timeline-track'),
+      timelineFill: document.getElementById('timeline-fill'),
+      svgInit: document.getElementById('svg-init'),
+      svgH: document.getElementById('svg-h'),
+      svgCnot: document.getElementById('svg-cnot'),
+      svgMeas: document.getElementById('svg-meas'),
+      tempItems: Array.from(document.querySelectorAll('.temp-item')),
+      bars: {
+        '00': document.getElementById('bar-00'),
+        '01': document.getElementById('bar-01'),
+        '10': document.getElementById('bar-10'),
+        '11': document.getElementById('bar-11')
+      },
+      vals: {
+        '00': document.getElementById('val-00'),
+        '01': document.getElementById('val-01'),
+        '10': document.getElementById('val-10'),
+        '11': document.getElementById('val-11')
+      }
+    };
+
+    let elapsed = 0;
+    let isPlaying = true;
+    let currentStageIdx = -1;
+    let userInteracting = false;
+    let interactionCooldown = 0;
+
+    // Pre-generate 40 realistic Bell-state measurement outcomes (|00⟩ or |11⟩ with 50/50 probability)
+    let shotSequence = [];
+    function generateBellShots() {
+      shotSequence = [];
+      let c00 = 0;
+      for (let i = 0; i < 40; i++) {
+        // Unbiased 50% Bernoulli draw, keeping final 40-shot sample naturally close to 50/50
+        const bit = Math.random() < 0.5 ? '00' : '11';
+        if (bit === '00') c00++;
+        shotSequence.push(bit);
+      }
+      // Guarantee both outcomes are well-represented for clear educational demonstration
+      if (c00 < 15 || c00 > 25) {
+        shotSequence = Array.from({ length: 40 }, (_, k) => ((k * 7 + 3) % 11 < 5 ? '00' : '11'));
+      }
+    }
+    generateBellShots();
+
+    function updateHistogram(completedCount) {
+      const counts = { '00': 0, '01': 0, '10': 0, '11': 0 };
+      for (let i = 0; i < completedCount; i++) {
+        counts[shotSequence[i]]++;
+      }
+      uiRefs.totalShots.textContent = String(completedCount);
+      ['00', '01', '10', '11'].forEach((key) => {
+        const c = counts[key];
+        const pct = completedCount > 0 ? Math.round((c / completedCount) * 100) : 0;
+        uiRefs.bars[key].style.width = `${pct}%`;
+        uiRefs.vals[key].textContent = `${c}回 (${pct}%)`;
+      });
+    }
+
+    function setCircuitHighlight(activeId) {
+      ['svgInit', 'svgH', 'svgCnot', 'svgMeas'].forEach((k) => {
+        uiRefs[k].setAttribute('opacity', k === activeId ? '1.0' : '0.32');
+      });
+    }
+
+    function smoothstep(a, b, x) {
+      const t = Math.max(0, Math.min(1, (x - a) / (b - a)));
+      return t * t * (3 - 2 * t);
+    }
+
+    // Exact Hadamard rotation around n = (1/sqrt(2), 0, 1/sqrt(2)) by angle phi in [0, pi]
+    // Starting from |0⟩ = (0, 0, 1):
+    // r(phi) = ( (1 - cos(phi))/2,  -sin(phi)/sqrt(2),  (1 + cos(phi))/2 )
+    // At phi = 0: (0, 0, 1) = |0⟩;  At phi = pi: (1, 0, 0) = |+⟩
+    function hadamardBlochTrajectory(progress) {
+      const phi = progress * Math.PI;
+      const bx = 0.5 * (1 - Math.cos(phi));
+      const by = -Math.SQRT1_2 * Math.sin(phi);
+      const bz = 0.5 * (1 + Math.cos(phi));
+      return [bx, by, bz];
+    }
+
+    const desiredCamPos = new THREE.Vector3(0, 0.8, 15.2);
+    const desiredCamTarget = new THREE.Vector3(0, 0.1, 0);
+
+    function applyTimelineState(t, dt) {
+      let sIdx = STAGES.findIndex((s) => t >= s.start && t < s.end);
+      if (sIdx === -1) sIdx = STAGES.length - 1;
+      const stage = STAGES[sIdx];
+      const localT = t - stage.start;
+      const stageDur = stage.end - stage.start;
+
+      if (sIdx !== currentStageIdx) {
+        currentStageIdx = sIdx;
+        uiRefs.badge.textContent = stage.badge;
+        uiRefs.heading.textContent = stage.heading;
+        uiRefs.desc.textContent = stage.desc;
+        uiRefs.physics.textContent = stage.physics;
+        uiRefs.pills.forEach((p, idx) => p.classList.toggle('active', idx === sIdx));
+        desiredCamPos.set(...stage.camPos);
+        desiredCamTarget.set(...stage.camTarget);
+      }
+
+      uiRefs.timer.textContent = `${t.toFixed(1)} / ${LOOP_DURATION.toFixed(1)}秒`;
+      uiRefs.timelineFill.style.width = `${(t / LOOP_DURATION) * 100}%`;
+
+      // Highlight temperature stages progressively during Stage 0
+      if (sIdx === 0) {
+        const activePlate = Math.min(5, Math.floor((localT / stageDur) * 6));
+        uiRefs.tempItems.forEach((el, idx) => el.classList.toggle('highlight', idx === activePlate));
+      } else {
+        uiRefs.tempItems.forEach((el, idx) => el.classList.toggle('highlight', idx === 5));
+      }
+
+      // Show fridge prominently in stages 0-2, shift back slightly in stages 3-6 so Bloch spheres are clear
+      const isQuantumPhase = sIdx >= 3;
+      quantumGroup.visible = isQuantumPhase;
+      fridgeGroup.position.z = THREE.MathUtils.lerp(fridgeGroup.position.z, isQuantumPhase ? -3.2 : 0.0, 0.08);
+      if (sIdx === 0) {
+        fridgeGroup.rotation.y = Math.sin(t * 0.35) * 0.28;
+      } else {
+        fridgeGroup.rotation.y = THREE.MathUtils.lerp(fridgeGroup.rotation.y, 0.0, 0.08);
+      }
+
+      // Animate microwave pulses along cables
+      const showPulses = sIdx === 1 || sIdx === 4 || sIdx === 5 || sIdx === 6;
+      signalPulses.forEach((sp) => {
+        sp.mesh.visible = showPulses;
+        if (showPulses) {
+          const raw = (t * 0.62 + sp.phase) % 1.0;
+          const u = sp.dir === 1 ? raw : 1.0 - raw;
+          sp.curve.getPointAt(u, sp.mesh.position);
+        }
+      });
+
+      // Reset entanglement bridge & H-axis defaults before stage-specific overrides
+      bridgeMat.opacity = 0;
+      entangleSprite.material.opacity = 0;
+      waveRings.forEach((r) => { r.material.opacity = 0; });
+      blochQ0.hAxisLine.material.opacity = 0;
+
+      if (sIdx < 3) {
+        setCircuitHighlight('');
+        uiRefs.formula.textContent = '|ψ⟩ = |00⟩ （15 mK 極低温で待機中）';
+        uiRefs.blochNote.textContent = 'マイクロ波パルスで量子ビットの状態を精密に制御します';
+        uiRefs.shotBadge.textContent = '装置解説モード';
+        updateHistogram(0);
+      } else if (sIdx === 3) {
+        // Stage 4: Initialization |00⟩
+        setCircuitHighlight('svgInit');
+        blochQ0.setBlochVector(0, 0, 1);
+        blochQ1.setBlochVector(0, 0, 1);
+        uiRefs.formula.textContent = '|ψ⟩ = |0⟩ ⊗ |0⟩ = |00⟩';
+        uiRefs.blochNote.textContent = 'q0: 北極 (0,0,+1) ／ q1: 北極 (0,0,+1) ［純粋状態］';
+        uiRefs.shotBadge.textContent = '初期化完了';
+        updateHistogram(0);
+      } else if (sIdx === 4) {
+        // Stage 5: H gate on q0 -> |+0⟩ = (|00⟩ + |10⟩)/sqrt(2)
+        setCircuitHighlight('svgH');
+        const p = smoothstep(0.6, 3.8, localT);
+        const [bx, by, bz] = hadamardBlochTrajectory(p);
+        blochQ0.setBlochVector(bx, by, bz);
+        blochQ1.setBlochVector(0, 0, 1);
+        blochQ0.hAxisLine.material.opacity = p < 0.98 ? 0.75 : 0.25;
+        uiRefs.formula.textContent = p > 0.85
+          ? '|ψ⟩ = (|0⟩ + |1⟩)/√2 ⊗ |0⟩ = (|00⟩ + |10⟩)/√2'
+          : 'Hゲート回転中：|00⟩ → (|00⟩ + |10⟩)/√2';
+        uiRefs.blochNote.textContent = `q0: (${bx.toFixed(2)}, ${by.toFixed(2)}, ${bz.toFixed(2)}) 赤道|+⟩へ ／ q1: 北極 |0⟩`;
+        uiRefs.shotBadge.textContent = '重ね合わせ生成';
+        updateHistogram(0);
+      } else if (sIdx === 5) {
+        // Stage 6: CNOT gate -> Bell state (|00⟩ + |11⟩)/sqrt(2)
+        // Continuous unitary U(s) = exp(-i * s * (pi/2) * |1⟩⟨1| ⊗ (I - X)/2)
+        // Exact reduced Bloch vectors: r_q0 = (cos(pi*s/2), 0, 0), r_q1 = (0, 0, cos^2(pi*s/2))
+        // At s=0: r_q0=(1,0,0), r_q1=(0,0,1). At s=1: r_q0=(0,0,0), r_q1=(0,0,0)!
+        setCircuitHighlight('svgCnot');
+        const s = smoothstep(0.6, 4.2, localT);
+        const c = Math.cos(s * Math.PI * 0.5);
+        blochQ0.setBlochVector(c, 0, 0);
+        blochQ1.setBlochVector(0, 0, c * c);
+
+        bridgeMat.opacity = s * 0.65;
+        entangleSprite.material.opacity = s;
+        waveRings.forEach((rMesh, idx) => {
+          const u = ((t * 0.8 + idx / waveRings.length) % 1.0) - 0.5;
+          rMesh.position.x = u * 4.0;
+          rMesh.scale.setScalar(0.7 + (1 - Math.abs(u) * 2) * 0.55);
+          rMesh.material.opacity = s * (1 - Math.abs(u) * 1.8) * 0.75;
+        });
+
+        uiRefs.formula.textContent = '|Φ⁺⟩ = (|00⟩ + |11⟩) / √2 （最大量子もつれ）';
+        uiRefs.blochNote.textContent = s > 0.9
+          ? '各ビット単独は完全混合状態 (ρ=I/2) のため矢印の長さ 0（球の中心）'
+          : `もつれ形成中：矢印が球の中心へ収縮 (長さ ${c.toFixed(2)})`;
+        uiRefs.shotBadge.textContent = '量子もつれ成立';
+        updateHistogram(0);
+      } else if (sIdx === 6) {
+        // Stage 7: Repeated Bell Measurements (40 shots across 12 seconds)
+        setCircuitHighlight('svgMeas');
+        const totalShots = 40;
+        const shotFloat = (localT / stageDur) * totalShots;
+        const shotIdx = Math.min(totalShots - 1, Math.floor(shotFloat));
+        const shotFrac = shotFloat - Math.floor(shotFloat);
+        const outcome = shotSequence[shotIdx];
+        const completed = Math.min(totalShots, Math.floor(shotFloat) + 1);
+
+        if (shotFrac < 0.28) {
+          // Brief pre-measurement entangled Bell state
+          blochQ0.setBlochVector(0, 0, 0);
+          blochQ1.setBlochVector(0, 0, 0);
+          bridgeMat.opacity = 0.65;
+          entangleSprite.material.opacity = 0.85;
+        } else {
+          // Wavefunction collapse! Both snap together to North (+1 for |00⟩) or South (-1 for |11⟩)
+          const zTarget = outcome === '00' ? 1 : -1;
+          const snap = smoothstep(0.28, 0.45, shotFrac);
+          blochQ0.setBlochVector(0, 0, zTarget * snap);
+          blochQ1.setBlochVector(0, 0, zTarget * snap);
+          bridgeMat.opacity = 0.22;
+        }
+
+        uiRefs.formula.textContent = `測定 #${completed}: |Φ⁺⟩ → |${outcome}⟩ に確定！`;
+        uiRefs.blochNote.textContent = outcome === '00'
+          ? '両方とも北極 |0⟩ に収縮（片方が0ならもう片方も必ず0）'
+          : '両方とも南極 |1⟩ に収縮（片方が1ならもう片方も必ず1）';
+        uiRefs.shotBadge.textContent = `${completed} / ${totalShots} 回測定`;
+        updateHistogram(completed);
+      }
+
+      // Smoothly guide camera unless user is dragging or recently dragged
+      if (!userInteracting && interactionCooldown <= 0) {
+        camera.position.lerp(desiredCamPos, Math.min(1, dt * 2.4));
+        controls.target.lerp(desiredCamTarget, Math.min(1, dt * 2.8));
+      }
+
+      updateCallouts(sIdx);
+    }
+
+    // 5. UI Event Listeners & OrbitControls Interaction Handling
+    controls.addEventListener('start', () => {
+      userInteracting = true;
+    });
+    controls.addEventListener('end', () => {
+      userInteracting = false;
+      interactionCooldown = 4.0;
+    });
+
+    uiRefs.pills.forEach((pill) => {
+      pill.addEventListener('click', () => {
+        const idx = Number(pill.dataset.step);
+        if (STAGES[idx]) {
+          elapsed = STAGES[idx].start + 0.01;
+          interactionCooldown = 0;
+          currentStageIdx = -1;
+          applyTimelineState(elapsed, 0.016);
+        }
+      });
+    });
+
+    uiRefs.btnPlay.addEventListener('click', () => {
+      isPlaying = !isPlaying;
+      uiRefs.btnPlay.textContent = isPlaying ? '一時停止' : '再生再開';
+    });
+
+    uiRefs.btnCam.addEventListener('click', () => {
+      interactionCooldown = 0;
+      const st = STAGES[Math.max(0, currentStageIdx)];
+      camera.position.set(...st.camPos);
+      controls.target.set(...st.camTarget);
+      controls.update();
+    });
+
+    uiRefs.timelineTrack.addEventListener('click', (ev) => {
+      const rect = uiRefs.timelineTrack.getBoundingClientRect();
+      const ratio = Math.max(0, Math.min(1, (ev.clientX - rect.left) / rect.width));
+      elapsed = ratio * (LOOP_DURATION - 0.05);
+      interactionCooldown = 0;
+      currentStageIdx = -1;
+      applyTimelineState(elapsed, 0.016);
+    });
+
+    // Initialize first frame cleanly
+    applyTimelineState(0, 0.016);
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    const clock = new THREE.Clock();
+    function animate() {
+      requestAnimationFrame(animate);
+      const dt = Math.min(clock.getDelta(), 0.05);
+      if (interactionCooldown > 0 && !userInteracting) {
+        interactionCooldown = Math.max(0, interactionCooldown - dt);
+      }
+      if (isPlaying) {
+        elapsed += dt;
+        if (elapsed >= LOOP_DURATION) {
+          elapsed = elapsed % LOOP_DURATION;
+          generateBellShots();
+          currentStageIdx = -1;
+        }
+      }
+      applyTimelineState(elapsed, dt);
+      controls.update();
+      renderer.render(scene, camera);
+    }
+    animate();
+  </script>
+</body>
+</html>

@@ -1,0 +1,2623 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>家庭用壁掛けエアコンの仕組み 3D解剖シミュレーター</title>
+<style>
+  :root {
+    --bg-dark: rgba(11, 18, 30, 0.88);
+    --bg-panel: rgba(16, 25, 42, 0.86);
+    --border-subtle: rgba(148, 163, 184, 0.25);
+    --text-main: #f1f5f9;
+    --text-sub: #cbd5e1;
+    --text-muted: #94a3b8;
+    --cool-accent: #38bdf8;
+    --cool-bg: rgba(56, 189, 248, 0.18);
+    --heat-accent: #fb923c;
+    --heat-bg: rgba(251, 146, 60, 0.18);
+    --high-p-gas: #ef4444;
+    --high-p-liq: #f97316;
+    --low-p-mist: #06b6d4;
+    --low-p-gas: #3b82f6;
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    user-select: none;
+  }
+
+  body, html {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background-color: #0b1322;
+    font-family: "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Yu Gothic", "Meiryo", sans-serif;
+    color: var(--text-main);
+  }
+
+  #canvas-container {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+  }
+
+  /* 3D Callout Labels */
+  #labels-layer {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 5;
+    overflow: hidden;
+  }
+
+  .part-callout {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    background: rgba(12, 20, 35, 0.85);
+    border: 1px solid rgba(148, 163, 184, 0.45);
+    border-left: 3.5px solid var(--cool-accent);
+    border-radius: 6px;
+    padding: 4px 8px;
+    color: #f8fafc;
+    font-size: 11.5px;
+    line-height: 1.3;
+    pointer-events: auto;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+    backdrop-filter: blur(4px);
+    white-space: nowrap;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.45);
+  }
+
+  .part-callout:hover, .part-callout.active {
+    background: rgba(22, 36, 62, 0.96);
+    border-color: #fff;
+    box-shadow: 0 0 12px rgba(56, 189, 248, 0.55);
+    z-index: 20;
+  }
+
+  .part-callout .title {
+    font-weight: 700;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .part-callout .badge {
+    font-size: 10px;
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-weight: 600;
+  }
+
+  .part-callout .sub {
+    font-size: 10.5px;
+    color: #cbd5e1;
+    margin-top: 1px;
+  }
+
+  /* Connector SVG overlay */
+  #connector-svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 4;
+  }
+
+  /* Top Header Bar */
+  #top-bar {
+    position: absolute;
+    top: 8px;
+    left: 12px;
+    right: 12px;
+    height: 46px;
+    background: var(--bg-dark);
+    border: 1px solid var(--border-subtle);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 12px;
+    z-index: 10;
+    backdrop-filter: blur(8px);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+    white-space: nowrap;
+  }
+
+  .brand-area {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+  }
+
+  .brand-title {
+    font-size: 14.5px;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    color: #fff;
+    white-space: nowrap;
+  }
+
+  .brand-subtitle {
+    font-size: 11px;
+    color: var(--text-sub);
+    border-left: 1px solid var(--border-subtle);
+    padding-left: 8px;
+    white-space: nowrap;
+  }
+
+  @media (max-width: 1400px) {
+    .brand-subtitle {
+      display: none;
+    }
+  }
+
+  .controls-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .mode-switch {
+    display: flex;
+    background: rgba(2, 6, 23, 0.7);
+    padding: 3px;
+    border-radius: 7px;
+    border: 1px solid var(--border-subtle);
+  }
+
+  .mode-btn {
+    border: none;
+    background: transparent;
+    color: var(--text-sub);
+    font-family: inherit;
+    font-size: 12.5px;
+    font-weight: 700;
+    padding: 5px 13px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .mode-btn.cool.active {
+    background: linear-gradient(135deg, #0284c7, #2563eb);
+    color: #fff;
+    box-shadow: 0 0 10px rgba(56, 189, 248, 0.45);
+  }
+
+  .mode-btn.heat.active {
+    background: linear-gradient(135deg, #ea580c, #dc2626);
+    color: #fff;
+    box-shadow: 0 0 10px rgba(251, 146, 60, 0.45);
+  }
+
+  .divider {
+    width: 1px;
+    height: 24px;
+    background: var(--border-subtle);
+    margin: 0 2px;
+  }
+
+  .ctrl-btn {
+    background: rgba(30, 41, 59, 0.8);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-main);
+    font-family: inherit;
+    font-size: 11.5px;
+    padding: 5px 9px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .ctrl-btn:hover {
+    background: rgba(51, 65, 85, 0.95);
+    border-color: #94a3b8;
+  }
+
+  .ctrl-btn.active {
+    background: rgba(56, 189, 248, 0.22);
+    border-color: var(--cool-accent);
+    color: #fff;
+  }
+
+  .slider-wrap {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11.5px;
+    color: var(--text-sub);
+    background: rgba(30, 41, 59, 0.6);
+    padding: 4px 8px;
+    border-radius: 6px;
+    border: 1px solid var(--border-subtle);
+  }
+
+  .slider-wrap input[type="range"] {
+    width: 64px;
+    accent-color: var(--cool-accent);
+    cursor: pointer;
+  }
+
+  /* Left Physics & Cycle Sidebar */
+  #left-panel {
+    position: absolute;
+    top: 62px;
+    left: 12px;
+    width: 306px;
+    max-height: calc(100vh - 124px);
+    background: var(--bg-panel);
+    border: 1px solid var(--border-subtle);
+    border-radius: 10px;
+    padding: 9px 12px;
+    z-index: 10;
+    backdrop-filter: blur(8px);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    overflow-y: auto;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.35);
+  }
+
+  .mode-banner {
+    padding: 5px 9px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .mode-banner.cool {
+    background: var(--cool-bg);
+    border: 1px solid rgba(56, 189, 248, 0.45);
+    color: #bae6fd;
+  }
+
+  .mode-banner.heat {
+    background: var(--heat-bg);
+    border: 1px solid rgba(251, 146, 60, 0.45);
+    color: #fed7aa;
+  }
+
+  .principle-box {
+    font-size: 11px;
+    line-height: 1.42;
+    color: var(--text-sub);
+    background: rgba(15, 23, 42, 0.65);
+    padding: 6px 8px;
+    border-radius: 6px;
+    border: 1px solid rgba(148, 163, 184, 0.15);
+  }
+
+  .principle-box strong {
+    color: #fff;
+  }
+
+  .section-heading {
+    font-size: 11px;
+    font-weight: 700;
+    color: #94a3b8;
+    letter-spacing: 0.03em;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+    padding-bottom: 2px;
+  }
+
+  .cycle-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .cycle-step {
+    background: rgba(15, 23, 42, 0.75);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-left: 3.5px solid #64748b;
+    border-radius: 6px;
+    padding: 5px 7px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .cycle-step:hover, .cycle-step.active {
+    background: rgba(30, 41, 59, 0.95);
+    border-color: rgba(255, 255, 255, 0.5);
+  }
+
+  .cycle-step .step-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 11px;
+    font-weight: 700;
+    color: #f8fafc;
+    margin-bottom: 1px;
+  }
+
+  .cycle-step .step-state {
+    font-size: 9.5px;
+    padding: 1px 4px;
+    border-radius: 3px;
+    font-weight: 600;
+  }
+
+  .cycle-step .step-desc {
+    font-size: 10.4px;
+    line-height: 1.32;
+    color: var(--text-sub);
+  }
+
+  /* Right Selected Component Detail Box */
+  #right-panel {
+    position: absolute;
+    top: 62px;
+    right: 12px;
+    width: 292px;
+    max-height: calc(100vh - 124px);
+    background: var(--bg-panel);
+    border: 1px solid var(--border-subtle);
+    border-radius: 10px;
+    padding: 10px 12px;
+    z-index: 10;
+    backdrop-filter: blur(8px);
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    overflow-y: auto;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.35);
+  }
+
+  .detail-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border-subtle);
+    padding-bottom: 6px;
+  }
+
+  .detail-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #fff;
+  }
+
+  .detail-unit-tag {
+    font-size: 10.5px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: rgba(56, 189, 248, 0.2);
+    color: #7dd3fc;
+    font-weight: 600;
+  }
+
+  .detail-role {
+    font-size: 12px;
+    font-weight: 700;
+    color: #fde047;
+  }
+
+  .detail-body {
+    font-size: 11.5px;
+    line-height: 1.52;
+    color: var(--text-sub);
+  }
+
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    margin-top: 2px;
+  }
+
+  .metric-card {
+    background: rgba(15, 23, 42, 0.75);
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    border-radius: 6px;
+    padding: 5px 8px;
+  }
+
+  .metric-label {
+    font-size: 10px;
+    color: var(--text-muted);
+  }
+
+  .metric-val {
+    font-size: 11.5px;
+    font-weight: 700;
+    color: #f8fafc;
+    margin-top: 1px;
+  }
+
+  /* Bottom Legend Bar */
+  #bottom-bar {
+    position: absolute;
+    bottom: 8px;
+    left: 12px;
+    right: 12px;
+    height: 48px;
+    background: var(--bg-dark);
+    border: 1px solid var(--border-subtle);
+    border-radius: 10px;
+    padding: 0 12px;
+    z-index: 10;
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+    white-space: nowrap;
+  }
+
+  .legend-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: nowrap;
+  }
+
+  .legend-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
+    margin-right: 2px;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 10.8px;
+    color: var(--text-main);
+    background: rgba(15, 23, 42, 0.65);
+    padding: 4px 7px;
+    border-radius: 6px;
+    border: 1px solid rgba(148, 163, 184, 0.18);
+  }
+
+  .swatch {
+    width: 11px;
+    height: 11px;
+    border-radius: 3px;
+    flex-shrink: 0;
+  }
+
+  .swatch.circle {
+    border-radius: 50%;
+  }
+
+  .hint-box {
+    font-size: 10.5px;
+    color: var(--text-sub);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  @media (max-width: 1450px) {
+    .legend-title {
+      display: none;
+    }
+    .legend-item {
+      font-size: 10.2px;
+      padding: 3px 6px;
+    }
+  }
+
+  .key-pill {
+    background: rgba(51, 65, 85, 0.8);
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 10.5px;
+    color: #e2e8f0;
+  }
+</style>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+</head>
+<body>
+
+<div id="canvas-container"></div>
+<svg id="connector-svg"></svg>
+<div id="labels-layer"></div>
+
+<!-- Top Bar -->
+<header id="top-bar">
+  <div class="brand-area">
+    <div class="brand-title">家庭用エアコン（室内機・室外機）の仕組み 3D解剖図鑑</div>
+    <div class="brand-subtitle">ヒートポンプと冷媒の状態変化・熱移動シミュレーション</div>
+  </div>
+
+  <div class="controls-group">
+    <div class="mode-switch">
+      <button id="btn-mode-cool" class="mode-btn cool active" type="button">❄ 冷房モード</button>
+      <button id="btn-mode-heat" class="mode-btn heat" type="button">☀ 暖房モード</button>
+    </div>
+
+    <div class="divider"></div>
+
+    <button id="btn-cam-overview" class="ctrl-btn active" type="button">全体</button>
+    <button id="btn-cam-indoor" class="ctrl-btn" type="button">室内機</button>
+    <button id="btn-cam-outdoor" class="ctrl-btn" type="button">室外機</button>
+    <button id="btn-cam-comp" class="ctrl-btn" type="button">圧縮機・四方弁</button>
+
+    <div class="divider"></div>
+
+    <div class="slider-wrap">
+      <span>外装透過</span>
+      <input id="slider-shell" type="range" min="0" max="0.85" step="0.05" value="0.22">
+    </div>
+
+    <button id="btn-toggle-labels" class="ctrl-btn active" type="button">ラベル表示</button>
+  </div>
+</header>
+
+<!-- Left Panel: Heat Pump Cycle -->
+<aside id="left-panel">
+  <div id="mode-banner" class="mode-banner cool">
+    <span id="mode-banner-title">❄ 冷房運転：部屋の熱をくみ出して外へ捨てる</span>
+  </div>
+
+  <div id="principle-box" class="principle-box">
+    エアコンは冷気や暖気をゼロから作るのではなく、配管の中を流れる<strong>冷媒（れいばい）</strong>の<strong>状態変化（蒸発＝吸熱、凝縮＝放熱）</strong>と<strong>圧力変化</strong>を利用して、部屋と外の間で「熱を運ぶ（ヒートポンプ）」装置です。
+  </div>
+
+  <div class="section-heading">
+    <span>ヒートポンプの4工程（クリックで注目）</span>
+    <span id="flow-dir-label" style="color:#38bdf8;">四方弁：冷房経路</span>
+  </div>
+
+  <div class="cycle-steps" id="cycle-steps-container">
+    <!-- Step 1 -->
+    <div class="cycle-step" data-part="compressor" style="border-left-color: #ef4444;">
+      <div class="step-head">
+        <span>① 圧縮（圧縮機 / コンプレッサー）</span>
+        <span class="step-state" style="background:rgba(239,68,68,0.25); color:#fca5a5;">高温・高圧 気体</span>
+      </div>
+      <div class="step-desc" id="step-desc-1">
+        低温の冷媒ガスをモーターと偏心ローターで強く圧縮し、一気に<strong>高温・高圧の気体（約75℃・2.8MPa）</strong>にします。
+      </div>
+    </div>
+
+    <!-- Step 2 -->
+    <div class="cycle-step" data-part="condenser" style="border-left-color: #f97316;">
+      <div class="step-head">
+        <span id="step-title-2">② 凝縮・放熱（室外機の熱交換器）</span>
+        <span class="step-state" style="background:rgba(249,115,22,0.25); color:#fdba74;">中温・高圧 液体</span>
+      </div>
+      <div class="step-desc" id="step-desc-2">
+        外気へ<strong>熱を捨てて（放熱）</strong>冷媒が気体から<strong>高圧の液体（約45℃）</strong>に凝縮します。室外機から温かい風が出ます。
+      </div>
+    </div>
+
+    <!-- Step 3 -->
+    <div class="cycle-step" data-part="expansion" style="border-left-color: #06b6d4;">
+      <div class="step-head">
+        <span>③ 膨張・減圧（膨張弁）</span>
+        <span class="step-state" style="background:rgba(6,182,212,0.25); color:#67e8f9;">低温・低圧 霧状液</span>
+      </div>
+      <div class="step-desc" id="step-desc-3">
+        狭い隙間を通して急激に圧力を下げ（断熱膨張）、蒸発しやすい<strong>低温・低圧の霧状液（約7℃・0.9MPa）</strong>にします。
+      </div>
+    </div>
+
+    <!-- Step 4 -->
+    <div class="cycle-step" data-part="evaporator" style="border-left-color: #3b82f6;">
+      <div class="step-head">
+        <span id="step-title-4">④ 蒸発・吸熱（室内機の熱交換器）</span>
+        <span class="step-state" style="background:rgba(59,130,246,0.25); color:#93c5fd;">低温・低圧 気体</span>
+      </div>
+      <div class="step-desc" id="step-desc-4">
+        部屋の空気から<strong>熱を奪って（吸熱）</strong>冷媒が沸騰・蒸発し<strong>低圧の気体（約12℃）</strong>になります。熱を奪われた空気が冷風として部屋へ戻ります。
+      </div>
+    </div>
+  </div>
+</aside>
+
+<!-- Right Panel: Component Inspector -->
+<aside id="right-panel">
+  <div class="detail-header">
+    <div class="detail-title" id="detail-title">圧縮機（コンプレッサー）</div>
+    <div class="detail-unit-tag" id="detail-unit">室外機</div>
+  </div>
+  <div class="detail-role" id="detail-role">冷媒を圧縮して高温・高圧の気体にする「心臓部」</div>
+  <div class="detail-body" id="detail-body">
+    下部の吸入管（アキュムレーター）から入った低圧の冷媒ガスを、シリンダー内で偏心回転するローターとベーン（仕切り板）で押し縮めます。気体は急激に圧縮されると温度が上がる性質（断熱圧縮）があるため、外気より高い温度になってでも熱を移動できるようになります。
+  </div>
+  <div class="metrics-grid">
+    <div class="metric-card">
+      <div class="metric-label">入口の冷媒状態</div>
+      <div class="metric-val" id="metric-in">低温・低圧 気体 (約12℃)</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">出口の冷媒状態</div>
+      <div class="metric-val" id="metric-out">高温・高圧 気体 (約75℃)</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">圧力変化</div>
+      <div class="metric-val" id="metric-press">0.9 MPa → 2.8 MPa</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">熱のやりとり</div>
+      <div class="metric-val" id="metric-heat">仕事により温度上昇</div>
+    </div>
+  </div>
+</aside>
+
+<!-- Bottom Bar: State Legend -->
+<footer id="bottom-bar">
+  <div class="legend-group">
+    <span class="legend-title">冷媒の状態（色と粒の密度）：</span>
+    <div class="legend-item">
+      <span class="swatch circle" style="background:#ef4444; box-shadow:0 0 6px #ef4444;"></span>
+      <span><strong>高温・高圧 気体</strong> (約75℃ / 圧縮機出口)</span>
+    </div>
+    <div class="legend-item">
+      <span class="swatch" style="background:#f97316; box-shadow:0 0 6px #f97316;"></span>
+      <span><strong>中温・高圧 液体</strong> (約45℃ / 放熱・凝縮後)</span>
+    </div>
+    <div class="legend-item">
+      <span class="swatch" style="background:#06b6d4; box-shadow:0 0 6px #06b6d4;"></span>
+      <span><strong>低温・低圧 霧状液</strong> (約5〜7℃ / 膨張弁出口)</span>
+    </div>
+    <div class="legend-item">
+      <span class="swatch circle" style="background:#3b82f6; box-shadow:0 0 6px #3b82f6;"></span>
+      <span><strong>低温・低圧 気体</strong> (約10〜12℃ / 吸熱・蒸発後)</span>
+    </div>
+  </div>
+
+  <div class="hint-box">
+    <span><span class="key-pill">左ドラッグ</span> 回転</span>
+    <span><span class="key-pill">ホイール</span> 拡大縮小</span>
+    <span><span class="key-pill">右ドラッグ</span> 移動</span>
+  </div>
+</footer>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+// ==========================================
+// 1. STATE & CONFIGURATION
+// ==========================================
+const urlParams = new URLSearchParams(window.location.search);
+const initialModeParam = urlParams.get('mode');
+let currentMode = (initialModeParam === 'heat') ? 'heat' : 'cool';
+let selectedPartKey = 'compressor';
+let labelsVisible = true;
+
+// Component metadata for both modes
+const COMPONENT_DATA = {
+  indoor_hx: {
+    name: '室内機 熱交換器（アルミフィン＆銅管）',
+    unit: '室内機',
+    anchor: new THREE.Vector3(-3.3, 2.75, 0.1),
+    labelOffset: { x: -135, y: -68 },
+    getInfo(mode) {
+      if (mode === 'cool') {
+        return {
+          badge: '蒸発器（吸熱）',
+          badgeColor: '#38bdf8',
+          sub: '低温の冷媒が蒸発し部屋の熱を奪う',
+          role: '【冷房時：蒸発器】部屋の空気から熱を吸い取り、冷媒を沸騰・蒸発させる',
+          body: '幾重にも並んだ薄いアルミ板（フィン）の中をジグザグに銅管が通っています。冷房時は約7℃の冷たい液体の冷媒が管内を流れ、部屋の空気（約28℃）から熱を奪って沸騰（蒸発）し気体になります。熱を奪われた空気は冷えて部屋へ吹き出され、空気中の水蒸気は結露してドレンパンへ落ちます。',
+          inState: '低温・低圧 霧状液 (約7℃)',
+          outState: '低温・低圧 気体 (約12℃)',
+          press: '低圧維持 (約0.9 MPa)',
+          heat: '室内の空気から吸熱 ❄️'
+        };
+      } else {
+        return {
+          badge: '凝縮器（放熱）',
+          badgeColor: '#fb923c',
+          sub: '高温の冷媒が凝縮し部屋へ熱を放つ',
+          role: '【暖房時：凝縮器】高温の冷媒ガスから部屋の空気へ熱を放出し、液体に戻す',
+          body: '暖房時は四方弁の切り替えにより、圧縮機から出た高温・高圧の冷媒ガス（約75℃）が真っ先に室内機の熱交換器へ届きます。部屋の空気にたっぷりと熱を渡して（放熱）、冷媒自身は凝縮して高圧の液体（約45℃）になります。温められた空気が温風として足元へ吹き出します。',
+          inState: '高温・高圧 気体 (約75℃)',
+          outState: '中温・高圧 液体 (約45℃)',
+          press: '高圧維持 (約2.8 MPa)',
+          heat: '室内の空気へ放熱 🔥'
+        };
+      }
+    }
+  },
+  crossflow_fan: {
+    name: 'クロスフローファン（貫流ファン）＆ルーバー',
+    unit: '室内機',
+    anchor: new THREE.Vector3(-3.3, 1.98, 0.35),
+    labelOffset: { x: -130, y: 55 },
+    getInfo(mode) {
+      return {
+        badge: '室内送風',
+        badgeColor: '#a855f7',
+        sub: '上面から吸気し熱交換器を通して送風',
+        role: '室内の空気を吸い込み、熱交換器を通過させて部屋へ送り出す円筒ファン',
+        body: '室内機の横幅いっぱいに広がる円筒形の多翼ファンです。上部吸込口から部屋の空気を引き込み、その周囲を取り囲む熱交換器のアルミフィンの隙間を通過させてから、前面下の吹出口（上下風向ルーバー）へムラなく静かに送り出します。',
+        inState: mode === 'cool' ? '室温の空気 (約28℃)' : '室温の空気 (約18℃)',
+        outState: mode === 'cool' ? '冷やされた空気 (約15℃)' : '温められた空気 (約42℃)',
+        press: '大気圧（送風循環）',
+        heat: mode === 'cool' ? '冷風を室内へ送る' : '温風を室内へ送る'
+      };
+    }
+  },
+  compressor: {
+    name: '圧縮機（ロータリーコンプレッサー）',
+    unit: '室外機',
+    anchor: new THREE.Vector3(3.95, -1.9, 0.2),
+    labelOffset: { x: 130, y: 45 },
+    getInfo(mode) {
+      return {
+        badge: '① 圧縮（高温高圧化）',
+        badgeColor: '#ef4444',
+        sub: '偏心ローター回転で気体を高温高圧に圧縮',
+        role: '低温・低圧の冷媒ガスを押し縮め、高温・高圧の気体にする心臓部',
+        body: '冷媒を循環させるポンプであり、温度を引き上げる最重要部品です。内部ではモーター軸の偏心ローターがシリンダー内壁に沿って回転し、スプリングで押し付けられたベーン（仕切り板）が空間を仕切ることで、吸入した低圧ガスを狭い空間へ押し縮め（断熱圧縮）、一気に高温・高圧のガスにして上部から吐出します。',
+        inState: '低温・低圧 気体 (約5〜12℃)',
+        outState: '高温・高圧 気体 (約75℃)',
+        press: '約0.9 MPa → 約2.8 MPa',
+        heat: '機械的仕事により昇温'
+      };
+    }
+  },
+  four_way_valve: {
+    name: '四方弁（流路切替バルブ）',
+    unit: '室外機',
+    anchor: new THREE.Vector3(3.75, -0.75, 0.15),
+    labelOffset: { x: 115, y: -48 },
+    getInfo(mode) {
+      return {
+        badge: mode === 'cool' ? '冷房流路' : '暖房流路',
+        badgeColor: mode === 'cool' ? '#38bdf8' : '#fb923c',
+        sub: mode === 'cool' ? '圧縮ガスを室外熱交換器へ送る' : '圧縮ガスを室内熱交換器へ送る',
+        role: '冷房と暖房で冷媒が回る向きを逆転させる「鉄道のポイント」',
+        body: '圧縮機の吐出口（常に高温高圧）と吸入口（常に低温低圧）を、室内機と室外機のどちらにつなぐかを切り替えるスライド弁です。圧縮機自体は常に同じ向きに回転しますが、四方弁がスライドすることで、冷房時は室外機へ、暖房時は室内機へ高温ガスを送り出します。',
+        inState: '圧縮機からの高温高圧ガス',
+        outState: mode === 'cool' ? '室外機の熱交換器へ接続' : '室内機の熱交換器へ接続',
+        press: '高圧流路と低圧流路を分離',
+        heat: '冷房・暖房の役割を逆転'
+      };
+    }
+  },
+  expansion_valve: {
+    name: '膨張弁（電子制御減圧弁）',
+    unit: '室外機',
+    anchor: new THREE.Vector3(3.15, -2.35, -0.45),
+    labelOffset: { x: -8, y: 78 },
+    getInfo(mode) {
+      return {
+        badge: '③ 膨張・減圧',
+        badgeColor: '#06b6d4',
+        sub: '狭い隙間を通し急減圧して低温化',
+        role: '高圧の液体冷媒を狭い隙間から噴出させ、低温・低圧の霧状にする装置',
+        body: '放熱して液体になった高圧の冷媒を、針のようなニードル弁の極小の隙間（オリフィス）に通すことで急激に圧力を下げます（絞り膨張）。圧力が下がると冷媒の沸点も一気に下がり、周囲から熱を奪いながらすぐ蒸発できる冷たい霧状の気液混合状態（約2〜7℃）になります。',
+        inState: '中温・高圧 液体 (約40〜45℃)',
+        outState: '低温・低圧 霧状液 (約2〜7℃)',
+        press: '約2.8 MPa → 約0.8〜0.9 MPa',
+        heat: '断熱膨張による急激な温度低下'
+      };
+    }
+  },
+  outdoor_hx: {
+    name: '室外機 熱交換器（L字型アルミフィン＆銅管）',
+    unit: '室外機',
+    anchor: new THREE.Vector3(1.85, -1.05, -0.58),
+    labelOffset: { x: -135, y: -55 },
+    getInfo(mode) {
+      if (mode === 'cool') {
+        return {
+          badge: '凝縮器（放熱）',
+          badgeColor: '#f97316',
+          sub: '高温ガスから外気へ熱を捨て液化',
+          role: '【冷房時：凝縮器】部屋から奪った熱を外気へ捨て、冷媒を液体に戻す',
+          body: '室外機の背面から左側面にかけてL字型に配置された大型の熱交換器です。冷房時は約75℃の高温・高圧の冷媒ガスが流れ、真夏の外気（35℃）よりもさらに温度が高いため、外気へ熱を捨てて（放熱）凝縮し、高圧の液体（約45℃）になります。',
+          inState: '高温・高圧 気体 (約75℃)',
+          outState: '中温・高圧 液体 (約45℃)',
+          press: '高圧維持 (約2.8 MPa)',
+          heat: '外気へ放熱 🔥'
+        };
+      } else {
+        return {
+          badge: '蒸発器（吸熱）',
+          badgeColor: '#38bdf8',
+          sub: '外気よりも冷たい冷媒が外から吸熱',
+          role: '【暖房時：蒸発器】冬の冷たい外気からさらに熱をくみ上げ、冷媒を蒸発させる',
+          body: '暖房時は膨張弁で外気（例えば7℃）よりもさらに低い温度（約2℃）に減圧された冷媒が流れます。そのため冬の冷たい外気からでも熱を奪って（吸熱）冷媒が蒸発し、気体になります。熱を奪われた外気はさらに冷たくなって室外機正面から吹き出します。',
+          inState: '低温・低圧 霧状液 (約2℃)',
+          outState: '低温・低圧 気体 (約5℃)',
+          press: '低圧維持 (約0.8 MPa)',
+          heat: '外気から吸熱 ❄️'
+        };
+      }
+    }
+  },
+  outdoor_fan: {
+    name: '室外機 プロペラファン＆モーター',
+    unit: '室外機',
+    anchor: new THREE.Vector3(2.05, -1.5, 0.55),
+    labelOffset: { x: -135, y: 45 },
+    getInfo(mode) {
+      return {
+        badge: '外気送風',
+        badgeColor: '#10b981',
+        sub: '背面・側面から外気を吸い正面へ排出',
+        role: '大量の外気を熱交換器に通し、外気との熱交換（放熱・吸熱）を促進する',
+        body: '大口径の3枚羽根プロペラファンが回転し、室外機の背面・左側面にあるL字型熱交換器の隙間から外気を強力に吸い込み、前面の円形グリルから外へ吹き出します。',
+        inState: mode === 'cool' ? '夏の外気 (約35℃)' : '冬の冷たい外気 (約7℃)',
+        outState: mode === 'cool' ? '熱を捨てた温風 (約45℃)' : '熱を奪われた冷風 (約2℃)',
+        press: '大気圧（外気強制対流）',
+        heat: mode === 'cool' ? '放熱を促進' : '吸熱を促進'
+      };
+    }
+  },
+  pipes: {
+    name: '連絡配管（ガス管［太］・液管［細］）',
+    unit: '室内外接続',
+    anchor: new THREE.Vector3(-0.35, 0.3, -0.82),
+    labelOffset: { x: 0, y: -35 },
+    getInfo(mode) {
+      return {
+        badge: '冷媒循環パイプ',
+        badgeColor: '#eab308',
+        sub: '壁の穴を通り室内機と室外機を結ぶ2本の銅管',
+        role: '室内機と室外機の間で気体・液体の冷媒を往復させる2本の断熱銅管',
+        body: '壁のスリーブ穴を通って室内機と室外機をつなぐ2本の銅管です。気体が通る「ガス管」は体積が大きいため太く、液体（または霧状液）が通る「液管」は細くなっています。外気と余計な熱交換をしないよう断熱材で覆われています。',
+        inState: mode === 'cool' ? '細管：低温霧状液（室外→室内）' : '太管：高温高圧ガス（室外→室内）',
+        outState: mode === 'cool' ? '太管：低温低圧ガス（室内→室外）' : '細管：中温高圧液（室内→室外）',
+        press: '太管と細管で圧力・状態が異なる',
+        heat: '断熱被覆により熱損失を防止'
+      };
+    }
+  }
+};
+
+// ==========================================
+// 2. THREE.JS SCENE & RENDERER SETUP
+// ==========================================
+const container = document.getElementById('canvas-container');
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0b1322);
+
+const camera = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.1, 120);
+camera.position.set(0.2, 0.85, 11.4);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.12;
+container.appendChild(renderer.domElement);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.06;
+controls.target.set(0.2, 0.15, -0.1);
+controls.minDistance = 2.2;
+controls.maxDistance = 22.0;
+controls.maxPolarAngle = Math.PI * 0.85;
+
+// Camera smooth transition target
+let camAnim = null;
+function moveCameraTo(pos, target) {
+  camAnim = {
+    startPos: camera.position.clone(),
+    startTarget: controls.target.clone(),
+    endPos: new THREE.Vector3(...pos),
+    endTarget: new THREE.Vector3(...target),
+    t: 0
+  };
+}
+
+// ==========================================
+// 3. LIGHTING & ARCHITECTURAL ENVIRONMENT
+// ==========================================
+const ambientLight = new THREE.AmbientLight(0xdbeafe, 0.78);
+scene.add(ambientLight);
+
+const dirLight = new THREE.DirectionalLight(0xffffff, 1.35);
+dirLight.position.set(6, 10, 9);
+dirLight.castShadow = true;
+dirLight.shadow.mapSize.set(2048, 2048);
+dirLight.shadow.camera.near = 1;
+dirLight.shadow.camera.far = 30;
+dirLight.shadow.camera.left = -9;
+dirLight.shadow.camera.right = 9;
+dirLight.shadow.camera.top = 7;
+dirLight.shadow.camera.bottom = -7;
+scene.add(dirLight);
+
+const backLight = new THREE.DirectionalLight(0x93c5fd, 0.55);
+backLight.position.set(-7, 4, -8);
+scene.add(backLight);
+
+// Dynamic thermal glow lights for indoor & outdoor heat exchangers
+const indoorGlowLight = new THREE.PointLight(0x38bdf8, 1.5, 4.5);
+indoorGlowLight.position.set(-3.3, 2.3, 0.4);
+scene.add(indoorGlowLight);
+
+const outdoorGlowLight = new THREE.PointLight(0xf97316, 1.5, 4.5);
+outdoorGlowLight.position.set(2.2, -1.3, 0.2);
+scene.add(outdoorGlowLight);
+
+// Architectural Cutaway Group (Indoor Room + Dividing Wall + Outdoor Ground)
+const envGroup = new THREE.Group();
+scene.add(envGroup);
+
+const shellMaterials = []; // Track outer casing materials for opacity slider
+
+function buildEnvironment() {
+  // Dividing Wall between Indoor (left, X < 0) and Outdoor (right, X > 0)
+  // Cutaway wall with a sleeve hole at (-0.15, 2.0, -0.78)
+  const wallMat = new THREE.MeshStandardMaterial({
+    color: 0x334155,
+    roughness: 0.85,
+    metalness: 0.05,
+    transparent: true,
+    opacity: 0.72
+  });
+
+  // Back backdrop wall behind indoor unit (Room interior wall)
+  const indoorWallMat = new THREE.MeshStandardMaterial({
+    color: 0x1e293b,
+    roughness: 0.9
+  });
+  const indoorBackWall = new THREE.Mesh(new THREE.BoxGeometry(6.2, 6.2, 0.18), indoorWallMat);
+  indoorBackWall.position.set(-3.2, 0.3, -0.68);
+  indoorBackWall.receiveShadow = true;
+  envGroup.add(indoorBackWall);
+
+  // Room floor
+  const indoorFloorMat = new THREE.MeshStandardMaterial({
+    color: 0x292524,
+    roughness: 0.8
+  });
+  const indoorFloor = new THREE.Mesh(new THREE.BoxGeometry(6.2, 0.16, 3.6), indoorFloorMat);
+  indoorFloor.position.set(-3.2, -2.72, 1.0);
+  indoorFloor.receiveShadow = true;
+  envGroup.add(indoorFloor);
+
+  // Dividing House Exterior Wall (at X = -0.1)
+  const divWall = new THREE.Mesh(new THREE.BoxGeometry(0.28, 6.2, 3.6), wallMat);
+  divWall.position.set(-0.1, 0.3, 1.0);
+  envGroup.add(divWall);
+
+  // Wall pipe sleeve ring where pipes pass from indoor to outdoor
+  const sleeveGeo = new THREE.CylinderGeometry(0.22, 0.22, 0.32, 24);
+  sleeveGeo.rotateZ(Math.PI / 2);
+  const sleeveMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.4, roughness: 0.4 });
+  const sleeveMesh = new THREE.Mesh(sleeveGeo, sleeveMat);
+  sleeveMesh.position.set(-0.1, 1.9, -0.52);
+  envGroup.add(sleeveMesh);
+
+  // Outdoor concrete pad / ground (X > 0)
+  const outdoorGroundMat = new THREE.MeshStandardMaterial({
+    color: 0x1e2530,
+    roughness: 0.95
+  });
+  const outdoorGround = new THREE.Mesh(new THREE.BoxGeometry(6.2, 0.16, 3.6), outdoorGroundMat);
+  outdoorGround.position.set(3.0, -2.72, 1.0);
+  outdoorGround.receiveShadow = true;
+  envGroup.add(outdoorGround);
+
+  // Outdoor unit mounting blocks (プラロック架台)
+  const blockMat = new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.7 });
+  const blockL = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.18, 1.45), blockMat);
+  blockL.position.set(1.35, -2.55, 0.0);
+  const blockR = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.18, 1.45), blockMat);
+  blockR.position.set(4.15, -2.55, 0.0);
+  envGroup.add(blockL, blockR);
+
+  // Subtle grid helper under everything
+  const grid = new THREE.GridHelper(13, 26, 0x334155, 0x1e293b);
+  grid.position.set(0, -2.81, 1.0);
+  envGroup.add(grid);
+}
+buildEnvironment();
+
+// ==========================================
+// 4. INDOOR UNIT (実物構造：クロスフローファン・ラムダ型熱交換器・ドレンパン・ルーバー)
+// ==========================================
+const indoorGroup = new THREE.Group();
+scene.add(indoorGroup);
+
+// Dynamic references for indoor animation & coloring
+let crossFlowFanMesh = null;
+let louverMesh1 = null;
+let louverMesh2 = null;
+const indoorFinMeshes = [];
+const indoorHairpinMeshes = [];
+const condensationDrops = [];
+
+function buildIndoorUnit() {
+  // Center of indoor unit around (-3.3, 2.25, 0.05)
+  const ix = -3.3;
+  const iy = 2.25;
+  const iz = 0.05;
+
+  // 1. Back Chassis & Drain Pan (ドレンパン・背面シャーシ)
+  const chassisMat = new THREE.MeshStandardMaterial({
+    color: 0x64748b,
+    roughness: 0.6,
+    metalness: 0.15
+  });
+  const backPlate = new THREE.Mesh(new THREE.BoxGeometry(3.2, 1.25, 0.08), chassisMat);
+  backPlate.position.set(ix, iy + 0.05, iz - 0.52);
+  indoorGroup.add(backPlate);
+
+  // Front & Rear Drain Pan troughs (結露水を受ける水受け皿)
+  const drainPanMat = new THREE.MeshStandardMaterial({
+    color: 0x94a3b8,
+    roughness: 0.4,
+    metalness: 0.1
+  });
+  const frontDrainPan = new THREE.Mesh(new THREE.BoxGeometry(2.95, 0.1, 0.24), drainPanMat);
+  frontDrainPan.position.set(ix - 0.08, iy - 0.34, iz + 0.38);
+  frontDrainPan.rotation.x = 0.15;
+  indoorGroup.add(frontDrainPan);
+
+  // Water pool inside front drain pan (visible during cooling)
+  const waterMat = new THREE.MeshStandardMaterial({
+    color: 0x38bdf8,
+    transparent: true,
+    opacity: 0.65,
+    roughness: 0.1,
+    metalness: 0.2
+  });
+  const waterStrip = new THREE.Mesh(new THREE.BoxGeometry(2.85, 0.03, 0.14), waterMat);
+  waterStrip.position.set(ix - 0.08, iy - 0.30, iz + 0.38);
+  indoorGroup.add(waterStrip);
+
+  // 2. Cross-Flow Fan (貫流ファン / クロスフローファン)
+  const fanGroup = new THREE.Group();
+  fanGroup.position.set(ix - 0.12, iy - 0.16, iz + 0.02);
+
+  const fanBladeMat = new THREE.MeshStandardMaterial({
+    color: 0x1e293b,
+    roughness: 0.35,
+    metalness: 0.45
+  });
+  const fanRingMat = new THREE.MeshStandardMaterial({
+    color: 0x38bdf8,
+    roughness: 0.3,
+    metalness: 0.6
+  });
+
+  const fanLength = 2.55;
+  const fanRadius = 0.25;
+  const numBlades = 28;
+
+  // Support disks along the cylinder length
+  for (let s = 0; s <= 5; s++) {
+    const sx = -fanLength / 2 + (s / 5) * fanLength;
+    const ringGeo = new THREE.RingGeometry(fanRadius * 0.68, fanRadius, 24);
+    const ringMesh = new THREE.Mesh(ringGeo, s === 0 || s === 5 ? fanRingMat : fanBladeMat);
+    ringMesh.rotation.y = Math.PI / 2;
+    ringMesh.position.x = sx;
+    fanGroup.add(ringMesh);
+  }
+
+  // Center shaft
+  const shaftGeo = new THREE.CylinderGeometry(0.025, 0.025, fanLength + 0.28, 12);
+  shaftGeo.rotateZ(Math.PI / 2);
+  const shaftMesh = new THREE.Mesh(shaftGeo, new THREE.MeshStandardMaterial({ color: 0xcbd5e1, metalness: 0.8, roughness: 0.2 }));
+  fanGroup.add(shaftMesh);
+
+  // Forward-curved transverse blades around circumference
+  const bladeGeo = new THREE.BoxGeometry(fanLength, 0.045, 0.012);
+  for (let b = 0; b < numBlades; b++) {
+    const angle = (b / numBlades) * Math.PI * 2;
+    const blade = new THREE.Mesh(bladeGeo, fanBladeMat);
+    const r = fanRadius * 0.85;
+    blade.position.set(0, Math.sin(angle) * r, Math.cos(angle) * r);
+    blade.rotation.x = -angle + 0.45;
+    fanGroup.add(blade);
+  }
+
+  indoorGroup.add(fanGroup);
+  crossFlowFanMesh = fanGroup;
+
+  // Right-side Fan Drive Motor inside indoor unit
+  const indoorMotorGeo = new THREE.CylinderGeometry(0.18, 0.18, 0.24, 20);
+  indoorMotorGeo.rotateZ(Math.PI / 2);
+  const indoorMotorMat = new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.6, roughness: 0.35 });
+  const indoorMotor = new THREE.Mesh(indoorMotorGeo, indoorMotorMat);
+  indoorMotor.position.set(ix + 1.32, iy - 0.16, iz + 0.02);
+  indoorGroup.add(indoorMotor);
+
+  // 3. Lambda-shaped Multi-Stage Heat Exchanger (Λ型アルミフィン＆銅管熱交換器)
+  // Wraps over the cross-flow fan: Front-lower slant, Front-upper slant, Rear slant
+  const hxGroup = new THREE.Group();
+  hxGroup.position.set(ix - 0.12, iy, iz);
+  indoorGroup.add(hxGroup);
+
+  const slabConfigs = [
+    // Front lower slab
+    { cy: -0.02, cz: 0.38, rotX: -0.35, h: 0.48, d: 0.12 },
+    // Front upper slab
+    { cy: 0.34, cz: 0.18, rotX: -0.98, h: 0.48, d: 0.12 },
+    // Rear upper slab
+    { cy: 0.34, cz: -0.22, rotX: 0.85, h: 0.46, d: 0.12 }
+  ];
+
+  const finMat = new THREE.MeshStandardMaterial({
+    color: 0x93c5fd,
+    metalness: 0.65,
+    roughness: 0.28,
+    transparent: true,
+    opacity: 0.82
+  });
+  indoorFinMeshes.push(finMat);
+
+  const copperMat = new THREE.MeshStandardMaterial({
+    color: 0xd97706,
+    metalness: 0.78,
+    roughness: 0.25,
+    emissive: new THREE.Color(0x0284c7),
+    emissiveIntensity: 0.25
+  });
+  indoorHairpinMeshes.push(copperMat);
+
+  const hxWidth = 2.52;
+  const numFins = 54;
+  const finGeo = new THREE.BoxGeometry(0.008, 0.46, 0.11);
+
+  slabConfigs.forEach((cfg) => {
+    const slabHolder = new THREE.Group();
+    slabHolder.position.set(0, cfg.cy, cfg.cz);
+    slabHolder.rotation.x = cfg.rotX;
+
+    // Array of aluminum fins
+    const finInst = new THREE.InstancedMesh(finGeo, finMat, numFins);
+    const dummy = new THREE.Object3D();
+    for (let i = 0; i < numFins; i++) {
+      dummy.position.set(-hxWidth / 2 + (i / (numFins - 1)) * hxWidth, 0, 0);
+      dummy.updateMatrix();
+      finInst.setMatrixAt(i, dummy.matrix);
+    }
+    slabHolder.add(finInst);
+
+    // Copper refrigerant tubes passing horizontally through the fins + U-bends on left/right ends
+    const numRows = 4;
+    for (let r = 0; r < numRows; r++) {
+      const ry = -0.16 + (r / (numRows - 1)) * 0.32;
+      for (let layer = -1; layer <= 1; layer += 2) {
+        const rz = layer * 0.028;
+        const tubeGeo = new THREE.CylinderGeometry(0.016, 0.016, hxWidth + 0.08, 10);
+        tubeGeo.rotateZ(Math.PI / 2);
+        const tubeMesh = new THREE.Mesh(tubeGeo, copperMat);
+        tubeMesh.position.set(0, ry, rz);
+        slabHolder.add(tubeMesh);
+      }
+      // U-bend hairpins on left & right ends
+      const uGeo = new THREE.TorusGeometry(0.028, 0.015, 8, 14, Math.PI);
+      const uLeft = new THREE.Mesh(uGeo, copperMat);
+      uLeft.position.set(-hxWidth / 2 - 0.04, ry, 0);
+      uLeft.rotation.y = Math.PI / 2;
+      slabHolder.add(uLeft);
+
+      const uRight = new THREE.Mesh(uGeo, copperMat);
+      uRight.position.set(hxWidth / 2 + 0.04, ry, 0);
+      uRight.rotation.y = -Math.PI / 2;
+      slabHolder.add(uRight);
+    }
+
+    hxGroup.add(slabHolder);
+  });
+
+  // Top Dust Filters (エアフィルター網) curving over the top intake
+  const filterMat = new THREE.MeshStandardMaterial({
+    color: 0xe2e8f0,
+    wireframe: true,
+    transparent: true,
+    opacity: 0.35
+  });
+  const filterMesh = new THREE.Mesh(new THREE.BoxGeometry(2.58, 0.02, 0.65), filterMat);
+  filterMesh.position.set(ix - 0.12, iy + 0.62, iz - 0.02);
+  indoorGroup.add(filterMesh);
+
+  // 4. Motorized Swing Louvers (上下風向ルーバー / フラップ)
+  const louverMat = new THREE.MeshStandardMaterial({
+    color: 0xf8fafc,
+    roughness: 0.25,
+    metalness: 0.1
+  });
+  const louverGeo = new THREE.BoxGeometry(2.65, 0.022, 0.13);
+  louverMesh1 = new THREE.Mesh(louverGeo, louverMat);
+  louverMesh1.position.set(ix - 0.12, iy - 0.48, iz + 0.42);
+  louverMesh2 = new THREE.Mesh(louverGeo, louverMat);
+  louverMesh2.position.set(ix - 0.12, iy - 0.54, iz + 0.32);
+  indoorGroup.add(louverMesh1, louverMesh2);
+
+  // 5. Cutaway Translucent Indoor Casing (透かし外装カバー)
+  const indoorShellMat = new THREE.MeshPhysicalMaterial({
+    color: 0xf8fafc,
+    roughness: 0.15,
+    metalness: 0.05,
+    transmission: 0.25,
+    transparent: true,
+    opacity: 0.22,
+    depthWrite: false,
+    side: THREE.DoubleSide
+  });
+  shellMaterials.push(indoorShellMat);
+
+  const shellBox = new THREE.Mesh(new THREE.BoxGeometry(3.25, 1.32, 1.06), indoorShellMat);
+  shellBox.position.set(ix, iy + 0.04, iz);
+  indoorGroup.add(shellBox);
+
+  // Structural wireframe outline so the unit silhouette stays crisp
+  const edges = new THREE.EdgesGeometry(new THREE.BoxGeometry(3.25, 1.32, 1.06));
+  const lineMat = new THREE.LineBasicMaterial({ color: 0x94a3b8, transparent: true, opacity: 0.45 });
+  const shellWire = new THREE.LineSegments(edges, lineMat);
+  shellWire.position.copy(shellBox.position);
+  indoorGroup.add(shellWire);
+
+  // 6. Condensation water droplets (結露水滴：冷房時に室内熱交換器で発生しドレンパンへ落ちる)
+  const dropGeo = new THREE.SphereGeometry(0.022, 8, 8);
+  const dropMat = new THREE.MeshStandardMaterial({
+    color: 0x7dd3fc,
+    roughness: 0.1,
+    metalness: 0.2,
+    transparent: true,
+    opacity: 0.85
+  });
+  for (let d = 0; d < 18; d++) {
+    const drop = new THREE.Mesh(dropGeo, dropMat);
+    drop.userData = {
+      baseX: ix - 1.3 + Math.random() * 2.35,
+      phase: Math.random() * Math.PI * 2,
+      speed: 0.45 + Math.random() * 0.35
+    };
+    indoorGroup.add(drop);
+    condensationDrops.push(drop);
+  }
+}
+buildIndoorUnit();
+
+// ==========================================
+// 5. OUTDOOR UNIT (実物構造：L字熱交換器・プロペラファン・ロータリー圧縮機内部・四方弁・膨張弁)
+// ==========================================
+const outdoorGroup = new THREE.Group();
+scene.add(outdoorGroup);
+
+// Dynamic references for outdoor animation & coloring
+let propellerFanGroup = null;
+let compEccentricRotor = null;
+let compVaneBlade = null;
+let compGasChamberMesh = null;
+let compGasChamberMat = null;
+let fourWaySlidePlunger = null;
+let expNeedleMesh = null;
+const outdoorFinMeshes = [];
+const outdoorHairpinMeshes = [];
+
+function buildOutdoorUnit() {
+  // Outdoor unit positioned on ground mount around X = 2.75, Y = -1.45, Z = 0.0
+  const ox = 2.75;
+  const oy = -1.45;
+  const oz = 0.0;
+
+  // Base Pan (底板)
+  const baseMat = new THREE.MeshStandardMaterial({ color: 0x475569, metalness: 0.5, roughness: 0.5 });
+  const basePan = new THREE.Mesh(new THREE.BoxGeometry(3.4, 0.08, 1.42), baseMat);
+  basePan.position.set(ox, oy - 0.98, oz);
+  outdoorGroup.add(basePan);
+
+  // Internal Partition Plate (ファン室と機械室を仕切るセパレーター板)
+  const sepMat = new THREE.MeshStandardMaterial({
+    color: 0x64748b,
+    metalness: 0.5,
+    roughness: 0.5,
+    transparent: true,
+    opacity: 0.45
+  });
+  const sepPlate = new THREE.Mesh(new THREE.BoxGeometry(0.04, 1.9, 1.25), sepMat);
+  sepPlate.position.set(ox + 0.42, oy, oz + 0.04);
+  outdoorGroup.add(sepPlate);
+
+  // 1. L-Shaped Outdoor Heat Exchanger (背面＋左側面L字アルミフィン＆銅管)
+  const outHxGroup = new THREE.Group();
+  outdoorGroup.add(outHxGroup);
+
+  const outFinMat = new THREE.MeshStandardMaterial({
+    color: 0x94a3b8,
+    metalness: 0.65,
+    roughness: 0.3,
+    transparent: true,
+    opacity: 0.78
+  });
+  outdoorFinMeshes.push(outFinMat);
+
+  const outCopperMat = new THREE.MeshStandardMaterial({
+    color: 0xd97706,
+    metalness: 0.8,
+    roughness: 0.25,
+    emissive: new THREE.Color(0xea580c),
+    emissiveIntensity: 0.25
+  });
+  outdoorHairpinMeshes.push(outCopperMat);
+
+  // Back HX slab: X from ox - 1.62 to ox + 1.45, Z = oz - 0.58
+  const backWidth = 3.05;
+  const hxHeight = 1.82;
+  const numBackFins = 62;
+  const backFinGeo = new THREE.BoxGeometry(0.01, hxHeight, 0.16);
+  const backFinInst = new THREE.InstancedMesh(backFinGeo, outFinMat, numBackFins);
+  const dummy = new THREE.Object3D();
+  for (let i = 0; i < numBackFins; i++) {
+    dummy.position.set((ox - 1.6) + (i / (numBackFins - 1)) * backWidth, oy, oz - 0.58);
+    dummy.updateMatrix();
+    backFinInst.setMatrixAt(i, dummy.matrix);
+  }
+  outHxGroup.add(backFinInst);
+
+  // Left-side L-bend HX slab: X = ox - 1.62, Z from oz - 0.58 to oz + 0.45
+  const sideDepth = 1.02;
+  const numSideFins = 20;
+  const sideFinGeo = new THREE.BoxGeometry(0.16, hxHeight, 0.01);
+  const sideFinInst = new THREE.InstancedMesh(sideFinGeo, outFinMat, numSideFins);
+  for (let i = 0; i < numSideFins; i++) {
+    dummy.position.set(ox - 1.56, oy, (oz - 0.52) + (i / (numSideFins - 1)) * sideDepth);
+    dummy.updateMatrix();
+    sideFinInst.setMatrixAt(i, dummy.matrix);
+  }
+  outHxGroup.add(sideFinInst);
+
+  // Horizontal copper refrigerant rows across the outdoor HX + U-bend hairpins on the right edge
+  const numOutRows = 12;
+  for (let r = 0; r < numOutRows; r++) {
+    const ry = (oy - 0.8) + (r / (numOutRows - 1)) * 1.6;
+    for (let layer = -1; layer <= 1; layer += 2) {
+      const rz = oz - 0.58 + layer * 0.04;
+      const tubeGeo = new THREE.CylinderGeometry(0.022, 0.022, backWidth + 0.08, 10);
+      tubeGeo.rotateZ(Math.PI / 2);
+      const tube = new THREE.Mesh(tubeGeo, outCopperMat);
+      tube.position.set(ox - 0.08, ry, rz);
+      outHxGroup.add(tube);
+    }
+    // Right end U-bends
+    const uGeo = new THREE.TorusGeometry(0.04, 0.02, 8, 14, Math.PI);
+    const uRight = new THREE.Mesh(uGeo, outCopperMat);
+    uRight.position.set(ox + 1.48, ry, oz - 0.58);
+    uRight.rotation.y = -Math.PI / 2;
+    outHxGroup.add(uRight);
+  }
+
+  // 2. Propeller Fan & Motor Mount (左室：大型3枚羽根プロペラファン＆モーター)
+  const fanX = ox - 0.65;
+  const fanY = oy - 0.02;
+  const fanZ = oz + 0.22;
+
+  // Vertical motor support bracket
+  const bracketMat = new THREE.MeshStandardMaterial({ color: 0x475569, metalness: 0.6, roughness: 0.4 });
+  const bracket = new THREE.Mesh(new THREE.BoxGeometry(0.12, 1.82, 0.06), bracketMat);
+  bracket.position.set(fanX, oy, fanZ - 0.25);
+  outdoorGroup.add(bracket);
+
+  // Fan DC Brushless Motor
+  const motorGeo = new THREE.CylinderGeometry(0.18, 0.18, 0.28, 20);
+  motorGeo.rotateX(Math.PI / 2);
+  const motorMesh = new THREE.Mesh(motorGeo, new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.7, roughness: 0.3 }));
+  motorMesh.position.set(fanX, fanY, fanZ - 0.1);
+  outdoorGroup.add(motorMesh);
+
+  // Propeller Fan Assembly
+  propellerFanGroup = new THREE.Group();
+  propellerFanGroup.position.set(fanX, fanY, fanZ + 0.08);
+
+  const hubGeo = new THREE.CylinderGeometry(0.16, 0.14, 0.14, 24);
+  hubGeo.rotateX(Math.PI / 2);
+  const propMat = new THREE.MeshStandardMaterial({
+    color: 0x1e293b,
+    metalness: 0.35,
+    roughness: 0.35,
+    side: THREE.DoubleSide
+  });
+  const hubMesh = new THREE.Mesh(hubGeo, propMat);
+  propellerFanGroup.add(hubMesh);
+
+  // 3 Swept Axial Fan Blades (Extrude or shaped geometry)
+  const bladeShape = new THREE.Shape();
+  bladeShape.moveTo(0.1, -0.06);
+  bladeShape.quadraticCurveTo(0.42, -0.26, 0.72, -0.14);
+  bladeShape.quadraticCurveTo(0.82, 0.05, 0.68, 0.22);
+  bladeShape.quadraticCurveTo(0.38, 0.20, 0.1, 0.06);
+  bladeShape.closePath();
+
+  const bladeExtrude = new THREE.ExtrudeGeometry(bladeShape, {
+    depth: 0.018,
+    bevelEnabled: true,
+    bevelThickness: 0.005,
+    bevelSize: 0.005,
+    bevelSegments: 2
+  });
+
+  for (let i = 0; i < 3; i++) {
+    const bladeHolder = new THREE.Group();
+    bladeHolder.rotation.z = (i * Math.PI * 2) / 3;
+    const bladeMesh = new THREE.Mesh(bladeExtrude, propMat);
+    bladeMesh.rotation.y = 0.42; // Pitch angle to push air forward (+Z)
+    bladeHolder.add(bladeMesh);
+    propellerFanGroup.add(bladeHolder);
+  }
+  outdoorGroup.add(propellerFanGroup);
+
+  // 3. Rotary Compressor with Cutaway Window (右室下部：ロータリー圧縮機＋アキュムレーター)
+  const compX = ox + 1.05;
+  const compY = oy - 0.42;
+  const compZ = oz + 0.12;
+
+  const compGroup = new THREE.Group();
+  compGroup.position.set(compX, compY, compZ);
+  outdoorGroup.add(compGroup);
+
+  const compShellMat = new THREE.MeshStandardMaterial({
+    color: 0x1e293b,
+    metalness: 0.65,
+    roughness: 0.35,
+    side: THREE.DoubleSide
+  });
+
+  // Top & Bottom domes of compressor
+  const topDome = new THREE.Mesh(
+    new THREE.SphereGeometry(0.32, 24, 16, 0, Math.PI * 2, 0, Math.PI / 2),
+    compShellMat
+  );
+  topDome.position.y = 0.42;
+  compGroup.add(topDome);
+
+  const botDome = new THREE.Mesh(
+    new THREE.SphereGeometry(0.32, 24, 16, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2),
+    compShellMat
+  );
+  botDome.position.y = -0.42;
+  compGroup.add(botDome);
+
+  // Cutaway Cylinder Body (leaving front ~140 degrees open so internal rotor & stator are clearly visible)
+  const cutCylGeo = new THREE.CylinderGeometry(0.32, 0.32, 0.84, 28, 1, true, Math.PI * 0.38, Math.PI * 1.24);
+  const cutCylMesh = new THREE.Mesh(cutCylGeo, compShellMat);
+  compGroup.add(cutCylMesh);
+
+  // Upper section inside compressor: Electric Stator & Rotor Coils (電動モーター部)
+  const statorGeo = new THREE.CylinderGeometry(0.28, 0.28, 0.30, 20, 1, false, Math.PI * 0.3, Math.PI * 1.4);
+  const statorMat = new THREE.MeshStandardMaterial({ color: 0xb45309, metalness: 0.75, roughness: 0.25, side: THREE.DoubleSide });
+  const statorMesh = new THREE.Mesh(statorGeo, statorMat);
+  statorMesh.position.y = 0.18;
+  compGroup.add(statorMesh);
+
+  // Lower section inside compressor: Compression Cylinder Chamber (圧縮シリンダー室)
+  const chamberWallGeo = new THREE.CylinderGeometry(0.26, 0.26, 0.26, 24, 1, true, Math.PI * 0.35, Math.PI * 1.3);
+  const chamberWallMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.8, roughness: 0.2, side: THREE.DoubleSide });
+  const chamberWall = new THREE.Mesh(chamberWallGeo, chamberWallMat);
+  chamberWall.position.y = -0.18;
+  compGroup.add(chamberWall);
+
+  // Glowing gas pocket inside the compression chamber that pulses in temperature/pressure as rotor turns
+  compGasChamberMat = new THREE.MeshStandardMaterial({
+    color: 0xef4444,
+    emissive: 0xef4444,
+    emissiveIntensity: 0.65,
+    transparent: true,
+    opacity: 0.55
+  });
+  compGasChamberMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.23, 0.23, 0.22, 20), compGasChamberMat);
+  compGasChamberMesh.position.y = -0.18;
+  compGroup.add(compGasChamberMesh);
+
+  // Rotating Crankshaft & Eccentric Roller (偏心ローター)
+  compEccentricRotor = new THREE.Group();
+  compEccentricRotor.position.y = -0.18;
+
+  // Main center drive shaft
+  const cShaft = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.045, 0.045, 0.72, 16),
+    new THREE.MeshStandardMaterial({ color: 0xe2e8f0, metalness: 0.9, roughness: 0.15 })
+  );
+  cShaft.position.y = 0.18;
+  compEccentricRotor.add(cShaft);
+
+  // Eccentric roller cylinder (offset from center by eccentricity e = 0.065)
+  const rollerMesh = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.155, 0.155, 0.24, 24),
+    new THREE.MeshStandardMaterial({ color: 0x38bdf8, metalness: 0.7, roughness: 0.25 })
+  );
+  rollerMesh.position.set(0.065, 0, 0);
+  compEccentricRotor.add(rollerMesh);
+  compGroup.add(compEccentricRotor);
+
+  // Reciprocating Sliding Vane (ベーン：ローター外周に押し付けられて吸入室と圧縮室を仕切る板)
+  compVaneBlade = new THREE.Mesh(
+    new THREE.BoxGeometry(0.035, 0.23, 0.16),
+    new THREE.MeshStandardMaterial({ color: 0xfacc15, metalness: 0.7, roughness: 0.2 })
+  );
+  compVaneBlade.position.set(0, -0.18, 0.18);
+  compGroup.add(compVaneBlade);
+
+  // Side Suction Accumulator Tank (アキュムレーター：液圧縮を防ぐ気液分離タンク)
+  const accumMesh = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.13, 0.13, 0.56, 20),
+    compShellMat
+  );
+  accumMesh.position.set(-0.38, -0.05, 0.08);
+  compGroup.add(accumMesh);
+
+  // 4. Four-Way Reversing Valve (四方弁：圧縮機の上部に配置、内部スライド弁を可視化)
+  const valveX = ox + 1.0;
+  const valveY = oy + 0.68;
+  const valveZ = oz + 0.12;
+
+  const valveGroup = new THREE.Group();
+  valveGroup.position.set(valveX, valveY, valveZ);
+  outdoorGroup.add(valveGroup);
+
+  const brassMat = new THREE.MeshStandardMaterial({
+    color: 0xd97706,
+    metalness: 0.75,
+    roughness: 0.25,
+    transparent: true,
+    opacity: 0.55
+  });
+  const valveBodyGeo = new THREE.CylinderGeometry(0.13, 0.13, 0.46, 20);
+  valveBodyGeo.rotateZ(Math.PI / 2);
+  const valveBody = new THREE.Mesh(valveBodyGeo, brassMat);
+  valveGroup.add(valveBody);
+
+  // Solenoid coil on right end of 4-way valve
+  const solenoidMesh = new THREE.Mesh(
+    new THREE.BoxGeometry(0.14, 0.18, 0.18),
+    new THREE.MeshStandardMaterial({ color: 0x3b82f6, roughness: 0.4 })
+  );
+  solenoidMesh.position.set(0.28, 0.04, 0);
+  valveGroup.add(solenoidMesh);
+
+  // Sliding internal D-valve plunger (moves left/right when switching Cool <-> Heat)
+  fourWaySlidePlunger = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.095, 0.095, 0.18, 16),
+    new THREE.MeshStandardMaterial({
+      color: 0xef4444,
+      emissive: 0xef4444,
+      emissiveIntensity: 0.5,
+      metalness: 0.5,
+      roughness: 0.2
+    })
+  );
+  fourWaySlidePlunger.rotation.z = Math.PI / 2;
+  valveGroup.add(fourWaySlidePlunger);
+
+  // 5. Electronic Expansion Valve (膨張弁：絞り膨張機構・ニードル弁の可視化)
+  const expX = ox + 0.42;
+  const expY = oy - 0.82;
+  const expZ = oz - 0.42;
+
+  const expGroup = new THREE.Group();
+  expGroup.position.set(expX, expY, expZ);
+  outdoorGroup.add(expGroup);
+
+  // Translucent brass chamber so orifice & needle are visible
+  const expChamber = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.12, 0.12, 0.34, 20),
+    new THREE.MeshStandardMaterial({
+      color: 0xf59e0b,
+      metalness: 0.6,
+      roughness: 0.25,
+      transparent: true,
+      opacity: 0.48
+    })
+  );
+  expGroup.add(expChamber);
+
+  // Stepper motor head on top of expansion valve
+  const expHead = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.14, 0.14, 0.14, 20),
+    new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.7, roughness: 0.3 })
+  );
+  expHead.position.y = 0.22;
+  expGroup.add(expHead);
+
+  // Internal conical needle (ニードル弁)
+  expNeedleMesh = new THREE.Mesh(
+    new THREE.ConeGeometry(0.065, 0.22, 16),
+    new THREE.MeshStandardMaterial({ color: 0x06b6d4, emissive: 0x06b6d4, emissiveIntensity: 0.5 })
+  );
+  expNeedleMesh.rotation.x = Math.PI; // Pointing down into the narrow orifice
+  expNeedleMesh.position.y = 0.03;
+  expGroup.add(expNeedleMesh);
+
+  // 6. Translucent Cutaway Outdoor Unit Casing & Circular Fan Grille
+  const outdoorShellMat = new THREE.MeshPhysicalMaterial({
+    color: 0xe2e8f0,
+    roughness: 0.25,
+    metalness: 0.1,
+    transmission: 0.2,
+    transparent: true,
+    opacity: 0.22,
+    depthWrite: false,
+    side: THREE.DoubleSide
+  });
+  shellMaterials.push(outdoorShellMat);
+
+  const outBox = new THREE.Mesh(new THREE.BoxGeometry(3.4, 1.96, 1.42), outdoorShellMat);
+  outBox.position.set(ox, oy, oz);
+  outdoorGroup.add(outBox);
+
+  const outEdges = new THREE.EdgesGeometry(new THREE.BoxGeometry(3.4, 1.96, 1.42));
+  const outWire = new THREE.LineSegments(
+    outEdges,
+    new THREE.LineBasicMaterial({ color: 0x94a3b8, transparent: true, opacity: 0.5 })
+  );
+  outWire.position.copy(outBox.position);
+  outdoorGroup.add(outWire);
+
+  // Circular Fan Discharge Ring on Front Face
+  const ringMat = new THREE.MeshStandardMaterial({
+    color: 0x94a3b8,
+    metalness: 0.4,
+    roughness: 0.4,
+    transparent: true,
+    opacity: 0.55
+  });
+  const shroudRing = new THREE.Mesh(new THREE.TorusGeometry(0.84, 0.03, 12, 36), ringMat);
+  shroudRing.position.set(fanX, fanY, oz + 0.71);
+  outdoorGroup.add(shroudRing);
+}
+buildOutdoorUnit();
+
+// ==========================================
+// 6. CLOSED REFRIGERANT LOOP PIPING & ANIMATED PARTICLES
+// ==========================================
+// We construct 4 physical segments that connect seamlessly in a closed loop:
+// Segment A: Compressor Discharge -> 4-Way Valve (Always High-P High-T Gas)
+// Segment B: 4-Way Valve -> Outdoor HX -> Expansion Valve
+// Segment C: Expansion Valve -> Liquid Pipe (Thin) -> Indoor HX -> Gas Pipe (Thick) -> 4-Way Valve
+// Segment D: 4-Way Valve -> Accumulator -> Compressor Suction (Always Low-P Low-T Gas)
+//
+// Better yet: Let's define the 4 logical legs with exact 3D waypoints so we can color each tube segment
+// AND move 140 refrigerant particles along the exact closed loop in the correct direction for Cool vs Heat!
+
+// Coordinates of key ports:
+// Compressor Top Discharge: (3.80, -1.35, 0.12)
+// 4-Way Valve Center: (3.75, -0.77, 0.12)
+// Outdoor HX Top-Right Header: (4.20, -0.65, -0.58)
+// Outdoor HX Serpentine Pass: winds through (-0.65 -> -2.20) at Z = -0.58
+// Outdoor HX Bottom Header: (3.60, -2.25, -0.58)
+// Expansion Valve Center: (3.17, -2.27, -0.42)
+// Liquid Pipe (Thin) route from Expansion Valve -> Wall Sleeve -> Indoor HX Bottom:
+//   (3.17, -2.42, -0.42) -> (4.60, -2.42, -0.42) -> (4.60, 1.82, -0.52) -> (-0.10, 1.82, -0.52) -> (-1.95, 1.82, -0.35) -> (-2.10, 2.15, 0.35)
+// Indoor HX Serpentine Pass: winds across X (-2.10 <-> -4.60) and over the Λ-slabs -> exits at (-2.05, 2.55, -0.15)
+// Gas Pipe (Thick) route from Indoor HX -> Wall Sleeve -> 4-Way Valve:
+//   (-2.05, 2.55, -0.15) -> (-1.95, 1.98, -0.52) -> (-0.10, 1.98, -0.52) -> (4.76, 1.98, -0.52) -> (4.76, -0.77, -0.25) -> (3.95, -0.77, 0.12)
+// Suction Line from 4-Way Valve -> Accumulator -> Compressor Bottom:
+//   (3.75, -0.90, 0.12) -> (3.42, -1.10, 0.20) -> (3.42, -1.95, 0.20) -> (3.80, -2.05, 0.12)
+
+const pipeGroup = new THREE.Group();
+scene.add(pipeGroup);
+
+// Define path waypoints for each physical section so we can build Curve tubes and sample particle positions
+const PATH_COMP_TO_4WV = [
+  new THREE.Vector3(3.80, -1.60, 0.12),
+  new THREE.Vector3(3.80, -1.15, 0.24),
+  new THREE.Vector3(3.75, -0.77, 0.12)
+];
+
+// Path from 4WV -> Outdoor HX -> Expansion Valve (drawn forward in Cool mode, reversed in Heat mode)
+const PATH_4WV_TO_OUTHX_TO_EXPV = [
+  new THREE.Vector3(3.75, -0.77, 0.12),
+  new THREE.Vector3(3.75, -0.62, -0.35),
+  new THREE.Vector3(4.18, -0.62, -0.58),
+  // Pass 1 across Outdoor HX top
+  new THREE.Vector3(1.20, -0.68, -0.58),
+  new THREE.Vector3(1.18, -1.05, -0.10),
+  new THREE.Vector3(1.20, -1.15, -0.58),
+  // Pass 2 across Outdoor HX middle
+  new THREE.Vector3(4.15, -1.25, -0.58),
+  new THREE.Vector3(4.15, -1.68, -0.58),
+  // Pass 3 across Outdoor HX bottom
+  new THREE.Vector3(1.22, -1.75, -0.58),
+  new THREE.Vector3(1.22, -2.15, -0.58),
+  new THREE.Vector3(3.17, -2.18, -0.58),
+  new THREE.Vector3(3.17, -2.27, -0.42)
+];
+
+// Path from Expansion Valve -> Thin Liquid Pipe -> Indoor HX Entry (drawn forward in Cool mode, reversed in Heat mode)
+const PATH_EXPV_TO_INDOOR_HX = [
+  new THREE.Vector3(3.17, -2.27, -0.42),
+  new THREE.Vector3(3.17, -2.44, -0.42),
+  new THREE.Vector3(4.58, -2.44, -0.48),
+  new THREE.Vector3(4.58, 1.82, -0.52),
+  new THREE.Vector3(-0.10, 1.82, -0.52),
+  new THREE.Vector3(-1.90, 1.82, -0.42),
+  new THREE.Vector3(-2.12, 2.08, 0.38)
+];
+
+// Path inside Indoor HX (serpentine across the Λ heat exchanger)
+const PATH_INDOOR_HX_INTERNAL = [
+  new THREE.Vector3(-2.12, 2.08, 0.38),
+  new THREE.Vector3(-4.58, 2.15, 0.38),
+  new THREE.Vector3(-4.58, 2.55, 0.22),
+  new THREE.Vector3(-2.12, 2.62, 0.18),
+  new THREE.Vector3(-2.12, 2.75, -0.15),
+  new THREE.Vector3(-4.58, 2.65, -0.22),
+  new THREE.Vector3(-2.05, 2.48, -0.22)
+];
+
+// Path from Indoor HX Exit -> Thick Gas Pipe -> 4WV
+const PATH_INDOOR_HX_TO_4WV = [
+  new THREE.Vector3(-2.05, 2.48, -0.22),
+  new THREE.Vector3(-1.85, 1.98, -0.52),
+  new THREE.Vector3(-0.10, 1.98, -0.52),
+  new THREE.Vector3(4.76, 1.98, -0.52),
+  new THREE.Vector3(4.76, -0.77, -0.35),
+  new THREE.Vector3(3.95, -0.77, 0.12),
+  new THREE.Vector3(3.75, -0.77, 0.12)
+];
+
+// Path from 4WV -> Suction Accumulator -> Compressor Intake (Always Low-P Low-T Gas)
+const PATH_4WV_TO_COMP_SUCTION = [
+  new THREE.Vector3(3.75, -0.77, 0.12),
+  new THREE.Vector3(3.55, -0.95, 0.20),
+  new THREE.Vector3(3.42, -1.25, 0.20),
+  new THREE.Vector3(3.42, -1.92, 0.20),
+  new THREE.Vector3(3.80, -1.98, 0.12),
+  new THREE.Vector3(3.80, -1.60, 0.12)
+];
+
+function createTubeSection(points, radius, colorHex) {
+  const curve = new THREE.CatmullRomCurve3(points, false, 'catmullrom', 0.12);
+  const geo = new THREE.TubeGeometry(curve, 64, radius, 12, false);
+  const mat = new THREE.MeshStandardMaterial({
+    color: colorHex,
+    emissive: colorHex,
+    emissiveIntensity: 0.25,
+    metalness: 0.45,
+    roughness: 0.3,
+    transparent: true,
+    opacity: 0.58
+  });
+  const mesh = new THREE.Mesh(geo, mat);
+  pipeGroup.add(mesh);
+  return { curve, mesh, mat };
+}
+
+// Create the 6 physical tube sections
+const secDischarge = createTubeSection(PATH_COMP_TO_4WV, 0.042, 0xef4444);
+const secOutHX = createTubeSection(PATH_4WV_TO_OUTHX_TO_EXPV, 0.038, 0xf97316);
+const secLiquidLine = createTubeSection(PATH_EXPV_TO_INDOOR_HX, 0.032, 0x06b6d4); // Thin pipe (液管)
+const secInHX = createTubeSection(PATH_INDOOR_HX_INTERNAL, 0.038, 0x3b82f6);
+const secGasLine = createTubeSection(PATH_INDOOR_HX_TO_4WV, 0.052, 0x3b82f6); // Thick pipe (ガス管)
+const secSuction = createTubeSection(PATH_4WV_TO_COMP_SUCTION, 0.045, 0x3b82f6);
+
+// ==========================================
+// 7. REFRIGERANT PARTICLES (気体＝大きめ・疎、液体＝小さめ・密、色＝温度・圧力)
+// ==========================================
+// Build unified ordered curve list for Cool mode vs Heat mode so particles circulate continuously
+function reversePoints(pts) {
+  return [...pts].reverse().map(p => p.clone());
+}
+
+// Each stage in the loop has: curve, stateType ('high_gas', 'condensing', 'high_liq', 'low_mist', 'evaporating', 'low_gas'), weight (length share)
+const loopCurvesCool = [
+  { curve: new THREE.CatmullRomCurve3(PATH_COMP_TO_4WV, false, 'catmullrom', 0.12), state: 'high_gas', len: 1.2 },
+  { curve: new THREE.CatmullRomCurve3(PATH_4WV_TO_OUTHX_TO_EXPV, false, 'catmullrom', 0.12), state: 'condensing', len: 10.5 },
+  { curve: new THREE.CatmullRomCurve3(PATH_EXPV_TO_INDOOR_HX, false, 'catmullrom', 0.12), state: 'low_mist', len: 11.5 },
+  { curve: new THREE.CatmullRomCurve3(PATH_INDOOR_HX_INTERNAL, false, 'catmullrom', 0.12), state: 'evaporating', len: 8.5 },
+  { curve: new THREE.CatmullRomCurve3(PATH_INDOOR_HX_TO_4WV, false, 'catmullrom', 0.12), state: 'low_gas', len: 11.0 },
+  { curve: new THREE.CatmullRomCurve3(PATH_4WV_TO_COMP_SUCTION, false, 'catmullrom', 0.12), state: 'low_gas', len: 1.8 }
+];
+
+const loopCurvesHeat = [
+  { curve: new THREE.CatmullRomCurve3(PATH_COMP_TO_4WV, false, 'catmullrom', 0.12), state: 'high_gas', len: 1.2 },
+  { curve: new THREE.CatmullRomCurve3(reversePoints(PATH_INDOOR_HX_TO_4WV), false, 'catmullrom', 0.12), state: 'high_gas', len: 11.0 },
+  { curve: new THREE.CatmullRomCurve3(reversePoints(PATH_INDOOR_HX_INTERNAL), false, 'catmullrom', 0.12), state: 'condensing', len: 8.5 },
+  { curve: new THREE.CatmullRomCurve3(reversePoints(PATH_EXPV_TO_INDOOR_HX), false, 'catmullrom', 0.12), state: 'high_liq', len: 11.5 },
+  { curve: new THREE.CatmullRomCurve3(reversePoints(PATH_4WV_TO_OUTHX_TO_EXPV), false, 'catmullrom', 0.12), state: 'evaporating', len: 10.5 },
+  { curve: new THREE.CatmullRomCurve3(PATH_4WV_TO_COMP_SUCTION, false, 'catmullrom', 0.12), state: 'low_gas', len: 1.8 }
+];
+
+function prepareCumulativeLoop(segments) {
+  let total = 0;
+  segments.forEach(s => { total += s.len; });
+  let acc = 0;
+  return segments.map(s => {
+    const start = acc / total;
+    acc += s.len;
+    const end = acc / total;
+    return { ...s, start, end };
+  });
+}
+
+const preparedCoolLoop = prepareCumulativeLoop(loopCurvesCool);
+const preparedHeatLoop = prepareCumulativeLoop(loopCurvesHeat);
+
+// Colors for refrigerant states
+const COL_HIGH_GAS = new THREE.Color(0xef4444); // High-T High-P Gas (Red)
+const COL_HIGH_LIQ = new THREE.Color(0xf97316); // Med-T High-P Liquid (Orange)
+const COL_LOW_MIST = new THREE.Color(0x06b6d4); // Low-T Low-P Mist/Liquid (Cyan)
+const COL_LOW_GAS  = new THREE.Color(0x3b82f6); // Low-T Low-P Gas (Blue)
+
+const NUM_REFRIGERANT_PARTICLES = 150;
+const refParticleMeshes = [];
+const refParticleGeo = new THREE.SphereGeometry(0.048, 10, 10);
+
+for (let i = 0; i < NUM_REFRIGERANT_PARTICLES; i++) {
+  const mat = new THREE.MeshStandardMaterial({
+    color: 0xffffff,
+    emissive: 0xffffff,
+    emissiveIntensity: 0.75,
+    roughness: 0.2
+  });
+  const mesh = new THREE.Mesh(refParticleGeo, mat);
+  mesh.userData = { u: i / NUM_REFRIGERANT_PARTICLES };
+  scene.add(mesh);
+  refParticleMeshes.push(mesh);
+}
+
+// ==========================================
+// 8. AIRFLOW STREAMLINES & HEAT TRANSFER ARROWS (吸熱・放熱と空気の流れ)
+// ==========================================
+const airflowStreams = [];
+const heatExchangeArrows = [];
+
+function createArrowHead(colorHex) {
+  const cone = new THREE.Mesh(
+    new THREE.ConeGeometry(0.065, 0.18, 12),
+    new THREE.MeshStandardMaterial({
+      color: colorHex,
+      emissive: colorHex,
+      emissiveIntensity: 0.55,
+      transparent: true,
+      opacity: 0.9
+    })
+  );
+  cone.rotation.x = Math.PI / 2; // Point along +Z in local space
+  return cone;
+}
+
+function buildAirflowAndHeatVisuals() {
+  // 1. Indoor Unit Airflow paths (Top intake -> through Λ HX -> out bottom louver into room)
+  const indoorXOffsets = [-4.2, -3.6, -3.0, -2.4];
+  indoorXOffsets.forEach((xPos, idx) => {
+    const curve = new THREE.CatmullRomCurve3([
+      new THREE.Vector3(xPos, 3.45, 0.45),
+      new THREE.Vector3(xPos, 2.95, 0.05),
+      new THREE.Vector3(xPos, 2.25, 0.12),
+      new THREE.Vector3(xPos, 1.65, 0.55),
+      new THREE.Vector3(xPos, 0.95, 1.55)
+    ]);
+
+    // Subtle guide line
+    const pts = curve.getPoints(32);
+    const lineGeo = new THREE.BufferGeometry().setFromPoints(pts);
+    const lineMat = new THREE.LineBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.28 });
+    const line = new THREE.Line(lineGeo, lineMat);
+    scene.add(line);
+
+    // 3 moving air parcels per streamline
+    for (let k = 0; k < 3; k++) {
+      const arrow = createArrowHead(0x38bdf8);
+      scene.add(arrow);
+      airflowStreams.push({
+        type: 'indoor',
+        curve,
+        lineMat,
+        mesh: arrow,
+        u: (k / 3 + idx * 0.08) % 1
+      });
+    }
+  });
+
+  // 2. Outdoor Unit Airflow paths (Back & Left intake -> through L-HX & Propeller Fan -> out front grille)
+  const outdoorYOffsets = [-0.85, -1.45, -2.05];
+  const outdoorXOffsets = [1.65, 2.15, 2.65];
+  outdoorYOffsets.forEach((yPos, yi) => {
+    outdoorXOffsets.forEach((xPos, xi) => {
+      if ((yi + xi) % 2 !== 0) return; // Keep clean spacing (5 streamlines)
+      const curve = new THREE.CatmullRomCurve3([
+        new THREE.Vector3(xPos, yPos, -1.35),
+        new THREE.Vector3(xPos, yPos, -0.55),
+        new THREE.Vector3(2.10 + (xPos - 2.15) * 0.5, yPos, 0.25),
+        new THREE.Vector3(2.10 + (xPos - 2.15) * 0.7, yPos, 1.55)
+      ]);
+
+      const pts = curve.getPoints(28);
+      const lineGeo = new THREE.BufferGeometry().setFromPoints(pts);
+      const lineMat = new THREE.LineBasicMaterial({ color: 0xf97316, transparent: true, opacity: 0.28 });
+      const line = new THREE.Line(lineGeo, lineMat);
+      scene.add(line);
+
+      for (let k = 0; k < 2; k++) {
+        const arrow = createArrowHead(0xf97316);
+        scene.add(arrow);
+        airflowStreams.push({
+          type: 'outdoor',
+          curve,
+          lineMat,
+          mesh: arrow,
+          u: (k / 2 + (yi * 3 + xi) * 0.1) % 1
+        });
+      }
+    });
+  });
+
+  // 3. Explicit Heat Transfer Arrows (熱が吸われる／捨てられる動きを表す矢印群)
+  // Indoor Heat Arrows (between room air and indoor HX)
+  for (let i = 0; i < 4; i++) {
+    const hxX = -4.1 + i * 0.55;
+    const arrowGroup = new THREE.Group();
+    const stem = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.02, 0.02, 0.28, 8),
+      new THREE.MeshStandardMaterial({ color: 0xf97316, emissive: 0xf97316, emissiveIntensity: 0.6 })
+    );
+    const tip = new THREE.Mesh(
+      new THREE.ConeGeometry(0.055, 0.14, 10),
+      stem.material
+    );
+    tip.position.y = 0.18;
+    arrowGroup.add(stem, tip);
+    scene.add(arrowGroup);
+
+    heatExchangeArrows.push({
+      unit: 'indoor',
+      group: arrowGroup,
+      mat: stem.material,
+      baseX: hxX,
+      phase: i * 0.8
+    });
+  }
+
+  // Outdoor Heat Arrows (between outdoor HX and outdoor air)
+  for (let i = 0; i < 4; i++) {
+    const hxX = 1.45 + i * 0.55;
+    const arrowGroup = new THREE.Group();
+    const stem = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.02, 0.02, 0.28, 8),
+      new THREE.MeshStandardMaterial({ color: 0xef4444, emissive: 0xef4444, emissiveIntensity: 0.6 })
+    );
+    const tip = new THREE.Mesh(
+      new THREE.ConeGeometry(0.055, 0.14, 10),
+      stem.material
+    );
+    tip.position.y = 0.18;
+    arrowGroup.add(stem, tip);
+    scene.add(arrowGroup);
+
+    heatExchangeArrows.push({
+      unit: 'outdoor',
+      group: arrowGroup,
+      mat: stem.material,
+      baseX: hxX,
+      phase: i * 0.8
+    });
+  }
+}
+buildAirflowAndHeatVisuals();
+
+// ==========================================
+// 9. 2D CALLOUT LABELS & SVG LEADER LINES
+// ==========================================
+const labelsLayer = document.getElementById('labels-layer');
+const connectorSvg = document.getElementById('connector-svg');
+const calloutElements = {};
+
+function buildCalloutDOM() {
+  labelsLayer.innerHTML = '';
+  connectorSvg.innerHTML = '';
+
+  Object.keys(COMPONENT_DATA).forEach((key) => {
+    const item = COMPONENT_DATA[key];
+    const info = item.getInfo(currentMode);
+
+    const div = document.createElement('div');
+    div.className = 'part-callout' + (key === selectedPartKey ? ' active' : '');
+    div.dataset.key = key;
+    div.style.borderLeftColor = info.badgeColor;
+
+    div.innerHTML = `
+      <div class="title">
+        <span>${item.name}</span>
+        <span class="badge" style="background:${info.badgeColor}33; color:${info.badgeColor}; border:1px solid ${info.badgeColor}66;">${info.badge}</span>
+      </div>
+      <div class="sub">${info.sub}</div>
+    `;
+
+    div.addEventListener('click', (e) => {
+      e.stopPropagation();
+      selectPart(key);
+    });
+
+    labelsLayer.appendChild(div);
+
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('stroke', info.badgeColor);
+    line.setAttribute('stroke-width', key === selectedPartKey ? '2.2' : '1.3');
+    line.setAttribute('stroke-dasharray', key === selectedPartKey ? 'none' : '3,3');
+    line.setAttribute('opacity', '0.82');
+    connectorSvg.appendChild(line);
+
+    const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    dot.setAttribute('r', '3.5');
+    dot.setAttribute('fill', info.badgeColor);
+    connectorSvg.appendChild(dot);
+
+    calloutElements[key] = { div, line, dot };
+  });
+}
+
+function selectPart(key) {
+  if (!COMPONENT_DATA[key]) return;
+  selectedPartKey = key;
+  const item = COMPONENT_DATA[key];
+  const info = item.getInfo(currentMode);
+
+  document.getElementById('detail-title').textContent = item.name;
+  document.getElementById('detail-unit').textContent = item.unit;
+  document.getElementById('detail-role').textContent = info.role;
+  document.getElementById('detail-body').textContent = info.body;
+  document.getElementById('metric-in').textContent = info.inState;
+  document.getElementById('metric-out').textContent = info.outState;
+  document.getElementById('metric-press').textContent = info.press;
+  document.getElementById('metric-heat').textContent = info.heat;
+
+  Object.keys(calloutElements).forEach((k) => {
+    const el = calloutElements[k];
+    const kInfo = COMPONENT_DATA[k].getInfo(currentMode);
+    if (k === key) {
+      el.div.classList.add('active');
+      el.line.setAttribute('stroke-width', '2.2');
+      el.line.setAttribute('stroke-dasharray', 'none');
+    } else {
+      el.div.classList.remove('active');
+      el.line.setAttribute('stroke-width', '1.3');
+      el.line.setAttribute('stroke-dasharray', '3,3');
+    }
+    el.line.setAttribute('stroke', kInfo.badgeColor);
+    el.dot.setAttribute('fill', kInfo.badgeColor);
+  });
+}
+
+// ==========================================
+// 10. MODE SWITCHING (冷房 / 暖房) & URL SYNC
+// ==========================================
+function applyMode(mode) {
+  currentMode = mode;
+
+  // Update URL query string without reloading if supported
+  try {
+    const url = new URL(window.location.href);
+    url.searchParams.set('mode', mode);
+    window.history.replaceState({}, '', url);
+  } catch (_) {
+    // Ignore on file:// protocol if replaceState is restricted
+  }
+
+  // Buttons & Banner
+  const btnCool = document.getElementById('btn-mode-cool');
+  const btnHeat = document.getElementById('btn-mode-heat');
+  const banner = document.getElementById('mode-banner');
+  const bannerTitle = document.getElementById('mode-banner-title');
+  const flowDirLabel = document.getElementById('flow-dir-label');
+
+  if (mode === 'cool') {
+    btnCool.classList.add('active');
+    btnHeat.classList.remove('active');
+    banner.className = 'mode-banner cool';
+    bannerTitle.textContent = '❄ 冷房運転：部屋の熱をくみ出して外へ捨てる';
+    flowDirLabel.textContent = '四方弁：冷房経路（室外へ放熱）';
+    flowDirLabel.style.color = '#38bdf8';
+
+    document.getElementById('step-title-2').textContent = '② 凝縮・放熱（室外機の熱交換器）';
+    document.getElementById('step-desc-2').innerHTML =
+      '外気へ<strong>熱を捨てて（放熱）</strong>冷媒が気体から<strong>高圧の液体（約45℃）</strong>に凝縮します。室外機から温かい風が出ます。';
+    document.getElementById('step-title-4').textContent = '④ 蒸発・吸熱（室内機の熱交換器）';
+    document.getElementById('step-desc-4').innerHTML =
+      '部屋の空気から<strong>熱を奪って（吸熱）</strong>冷媒が沸騰・蒸発し<strong>低圧の気体（約12℃）</strong>になります。熱を奪われた空気が冷風として部屋へ戻ります。';
+
+    // Update 3D materials for Cooling
+    indoorFinMeshes.forEach(m => m.color.setHex(0x60a5fa));
+    indoorHairpinMeshes.forEach(m => {
+      m.emissive.setHex(0x0284c7);
+      m.emissiveIntensity = 0.45;
+    });
+    outdoorFinMeshes.forEach(m => m.color.setHex(0xfdba74));
+    outdoorHairpinMeshes.forEach(m => {
+      m.emissive.setHex(0xea580c);
+      m.emissiveIntensity = 0.45;
+    });
+
+    indoorGlowLight.color.setHex(0x38bdf8);
+    outdoorGlowLight.color.setHex(0xf97316);
+
+    // Pipe section colors in Cool mode
+    secDischarge.mat.color.setHex(0xef4444);
+    secDischarge.mat.emissive.setHex(0xef4444);
+    secOutHX.mat.color.setHex(0xf97316);
+    secOutHX.mat.emissive.setHex(0xf97316);
+    secLiquidLine.mat.color.setHex(0x06b6d4);
+    secLiquidLine.mat.emissive.setHex(0x06b6d4);
+    secInHX.mat.color.setHex(0x38bdf8);
+    secInHX.mat.emissive.setHex(0x38bdf8);
+    secGasLine.mat.color.setHex(0x3b82f6);
+    secGasLine.mat.emissive.setHex(0x3b82f6);
+    secSuction.mat.color.setHex(0x3b82f6);
+    secSuction.mat.emissive.setHex(0x3b82f6);
+
+    // Louvers angle horizontally for cooling (冷気は重いので水平〜やや上向き吹き出し)
+    if (louverMesh1 && louverMesh2) {
+      louverMesh1.rotation.x = 0.15;
+      louverMesh2.rotation.x = 0.15;
+    }
+  } else {
+    btnHeat.classList.add('active');
+    btnCool.classList.remove('active');
+    banner.className = 'mode-banner heat';
+    bannerTitle.textContent = '☀ 暖房運転：外の空気から熱をくみ上げて部屋へ放つ';
+    flowDirLabel.textContent = '四方弁：暖房経路（室内へ放熱）';
+    flowDirLabel.style.color = '#fb923c';
+
+    document.getElementById('step-title-2').textContent = '② 凝縮・放熱（室内機の熱交換器）';
+    document.getElementById('step-desc-2').innerHTML =
+      '四方弁で高温ガスが室内機へ送られ、部屋へ<strong>熱を放出して（放熱）</strong>冷媒が<strong>高圧の液体（約45℃）</strong>に凝縮します。室内機から暖かい風が出ます。';
+    document.getElementById('step-title-4').textContent = '④ 蒸発・吸熱（室外機の熱交換器）';
+    document.getElementById('step-desc-4').innerHTML =
+      '外気よりもさらに冷たくなった冷媒（約2℃）が、冬の<strong>外気から熱を奪って（吸熱）</strong>蒸発し気体になります。室外機からは冷たい風が出ます。';
+
+    // Update 3D materials for Heating
+    indoorFinMeshes.forEach(m => m.color.setHex(0xfdba74));
+    indoorHairpinMeshes.forEach(m => {
+      m.emissive.setHex(0xea580c);
+      m.emissiveIntensity = 0.45;
+    });
+    outdoorFinMeshes.forEach(m => m.color.setHex(0x60a5fa));
+    outdoorHairpinMeshes.forEach(m => {
+      m.emissive.setHex(0x0284c7);
+      m.emissiveIntensity = 0.45;
+    });
+
+    indoorGlowLight.color.setHex(0xf97316);
+    outdoorGlowLight.color.setHex(0x38bdf8);
+
+    // Pipe section colors in Heat mode (flow reversed by 4-way valve)
+    secDischarge.mat.color.setHex(0xef4444);
+    secDischarge.mat.emissive.setHex(0xef4444);
+    secGasLine.mat.color.setHex(0xef4444); // Thick pipe carries hot gas to indoor HX
+    secGasLine.mat.emissive.setHex(0xef4444);
+    secInHX.mat.color.setHex(0xf97316); // Condensing in indoor HX
+    secInHX.mat.emissive.setHex(0xf97316);
+    secLiquidLine.mat.color.setHex(0xf97316); // Thin pipe carries high-P warm liquid back to outdoor expansion valve
+    secLiquidLine.mat.emissive.setHex(0xf97316);
+    secOutHX.mat.color.setHex(0x06b6d4); // Evaporating low-T mist in outdoor HX
+    secOutHX.mat.emissive.setHex(0x06b6d4);
+    secSuction.mat.color.setHex(0x3b82f6);
+    secSuction.mat.emissive.setHex(0x3b82f6);
+
+    // Louvers angle downward for heating (暖気は軽いので足元へ向けて下向き吹き出し)
+    if (louverMesh1 && louverMesh2) {
+      louverMesh1.rotation.x = 0.72;
+      louverMesh2.rotation.x = 0.72;
+    }
+  }
+
+  buildCalloutDOM();
+  selectPart(selectedPartKey);
+}
+
+// ==========================================
+// 11. UI EVENT LISTENERS
+// ==========================================
+document.getElementById('btn-mode-cool').addEventListener('click', () => applyMode('cool'));
+document.getElementById('btn-mode-heat').addEventListener('click', () => applyMode('heat'));
+
+function setCamBtnActive(id) {
+  ['btn-cam-overview', 'btn-cam-indoor', 'btn-cam-outdoor', 'btn-cam-comp'].forEach(bid => {
+    document.getElementById(bid).classList.toggle('active', bid === id);
+  });
+}
+
+document.getElementById('btn-cam-overview').addEventListener('click', () => {
+  setCamBtnActive('btn-cam-overview');
+  moveCameraTo([0.2, 0.85, 11.4], [0.2, 0.15, -0.1]);
+});
+
+document.getElementById('btn-cam-indoor').addEventListener('click', () => {
+  setCamBtnActive('btn-cam-indoor');
+  selectPart('indoor_hx');
+  moveCameraTo([-3.2, 2.35, 4.3], [-3.3, 2.15, 0.0]);
+});
+
+document.getElementById('btn-cam-outdoor').addEventListener('click', () => {
+  setCamBtnActive('btn-cam-outdoor');
+  selectPart('outdoor_hx');
+  moveCameraTo([2.6, -0.95, 4.8], [2.75, -1.45, -0.1]);
+});
+
+document.getElementById('btn-cam-comp').addEventListener('click', () => {
+  setCamBtnActive('btn-cam-comp');
+  selectPart('compressor');
+  moveCameraTo([3.95, -1.1, 2.55], [3.65, -1.5, 0.0]);
+});
+
+document.getElementById('slider-shell').addEventListener('input', (e) => {
+  const val = parseFloat(e.target.value);
+  shellMaterials.forEach(m => { m.opacity = val; });
+});
+
+document.getElementById('btn-toggle-labels').addEventListener('click', (e) => {
+  labelsVisible = !labelsVisible;
+  e.currentTarget.classList.toggle('active', labelsVisible);
+  labelsLayer.style.display = labelsVisible ? 'block' : 'none';
+  connectorSvg.style.display = labelsVisible ? 'block' : 'none';
+});
+
+// Left panel 4 cycle steps click handler
+document.querySelectorAll('.cycle-step').forEach((stepEl) => {
+  stepEl.addEventListener('click', () => {
+    const pType = stepEl.dataset.part;
+    if (pType === 'compressor') {
+      selectPart('compressor');
+    } else if (pType === 'expansion') {
+      selectPart('expansion_valve');
+    } else if (pType === 'condenser') {
+      selectPart(currentMode === 'cool' ? 'outdoor_hx' : 'indoor_hx');
+    } else if (pType === 'evaporator') {
+      selectPart(currentMode === 'cool' ? 'indoor_hx' : 'outdoor_hx');
+    }
+  });
+});
+
+// Initialize mode
+applyMode(currentMode);
+
+// ==========================================
+// 12. LABEL PROJECTION & COLLISION-FREE LAYOUT
+// ==========================================
+const tempProjVec = new THREE.Vector3();
+
+function updateCalloutPositions() {
+  if (!labelsVisible) return;
+
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  connectorSvg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+
+  // Safe viewport bounds between left panel (318px), right panel (304px), top bar (56px), bottom bar (58px)
+  const minX = 328;
+  const maxX = w - 314;
+  const minY = 64;
+  const maxY = h - 66;
+
+  // Gather initial projected coordinates and dimensions
+  const items = [];
+  Object.keys(COMPONENT_DATA).forEach((key) => {
+    const item = COMPONENT_DATA[key];
+    const elObj = calloutElements[key];
+    if (!elObj) return;
+
+    tempProjVec.copy(item.anchor);
+    tempProjVec.project(camera);
+
+    if (tempProjVec.z > 1.0) {
+      elObj.div.style.display = 'none';
+      elObj.line.style.display = 'none';
+      elObj.dot.style.display = 'none';
+      return;
+    }
+
+    elObj.div.style.display = 'block';
+    elObj.line.style.display = 'block';
+    elObj.dot.style.display = 'block';
+
+    const anchorX = (tempProjVec.x * 0.5 + 0.5) * w;
+    const anchorY = (-tempProjVec.y * 0.5 + 0.5) * h;
+
+    const boxW = elObj.div.offsetWidth || 190;
+    const boxH = elObj.div.offsetHeight || 40;
+
+    let labelX = anchorX + item.labelOffset.x;
+    let labelY = anchorY + item.labelOffset.y;
+
+    labelX = Math.max(minX + boxW / 2, Math.min(maxX - boxW / 2, labelX));
+    labelY = Math.max(minY + boxH / 2, Math.min(maxY - boxH / 2, labelY));
+
+    items.push({
+      key,
+      elObj,
+      anchorX,
+      anchorY,
+      x: labelX,
+      y: labelY,
+      w: boxW,
+      h: boxH
+    });
+  });
+
+  // Iterative 2D collision resolution (repels overlapping boxes both vertically & horizontally within safe area)
+  const pad = 6;
+  for (let iter = 0; iter < 18; iter++) {
+    for (let i = 0; i < items.length; i++) {
+      for (let j = i + 1; j < items.length; j++) {
+        const a = items[i];
+        const b = items[j];
+        const dx = b.x - a.x;
+        const dy = b.y - a.y;
+        const overlapX = (a.w + b.w) / 2 + pad - Math.abs(dx);
+        const overlapY = (a.h + b.h) / 2 + pad - Math.abs(dy);
+
+        if (overlapX > 0 && overlapY > 0) {
+          // Resolve primarily along Y, or along X if vertical space is constrained
+          if (overlapY <= overlapX * 1.5) {
+            const signY = dy >= 0 ? 1 : -1;
+            a.y -= signY * (overlapY * 0.52);
+            b.y += signY * (overlapY * 0.52);
+          } else {
+            const signX = dx >= 0 ? 1 : -1;
+            a.x -= signX * (overlapX * 0.52);
+            b.x += signX * (overlapX * 0.52);
+          }
+
+          // Clamp both back into safe zone
+          a.x = Math.max(minX + a.w / 2, Math.min(maxX - a.w / 2, a.x));
+          a.y = Math.max(minY + a.h / 2, Math.min(maxY - a.h / 2, a.y));
+          b.x = Math.max(minX + b.w / 2, Math.min(maxX - b.w / 2, b.x));
+          b.y = Math.max(minY + b.h / 2, Math.min(maxY - b.h / 2, b.y));
+        }
+      }
+    }
+  }
+
+  // Apply final positions
+  for (const it of items) {
+    it.elObj.div.style.left = `${it.x}px`;
+    it.elObj.div.style.top = `${it.y}px`;
+
+    it.elObj.line.setAttribute('x1', it.anchorX.toFixed(1));
+    it.elObj.line.setAttribute('y1', it.anchorY.toFixed(1));
+    it.elObj.line.setAttribute('x2', it.x.toFixed(1));
+    it.elObj.line.setAttribute('y2', it.y.toFixed(1));
+
+    it.elObj.dot.setAttribute('cx', it.anchorX.toFixed(1));
+    it.elObj.dot.setAttribute('cy', it.anchorY.toFixed(1));
+  }
+}
+
+// ==========================================
+// 13. MAIN ANIMATION LOOP
+// ==========================================
+const clock = new THREE.Clock();
+const tmpColor = new THREE.Color();
+const tmpPoint = new THREE.Vector3();
+const tmpTangent = new THREE.Vector3();
+const upVec = new THREE.Vector3(0, 1, 0);
+
+function animate() {
+  requestAnimationFrame(animate);
+
+  const dt = Math.min(clock.getDelta(), 0.05);
+  const elapsed = clock.getElapsedTime();
+
+  // Smooth camera transition if active
+  if (camAnim) {
+    camAnim.t += dt * 2.2;
+    const k = Math.min(1, camAnim.t);
+    const ease = 1 - Math.pow(1 - k, 3);
+    camera.position.lerpVectors(camAnim.startPos, camAnim.endPos, ease);
+    controls.target.lerpVectors(camAnim.startTarget, camAnim.endTarget, ease);
+    if (k >= 1) camAnim = null;
+  }
+  controls.update();
+
+  // 1. Rotate Indoor Cross-Flow Fan & Outdoor Propeller Fan
+  if (crossFlowFanMesh) {
+    crossFlowFanMesh.rotation.x -= dt * 9.5;
+  }
+  if (propellerFanGroup) {
+    propellerFanGroup.rotation.z -= dt * 11.0;
+  }
+
+  // 2. Animate Rotary Compressor Internal Eccentric Roller, Sliding Vane, & Pressure Pulse
+  const compAngle = elapsed * 10.0;
+  if (compEccentricRotor) {
+    compEccentricRotor.rotation.y = compAngle;
+  }
+  if (compVaneBlade) {
+    // Vane reciprocates in/out following the eccentric roller surface
+    const eccentricity = 0.065;
+    compVaneBlade.position.z = 0.175 + Math.cos(compAngle) * eccentricity;
+  }
+  if (compGasChamberMat && compGasChamberMesh) {
+    // Pulse between suction blue and compressed hot red-orange
+    const pulse = 0.5 + 0.5 * Math.sin(compAngle);
+    compGasChamberMat.color.lerpColors(COL_LOW_GAS, COL_HIGH_GAS, 0.35 + 0.65 * pulse);
+    compGasChamberMat.emissive.copy(compGasChamberMat.color);
+    compGasChamberMat.emissiveIntensity = 0.4 + 0.6 * pulse;
+    const scaleR = 1.0 - 0.12 * pulse;
+    compGasChamberMesh.scale.set(scaleR, 1, scaleR);
+  }
+
+  // 3. Smoothly position Four-Way Valve internal plunger according to Cool/Heat mode
+  if (fourWaySlidePlunger) {
+    const targetX = currentMode === 'cool' ? -0.07 : 0.07;
+    fourWaySlidePlunger.position.x += (targetX - fourWaySlidePlunger.position.x) * 0.12;
+    fourWaySlidePlunger.material.color.setHex(currentMode === 'cool' ? 0x38bdf8 : 0xf97316);
+    fourWaySlidePlunger.material.emissive.setHex(currentMode === 'cool' ? 0x38bdf8 : 0xf97316);
+  }
+
+  // 4. Subtle throttling vibration on Expansion Valve needle
+  if (expNeedleMesh) {
+    expNeedleMesh.position.y = 0.03 + Math.sin(elapsed * 16.0) * 0.008;
+  }
+
+  // 5. Update Refrigerant Particles along the active closed loop (Cool vs Heat)
+  const activeLoop = currentMode === 'cool' ? preparedCoolLoop : preparedHeatLoop;
+  const baseSpeed = 0.075;
+
+  for (let i = 0; i < refParticleMeshes.length; i++) {
+    const p = refParticleMeshes[i];
+    p.userData.u = (p.userData.u + dt * baseSpeed) % 1.0;
+    const u = p.userData.u;
+
+    // Find active segment
+    let seg = activeLoop[activeLoop.length - 1];
+    for (let s = 0; s < activeLoop.length; s++) {
+      if (u >= activeLoop[s].start && u <= activeLoop[s].end) {
+        seg = activeLoop[s];
+        break;
+      }
+    }
+
+    const localT = Math.max(0, Math.min(1, (u - seg.start) / (seg.end - seg.start)));
+    seg.curve.getPointAt(localT, tmpPoint);
+    p.position.copy(tmpPoint);
+
+    // State-dependent color & size (Gas = larger expanded spheres, Liquid = compact dense droplets)
+    let scale = 1.0;
+    if (seg.state === 'high_gas') {
+      tmpColor.copy(COL_HIGH_GAS);
+      scale = 1.22 + 0.12 * Math.sin(elapsed * 8 + i);
+    } else if (seg.state === 'condensing') {
+      tmpColor.lerpColors(COL_HIGH_GAS, COL_HIGH_LIQ, localT);
+      scale = THREE.MathUtils.lerp(1.22, 0.72, localT);
+    } else if (seg.state === 'high_liq') {
+      tmpColor.copy(COL_HIGH_LIQ);
+      scale = 0.72;
+    } else if (seg.state === 'low_mist') {
+      tmpColor.copy(COL_LOW_MIST);
+      scale = 0.76;
+    } else if (seg.state === 'evaporating') {
+      tmpColor.lerpColors(COL_LOW_MIST, COL_LOW_GAS, localT);
+      scale = THREE.MathUtils.lerp(0.76, 1.18, localT);
+    } else {
+      tmpColor.copy(COL_LOW_GAS);
+      scale = 1.18;
+    }
+
+    p.scale.setScalar(scale);
+    p.material.color.copy(tmpColor);
+    p.material.emissive.copy(tmpColor);
+  }
+
+  // 6. Animate Airflow Streamlines (Room air & Outdoor air)
+  for (let i = 0; i < airflowStreams.length; i++) {
+    const af = airflowStreams[i];
+    af.u = (af.u + dt * 0.42) % 1.0;
+    const t = af.u;
+    af.curve.getPointAt(t, tmpPoint);
+    af.curve.getTangentAt(t, tmpTangent);
+
+    af.mesh.position.copy(tmpPoint);
+    af.mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), tmpTangent.normalize());
+
+    // Color transition as air passes through the heat exchanger (around t = 0.45)
+    if (af.type === 'indoor') {
+      if (currentMode === 'cool') {
+        // Warm room air (yellow-orange) cooled into crisp blue air
+        tmpColor.lerpColors(new THREE.Color(0xfbbf24), new THREE.Color(0x38bdf8), Math.min(1, t * 1.4));
+        af.lineMat.color.setHex(0x38bdf8);
+      } else {
+        // Cool room air (light blue) heated into warm orange-red air
+        tmpColor.lerpColors(new THREE.Color(0x60a5fa), new THREE.Color(0xf97316), Math.min(1, t * 1.4));
+        af.lineMat.color.setHex(0xf97316);
+      }
+    } else {
+      if (currentMode === 'cool') {
+        // Outdoor air absorbs rejected heat -> becomes hot orange-red exhaust
+        tmpColor.lerpColors(new THREE.Color(0xfde047), new THREE.Color(0xef4444), Math.min(1, t * 1.4));
+        af.lineMat.color.setHex(0xf97316);
+      } else {
+        // Winter outdoor air loses heat to evaporator -> becomes icy cyan-blue exhaust
+        tmpColor.lerpColors(new THREE.Color(0x93c5fd), new THREE.Color(0x06b6d4), Math.min(1, t * 1.4));
+        af.lineMat.color.setHex(0x38bdf8);
+      }
+    }
+    af.mesh.material.color.copy(tmpColor);
+    af.mesh.material.emissive.copy(tmpColor);
+  }
+
+  // 7. Animate Heat Absorption / Heat Rejection 3D Arrows on Indoor & Outdoor HX
+  for (let i = 0; i < heatExchangeArrows.length; i++) {
+    const ha = heatExchangeArrows[i];
+    const cyc = (elapsed * 0.9 + ha.phase) % 1.0;
+
+    if (ha.unit === 'indoor') {
+      if (currentMode === 'cool') {
+        // Cooling: Indoor HX absorbs heat from room air into refrigerant coils
+        ha.group.position.set(ha.baseX, 2.75 - cyc * 0.35, 0.65 - cyc * 0.35);
+        ha.group.rotation.set(-2.3, 0, 0);
+        ha.mat.color.setHex(0x38bdf8);
+        ha.mat.emissive.setHex(0x38bdf8);
+      } else {
+        // Heating: Indoor HX releases heat into room air
+        ha.group.position.set(ha.baseX, 2.45 + cyc * 0.4, 0.35 + cyc * 0.45);
+        ha.group.rotation.set(0.85, 0, 0);
+        ha.mat.color.setHex(0xf97316);
+        ha.mat.emissive.setHex(0xf97316);
+      }
+    } else {
+      if (currentMode === 'cool') {
+        // Cooling: Outdoor HX rejects heat into outdoor air
+        ha.group.position.set(ha.baseX, -0.75 + cyc * 0.35, -0.62 - cyc * 0.45);
+        ha.group.rotation.set(-0.9, 0, 0);
+        ha.mat.color.setHex(0xef4444);
+        ha.mat.emissive.setHex(0xef4444);
+      } else {
+        // Heating: Outdoor HX absorbs heat from outdoor air into refrigerant coils
+        ha.group.position.set(ha.baseX, -0.45 - cyc * 0.35, -1.10 + cyc * 0.45);
+        ha.group.rotation.set(2.2, 0, 0);
+        ha.mat.color.setHex(0x06b6d4);
+        ha.mat.emissive.setHex(0x06b6d4);
+      }
+    }
+  }
+
+  // 8. Animate Condensation Droplets on Indoor HX (Active during Cooling mode)
+  for (let i = 0; i < condensationDrops.length; i++) {
+    const drop = condensationDrops[i];
+    if (currentMode === 'cool') {
+      drop.visible = true;
+      const t = (elapsed * drop.userData.speed + drop.userData.phase) % 1.0;
+      drop.position.set(
+        drop.userData.baseX,
+        2.55 - t * 0.62,
+        0.15 + t * 0.25
+      );
+    } else {
+      drop.visible = false;
+    }
+  }
+
+  renderer.render(scene, camera);
+  updateCalloutPositions();
+}
+
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  updateCalloutPositions();
+});
+
+animate();
+</script>
+</body>
+</html>

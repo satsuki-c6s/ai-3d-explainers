@@ -29,7 +29,7 @@
 <body>
 <div class="wrap">
   <h1>AI が 1 枚の HTML で作った 3D の解説ページ</h1>
-  <p class="lead">同じ指示を 1 回だけ、5 つの AI モデルに出して作らせた Three.js のページです。カードを押すと、その作品がブラウザで動きます (ドラッグで回転・ホイールで拡大)。道具は Hermes Agent。各モデル 1 回ずつなので順位は付けていません。並びは固定の順です。2026 年 11 月 10 日。</p>
+  <p class="lead">同じ指示を 1 回だけ、7 つの AI モデルに出して作らせた Three.js のページです。カードを押すと、その作品がブラウザで動きます (ドラッグで回転・ホイールで拡大)。道具は Hermes Agent。各モデル 1 回ずつなので順位は付けていません。並びは固定の順です。2026 年 11 月 10 日 (Gemini の 2 つは 11 日に追加)。</p>
   <h2>エアコン</h2>
   <div class="grid">
     <a class="card" href="aircon-fable52.html"><img src="aircon-fable52.gif" alt="Claude Fable 5.2 のエアコン" loading="lazy"><span class="cap"><span class="name">Claude Fable 5.2<span class="tag ok">採点 19/19</span></span><span class="note">暖房で開く: <code>aircon-fable52.html?mode=heat</code></span></span></a>
@@ -37,6 +37,8 @@
     <a class="card" href="aircon-opus55.html"><img src="aircon-opus55.gif" alt="Claude Opus 5.5 のエアコン" loading="lazy"><span class="cap"><span class="name">Claude Opus 5.5<span class="tag warn">採点 18/19</span></span><span class="note">暖房で開く: <code>aircon-opus55.html?mode=heat</code></span></span></a>
     <a class="card" href="aircon-fable51.html"><img src="aircon-fable51.gif" alt="Claude Fable 5.1 のエアコン" loading="lazy"><span class="cap"><span class="name">Claude Fable 5.1<span class="tag warn">採点 18/19</span></span><span class="note">暖房で開く: <code>aircon-fable51.html?mode=heat</code></span></span></a>
     <a class="card" href="aircon-grok.html"><img src="aircon-grok.gif" alt="Grok 4.7 のエアコン" loading="lazy"><span class="cap"><span class="name">Grok 4.7<span class="tag warn">採点 16/19</span></span><span class="note">暖房で開く: <code>aircon-grok.html?mode=heat</code></span></span></a>
+    <a class="card" href="aircon-carbon.html"><img src="aircon-carbon.gif" alt="Gemini 4 Carbon のエアコン" loading="lazy"><span class="cap"><span class="name">Gemini 4 Carbon<span class="tag ok">採点 19/19</span></span><span class="note">翌日に追加・分けて書く指示つき。暖房で開く: <code>aircon-carbon.html?mode=heat</code></span></span></a>
+    <a class="card" href="aircon-argon.html"><img src="aircon-argon.gif" alt="Gemini 4 Argon のエアコン" loading="lazy"><span class="cap"><span class="name">Gemini 4 Argon<span class="tag ok">採点 19/19</span></span><span class="note">翌日に追加。暖房で開く: <code>aircon-argon.html?mode=heat</code></span></span></a>
   </div>
   <h2>量子コンピューター</h2>
   <div class="grid">
@@ -45,6 +47,8 @@
     <a class="card" href="quantum-opus55.html"><img src="quantum-opus55.gif" alt="Claude Opus 5.5 の量子コンピューター" loading="lazy"><span class="cap"><span class="name">Claude Opus 5.5<span class="tag ok">採点 16/16</span></span></span></a>
     <a class="card" href="quantum-fable51.html"><img src="quantum-fable51.gif" alt="Claude Fable 5.1 の量子コンピューター" loading="lazy"><span class="cap"><span class="name">Claude Fable 5.1<span class="tag warn">採点 15/16</span></span></span></a>
     <a class="card" href="quantum-grok.html"><img src="quantum-grok.gif" alt="Grok 4.7 の量子コンピューター" loading="lazy"><span class="cap"><span class="name">Grok 4.7<span class="tag warn">採点 13/16</span></span></span></a>
+    <a class="card" href="quantum-carbon.html"><img src="quantum-carbon.gif" alt="Gemini 4 Carbon の量子コンピューター" loading="lazy"><span class="cap"><span class="name">Gemini 4 Carbon<span class="tag warn">採点 15/16</span></span><span class="note">翌日に追加・分けて書く指示つき</span></span></a>
+    <a class="card" href="quantum-argon.html"><img src="quantum-argon.gif" alt="Gemini 4 Argon の量子コンピューター" loading="lazy"><span class="cap"><span class="name">Gemini 4 Argon<span class="tag ok">採点 16/16</span></span><span class="note">翌日に追加</span></span></a>
   </div>
   <footer>
     <p>採点は 1 課題につき、機械の確認 3 点 + 中身の項目 (エアコン 16・量子 13)。項目は 3 つの AI モデルが作者名を伏せた写真とソースで合否を付けました。課題文は <a href="prompt-aircon.txt">prompt-aircon.txt</a>・<a href="prompt-quantum.txt">prompt-quantum.txt</a>、採点表は <a href="RUBRIC.md">RUBRIC.md</a>、説明は <a href="https://github.com/satsuki-c6s/ai-3d-explainers">README</a> にあります。測定の記事は <a href="https://note.com/happy_hound3166/n/nf0fba18a933b">note</a> にあります。</p>

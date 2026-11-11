@@ -1,0 +1,2328 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>超伝導方式 量子コンピューターの仕組み 3D解説</title>
+  <style>
+    :root {
+      --bg-dark: #070b14;
+      --panel-bg: rgba(11, 18, 34, 0.86);
+      --panel-border: rgba(88, 166, 255, 0.28);
+      --accent-blue: #38bdf8;
+      --accent-gold: #fbbf24;
+      --accent-cyan: #22d3ee;
+      --accent-purple: #c084fc;
+      --accent-green: #4ade80;
+      --accent-red: #f87171;
+      --text-main: #f1f5f9;
+      --text-sub: #cbd5e1;
+      --text-muted: #94a3b8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: var(--bg-dark);
+      font-family: "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Yu Gothic", "Meiryo", system-ui, -apple-system, sans-serif;
+      color: var(--text-main);
+    }
+
+    #canvas-container {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+    }
+
+    #labels-container {
+      position: fixed;
+      inset: 0;
+      z-index: 2;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    /* 3D 部品ピンラベル */
+    .part-label {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      background: rgba(10, 17, 32, 0.88);
+      border: 1px solid rgba(251, 191, 36, 0.45);
+      border-left: 3px solid var(--accent-gold);
+      border-radius: 6px;
+      padding: 5px 9px;
+      color: var(--text-main);
+      font-size: 11px;
+      line-height: 1.35;
+      max-width: 220px;
+      pointer-events: auto;
+      cursor: pointer;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.55);
+      backdrop-filter: blur(6px);
+    }
+
+    .part-label:hover, .part-label.active-pin {
+      border-color: var(--accent-cyan);
+      border-left-color: var(--accent-cyan);
+      box-shadow: 0 0 14px rgba(34, 211, 238, 0.45);
+      z-index: 15;
+    }
+
+    .part-label .pin-title {
+      font-weight: 700;
+      color: var(--accent-gold);
+      font-size: 11.5px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      margin-bottom: 2px;
+    }
+
+    .part-label.active-pin .pin-title {
+      color: var(--accent-cyan);
+    }
+
+    .part-label .pin-temp {
+      background: rgba(56, 189, 248, 0.18);
+      color: #7dd3fc;
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .part-label .pin-desc {
+      color: var(--text-sub);
+      font-size: 10.5px;
+    }
+
+    /* 3D ブロッホ球・チップラベル */
+    .floating-tag {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      background: rgba(8, 15, 30, 0.85);
+      border: 1px solid rgba(56, 189, 248, 0.45);
+      border-radius: 6px;
+      padding: 4px 8px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #e0f2fe;
+      pointer-events: none;
+      white-space: nowrap;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+    }
+
+    /* UI レイアウト */
+    #ui-layer {
+      position: fixed;
+      inset: 0;
+      z-index: 10;
+      pointer-events: none;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      padding: 12px 16px;
+      gap: 10px;
+    }
+
+    .interactive-panel {
+      pointer-events: auto;
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 10px;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 8px 28px rgba(0, 0, 0, 0.55);
+    }
+
+    /* トップバー */
+    #top-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 16px;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .brand-block {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #fbbf24, #38bdf8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      color: #070b14;
+      font-size: 16px;
+      box-shadow: 0 0 12px rgba(251, 191, 36, 0.4);
+      flex-shrink: 0;
+    }
+
+    .brand-title h1 {
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+      color: #ffffff;
+    }
+
+    .brand-title p {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .stage-badge-container {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(56, 189, 248, 0.4);
+      padding: 6px 14px;
+      border-radius: 999px;
+    }
+
+    .stage-step-pill {
+      background: var(--accent-blue);
+      color: #04101e;
+      font-weight: 800;
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 999px;
+    }
+
+    #current-stage-title {
+      font-size: 13.5px;
+      font-weight: 700;
+      color: #f8fafc;
+    }
+
+    .controls-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn {
+      background: rgba(30, 41, 59, 0.9);
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      color: var(--text-main);
+      font-size: 12px;
+      font-weight: 600;
+      padding: 6px 11px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .btn:hover {
+      background: rgba(51, 65, 85, 0.95);
+      border-color: var(--accent-blue);
+    }
+
+    .btn.primary {
+      background: rgba(56, 189, 248, 0.2);
+      border-color: var(--accent-blue);
+      color: #e0f2fe;
+    }
+
+    .mouse-hint {
+      font-size: 11px;
+      color: var(--text-muted);
+      background: rgba(15, 23, 42, 0.7);
+      padding: 5px 10px;
+      border-radius: 6px;
+      border: 1px solid rgba(148, 163, 184, 0.2);
+    }
+
+    /* 中央左右カラム */
+    #middle-area {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    #left-panel {
+      width: 330px;
+      max-height: 100%;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+      overflow-y: auto;
+    }
+
+    #right-panel {
+      width: 375px;
+      max-height: 100%;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+      overflow-y: auto;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+      padding-bottom: 5px;
+    }
+
+    .section-header h2 {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--accent-gold);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .section-header .sub-tag {
+      font-size: 10.5px;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    #stage-description-box {
+      background: rgba(15, 23, 42, 0.75);
+      border-left: 3px solid var(--accent-blue);
+      border-radius: 6px;
+      padding: 9px 11px;
+      font-size: 12px;
+      line-height: 1.55;
+      color: var(--text-main);
+    }
+
+    #stage-point-box {
+      background: rgba(251, 191, 36, 0.09);
+      border: 1px solid rgba(251, 191, 36, 0.3);
+      border-radius: 6px;
+      padding: 7px 10px;
+      font-size: 11.5px;
+      line-height: 1.45;
+      color: #fde68a;
+    }
+
+    /* 温度ステージリスト */
+    .temp-ladder {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .temp-row {
+      display: grid;
+      grid-template-columns: 74px 1fr;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 8px;
+      border-radius: 5px;
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(148, 163, 184, 0.14);
+      font-size: 11px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .temp-row:hover, .temp-row.active {
+      border-color: var(--accent-gold);
+      background: rgba(251, 191, 36, 0.12);
+    }
+
+    .temp-val {
+      font-weight: 700;
+      color: var(--accent-cyan);
+      font-size: 11px;
+    }
+
+    .temp-desc {
+      color: var(--text-sub);
+      font-size: 10.5px;
+      line-height: 1.3;
+    }
+
+    /* 信号経路ガイド */
+    .signal-flow-box {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 5px;
+      font-size: 10.5px;
+    }
+
+    .sig-badge {
+      background: rgba(15, 23, 42, 0.75);
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      border-radius: 5px;
+      padding: 5px 6px;
+      text-align: center;
+      line-height: 1.3;
+    }
+
+    .sig-dot {
+      display: inline-block;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      margin-right: 3px;
+    }
+
+    /* 量子回路 SVG パネル */
+    .circuit-wrapper {
+      background: rgba(7, 12, 24, 0.85);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      border-radius: 8px;
+      padding: 6px 8px;
+    }
+
+    #circuit-svg {
+      width: 100%;
+      height: 108px;
+      display: block;
+    }
+
+    .gate-node {
+      cursor: pointer;
+      transition: filter 0.2s ease;
+    }
+
+    .gate-node.active-gate rect,
+    .gate-node.active-gate circle.target-ring {
+      stroke: #fbbf24 !important;
+      stroke-width: 2.8px !important;
+      filter: drop-shadow(0 0 6px rgba(251, 191, 36, 0.85));
+    }
+
+    /* 状態式・ブロッホ球ステータス */
+    .state-card {
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid rgba(192, 132, 252, 0.35);
+      border-radius: 7px;
+      padding: 7px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .state-formula-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .state-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    #quantum-state-ket {
+      font-family: "Cambria Math", "Times New Roman", monospace;
+      font-size: 13.5px;
+      font-weight: 700;
+      color: #f0abfc;
+    }
+
+    .bloch-status-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      margin-top: 2px;
+    }
+
+    .bloch-mini-card {
+      background: rgba(7, 11, 20, 0.75);
+      border: 1px solid rgba(148, 163, 184, 0.22);
+      border-radius: 5px;
+      padding: 5px 7px;
+      font-size: 10.5px;
+      line-height: 1.35;
+    }
+
+    .bloch-mini-card strong {
+      color: var(--accent-cyan);
+      display: block;
+      margin-bottom: 1px;
+    }
+
+    /* 測定ヒストグラム */
+    .histogram-box {
+      background: rgba(10, 16, 30, 0.82);
+      border: 1px solid rgba(74, 222, 128, 0.3);
+      border-radius: 7px;
+      padding: 8px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .hist-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+    }
+
+    .hist-header strong {
+      color: var(--accent-green);
+    }
+
+    .shot-badge {
+      background: rgba(74, 222, 128, 0.16);
+      color: #86efac;
+      padding: 1px 7px;
+      border-radius: 999px;
+      font-weight: 700;
+      font-size: 11px;
+    }
+
+    .hist-bars {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .hist-row {
+      display: grid;
+      grid-template-columns: 34px 1fr 78px;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+    }
+
+    .hist-ket {
+      font-family: monospace;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .hist-track {
+      height: 11px;
+      background: rgba(30, 41, 59, 0.9);
+      border-radius: 999px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .hist-fill {
+      height: 100%;
+      width: 0%;
+      border-radius: 999px;
+      transition: width 0.18s ease;
+    }
+
+    .hist-fill.bell-state {
+      background: linear-gradient(90deg, #38bdf8, #4ade80);
+    }
+
+    .hist-fill.zero-state {
+      background: #64748b;
+    }
+
+    .hist-count {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      color: var(--text-sub);
+      font-size: 10.5px;
+    }
+
+    /* ボトムタイムラインバー */
+    #bottom-bar {
+      padding: 8px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .timeline-steps {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      gap: 6px;
+    }
+
+    .step-tab {
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid rgba(148, 163, 184, 0.22);
+      border-radius: 6px;
+      padding: 5px 6px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      text-align: left;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .step-tab:hover {
+      border-color: var(--accent-blue);
+      background: rgba(30, 41, 59, 0.9);
+    }
+
+    .step-tab.active {
+      background: rgba(56, 189, 248, 0.18);
+      border-color: var(--accent-blue);
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.25);
+    }
+
+    .step-tab .st-num {
+      font-size: 9.5px;
+      font-weight: 700;
+      color: var(--accent-cyan);
+    }
+
+    .step-tab .st-name {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-main);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .progress-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .progress-track {
+      flex: 1;
+      height: 6px;
+      background: rgba(30, 41, 59, 0.95);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    #progress-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #fbbf24, #38bdf8, #c084fc, #4ade80);
+      transition: width 0.1s linear;
+    }
+
+    #timer-text {
+      font-size: 11px;
+      font-variant-numeric: tabular-nums;
+      color: var(--text-sub);
+      min-width: 95px;
+      text-align: right;
+    }
+
+    /* 1280x720 等のコンパクト画面対応 */
+    @media (max-height: 780px) {
+      #ui-layer {
+        padding: 6px 10px;
+        gap: 5px;
+      }
+      #top-bar {
+        padding: 5px 10px;
+      }
+      .brand-title h1 {
+        font-size: 14.5px;
+      }
+      .brand-title p {
+        font-size: 10px;
+      }
+      #left-panel, #right-panel {
+        padding: 7px 10px;
+        gap: 5px;
+      }
+      .section-header {
+        padding-bottom: 3px;
+      }
+      .section-header h2 {
+        font-size: 12px;
+      }
+      #stage-description-box {
+        padding: 5px 8px;
+        font-size: 10.8px;
+        line-height: 1.35;
+      }
+      #stage-point-box {
+        padding: 4px 7px;
+        font-size: 10.2px;
+        line-height: 1.32;
+      }
+      .temp-ladder {
+        gap: 3px;
+      }
+      .temp-row {
+        padding: 2px 6px;
+        font-size: 10px;
+      }
+      .temp-val {
+        font-size: 10.2px;
+      }
+      .temp-desc {
+        font-size: 9.8px;
+      }
+      .sig-badge {
+        padding: 3px 5px;
+        font-size: 9.8px;
+      }
+      #circuit-svg {
+        height: 86px;
+      }
+      .part-label {
+        padding: 3px 7px;
+        font-size: 10px;
+        max-width: 185px;
+      }
+      .part-label .pin-title {
+        font-size: 10.5px;
+      }
+      .part-label .pin-desc {
+        font-size: 9.5px;
+      }
+      #bottom-bar {
+        padding: 6px 10px;
+        gap: 4px;
+      }
+      .step-tab {
+        padding: 4px 5px;
+      }
+    }
+  </style>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <!-- 3D 描画キャンバス -->
+  <div id="canvas-container"></div>
+
+  <!-- 3D 空間と連動する日本語ラベルレイヤー -->
+  <div id="labels-container"></div>
+
+  <!-- オーバーレイ UI -->
+  <div id="ui-layer">
+    <!-- 上部ヘッダー -->
+    <header id="top-bar" class="interactive-panel">
+      <div class="brand-block">
+        <div class="brand-icon">Q</div>
+        <div class="brand-title">
+          <h1>超伝導方式 量子コンピューターの仕組み</h1>
+          <p>希釈冷凍機の3D構造と「重ね合わせ・量子もつれ・測定」のアニメーション解説</p>
+        </div>
+      </div>
+
+      <div class="stage-badge-container">
+        <span class="stage-step-pill" id="current-stage-step">STAGE 1 / 8</span>
+        <span id="current-stage-title">全体像：希釈冷凍機（シャンデリア構造）</span>
+      </div>
+
+      <div class="controls-bar">
+        <span class="mouse-hint">マウス操作: 左ドラッグで回転 / ホイールで拡大縮小 / 右ドラッグで移動</span>
+        <button class="btn primary" id="btn-play-pause" type="button">一時停止</button>
+        <button class="btn" id="btn-prev" type="button">◀ 前へ</button>
+        <button class="btn" id="btn-next" type="button">次へ ▶</button>
+        <button class="btn" id="btn-toggle-shield" type="button">真空容器: 半透明</button>
+        <button class="btn" id="btn-reset-cam" type="button">視点リセット</button>
+      </div>
+    </header>
+
+    <!-- 中央エリア（左：装置・解説パネル、中央：3Dビュー、右：量子回路・ブロッホ球・測定パネル） -->
+    <main id="middle-area">
+      <!-- 左パネル：段階ごとの解説＆希釈冷凍機の温度・信号ガイド -->
+      <aside id="left-panel" class="interactive-panel">
+        <div class="section-header">
+          <h2 id="left-panel-heading">現在のステップ解説</h2>
+          <span class="sub-tag" id="left-panel-sub">自動ツアー進行中</span>
+        </div>
+
+        <div id="stage-description-box">
+          超伝導量子コンピューターは、電気抵抗がゼロになる「超伝導」回路で量子ビットを作ります。熱によるノイズを防ぐため、宇宙空間より冷たい約0.01ケルビン（-273.14℃）まで段階的に冷やします。
+        </div>
+
+        <div id="stage-point-box">
+          高校生向けポイント：絶対零度（0 K = -273.15℃）に限りなく近づけることで、微小なマイクロ波の粒（光子1個分）のエネルギーでも量子状態が壊れずに保たれます。
+        </div>
+
+        <div class="section-header">
+          <h2>段ごとの温度と役割（クリックで注目）</h2>
+          <span class="sub-tag">上から下へ冷却</span>
+        </div>
+
+        <div class="temp-ladder" id="temp-ladder-list">
+          <div class="temp-row" data-stage="0">
+            <span class="temp-val">約 300 K (室温)</span>
+            <span class="temp-desc">上部フランジ：室温の制御装置からマイクロ波を入出力</span>
+          </div>
+          <div class="temp-row" data-stage="1">
+            <span class="temp-val">50 K 段</span>
+            <span class="temp-desc">第1冷却段：パルス管冷凍機で外からの熱を遮断</span>
+          </div>
+          <div class="temp-row" data-stage="1">
+            <span class="temp-val">4 K 段</span>
+            <span class="temp-desc">第2冷却段：液体ヘリウム温度。低雑音HEMT増幅器を設置</span>
+          </div>
+          <div class="temp-row" data-stage="1">
+            <span class="temp-val">0.8 K (800mK)</span>
+            <span class="temp-desc">スティル段：ヘリウム3を蒸発させてさらに冷却</span>
+          </div>
+          <div class="temp-row" data-stage="1">
+            <span class="temp-val">0.1 K (100mK)</span>
+            <span class="temp-desc">中間冷却段：熱交換器を通し極低温への橋渡し</span>
+          </div>
+          <div class="temp-row" data-stage="2">
+            <span class="temp-val">0.01 K (10mK)</span>
+            <span class="temp-desc">混合室段（最下段）：量子チップと磁気シールドを配置</span>
+          </div>
+        </div>
+
+        <div class="section-header">
+          <h2>信号の通り道（同軸ケーブル）</h2>
+          <span class="sub-tag">マイクロ波パルス</span>
+        </div>
+
+        <div class="signal-flow-box">
+          <div class="sig-badge">
+            <span class="sig-dot" style="background:#38bdf8;"></span><strong>入力線 (下り)</strong><br/>
+            減衰器で熱ノイズを消しながらチップへ
+          </div>
+          <div class="sig-badge">
+            <span class="sig-dot" style="background:#fbbf24;"></span><strong>チップ内操作</strong><br/>
+            共振器とジョセフソン接合で状態を制御
+          </div>
+          <div class="sig-badge">
+            <span class="sig-dot" style="background:#4ade80;"></span><strong>読出線 (上り)</strong><br/>
+            アイソレータと増幅器を通って室温へ
+          </div>
+        </div>
+      </aside>
+
+      <!-- 右パネル：量子回路（H → CNOT → 測定）、ブロッホ球の意味、測定ヒストグラム -->
+      <aside id="right-panel" class="interactive-panel">
+        <div class="section-header">
+          <h2>量子回路：Hゲート → CNOTゲート → 測定</h2>
+          <span class="sub-tag">2量子ビット (q0, q1)</span>
+        </div>
+
+        <div class="circuit-wrapper">
+          <svg id="circuit-svg" viewBox="0 0 340 105" xmlns="http://www.w3.org/2000/svg">
+            <!-- 背景グリッド線 -->
+            <line x1="52" y1="30" x2="320" y2="30" stroke="#475569" stroke-width="2" />
+            <line x1="52" y1="76" x2="320" y2="76" stroke="#475569" stroke-width="2" />
+
+            <!-- 初期状態ラベル -->
+            <g class="gate-node" id="svg-node-init" data-jump="4">
+              <rect x="6" y="15" width="44" height="30" rx="5" fill="#0f172a" stroke="#38bdf8" stroke-width="1.5" />
+              <text x="28" y="34" fill="#e0f2fe" font-size="12" font-weight="bold" text-anchor="middle">q0:|0⟩</text>
+              <rect x="6" y="61" width="44" height="30" rx="5" fill="#0f172a" stroke="#38bdf8" stroke-width="1.5" />
+              <text x="28" y="80" fill="#e0f2fe" font-size="12" font-weight="bold" text-anchor="middle">q1:|0⟩</text>
+            </g>
+
+            <!-- Step 1: H ゲート -->
+            <g class="gate-node" id="svg-node-h" data-jump="5">
+              <rect x="85" y="13" width="36" height="34" rx="6" fill="#1e3a8a" stroke="#38bdf8" stroke-width="2" />
+              <text x="103" y="35" fill="#ffffff" font-size="15" font-weight="bold" text-anchor="middle">H</text>
+              <text x="103" y="100" fill="#94a3b8" font-size="9.5" text-anchor="middle">重ね合わせ</text>
+            </g>
+
+            <!-- Step 2: CNOT ゲート -->
+            <g class="gate-node" id="svg-node-cnot" data-jump="6">
+              <rect x="158" y="10" width="48" height="82" rx="6" fill="rgba(192,132,252,0.12)" stroke="rgba(192,132,252,0.4)" stroke-width="1.5" />
+              <line x1="182" y1="30" x2="182" y2="76" stroke="#c084fc" stroke-width="2.5" />
+              <circle cx="182" cy="30" r="6" fill="#c084fc" />
+              <circle class="target-ring" cx="182" cy="76" r="12" fill="#1e1b4b" stroke="#c084fc" stroke-width="2.2" />
+              <line x1="174" y1="76" x2="190" y2="76" stroke="#c084fc" stroke-width="2" />
+              <line x1="182" y1="68" x2="182" y2="84" stroke="#c084fc" stroke-width="2" />
+              <text x="182" y="100" fill="#d8b4fe" font-size="9.5" text-anchor="middle">CNOT(もつれ)</text>
+            </g>
+
+            <!-- Step 3: 測定ゲート -->
+            <g class="gate-node" id="svg-node-meas" data-jump="7">
+              <rect x="248" y="13" width="42" height="34" rx="6" fill="#064e3b" stroke="#4ade80" stroke-width="2" />
+              <path d="M 256 38 A 13 13 0 0 1 282 38" fill="none" stroke="#86efac" stroke-width="1.8" />
+              <line x1="269" y1="38" x2="278" y2="22" stroke="#fbbf24" stroke-width="2" />
+
+              <rect x="248" y="59" width="42" height="34" rx="6" fill="#064e3b" stroke="#4ade80" stroke-width="2" />
+              <path d="M 256 84 A 13 13 0 0 1 282 84" fill="none" stroke="#86efac" stroke-width="1.8" />
+              <line x1="269" y1="84" x2="278" y2="68" stroke="#fbbf24" stroke-width="2" />
+              <text x="269" y="100" fill="#86efac" font-size="9.5" text-anchor="middle">測定(収縮)</text>
+            </g>
+          </svg>
+        </div>
+
+        <!-- 量子状態とブロッホ球の物理的意味 -->
+        <div class="state-card">
+          <div class="state-formula-row">
+            <span class="state-label">2量子ビット全体の状態 |ψ⟩</span>
+            <span id="quantum-state-ket">|ψ⟩ = |00⟩</span>
+          </div>
+          <div class="bloch-status-grid">
+            <div class="bloch-mini-card">
+              <strong>量子ビット q0 のブロッホ球</strong>
+              <span id="q0-bloch-text">北極 |0⟩ (純粋状態, ベクトル長 r=1)</span>
+            </div>
+            <div class="bloch-mini-card">
+              <strong>量子ビット q1 のブロッホ球</strong>
+              <span id="q1-bloch-text">北極 |0⟩ (純粋状態, ベクトル長 r=1)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 測定結果ヒストグラム（繰り返し測定） -->
+        <div class="histogram-box">
+          <div class="hist-header">
+            <strong>測定結果の統計（何回も繰り返した結果）</strong>
+            <span class="shot-badge" id="shot-counter-badge">試行回数: 0 回</span>
+          </div>
+          <div class="hist-bars">
+            <div class="hist-row">
+              <span class="hist-ket">|00⟩</span>
+              <div class="hist-track"><div class="hist-fill bell-state" id="bar-00"></div></div>
+              <span class="hist-count" id="cnt-00">0回 (0%)</span>
+            </div>
+            <div class="hist-row">
+              <span class="hist-ket">|01⟩</span>
+              <div class="hist-track"><div class="hist-fill zero-state" id="bar-01"></div></div>
+              <span class="hist-count" id="cnt-01">0回 (0%)</span>
+            </div>
+            <div class="hist-row">
+              <span class="hist-ket">|10⟩</span>
+              <div class="hist-track"><div class="hist-fill zero-state" id="bar-10"></div></div>
+              <span class="hist-count" id="cnt-10">0回 (0%)</span>
+            </div>
+            <div class="hist-row">
+              <span class="hist-ket">|11⟩</span>
+              <div class="hist-track"><div class="hist-fill bell-state" id="bar-11"></div></div>
+              <span class="hist-count" id="cnt-11">0回 (0%)</span>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </main>
+
+    <!-- 下部タイムライン＆プログレスバー -->
+    <footer id="bottom-bar" class="interactive-panel">
+      <div class="timeline-steps" id="timeline-steps">
+        <button class="step-tab active" data-stage="0" type="button">
+          <span class="st-num">1. 全体構造</span>
+          <span class="st-name">希釈冷凍機</span>
+        </button>
+        <button class="step-tab" data-stage="1" type="button">
+          <span class="st-num">2. 段階冷却</span>
+          <span class="st-name">300K→10mK</span>
+        </button>
+        <button class="step-tab" data-stage="2" type="button">
+          <span class="st-num">3. 心臓部</span>
+          <span class="st-name">量子チップ</span>
+        </button>
+        <button class="step-tab" data-stage="3" type="button">
+          <span class="st-num">4. 信号経路</span>
+          <span class="st-name">同軸ケーブル</span>
+        </button>
+        <button class="step-tab" data-stage="4" type="button">
+          <span class="st-num">5. 初期化</span>
+          <span class="st-name">|00⟩ とブロッホ球</span>
+        </button>
+        <button class="step-tab" data-stage="5" type="button">
+          <span class="st-num">6. Hゲート</span>
+          <span class="st-name">重ね合わせ</span>
+        </button>
+        <button class="step-tab" data-stage="6" type="button">
+          <span class="st-num">7. CNOT</span>
+          <span class="st-name">量子もつれ</span>
+        </button>
+        <button class="step-tab" data-stage="7" type="button">
+          <span class="st-num">8. 測定</span>
+          <span class="st-name">収縮と統計</span>
+        </button>
+      </div>
+      <div class="progress-row">
+        <div class="progress-track">
+          <div id="progress-fill"></div>
+        </div>
+        <div id="timer-text">自動ループ: 0.0 / 48.0 秒</div>
+      </div>
+    </footer>
+  </div>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+    // ============================================================================
+    // 1. ステージ定義（1周 48秒 <= 60秒以内、装置から測定まで自動で順に進めてループ）
+    // ============================================================================
+    const LOOP_DURATION = 48.0; // 秒
+    const STAGES = [
+      {
+        id: 0,
+        start: 0,
+        end: 6,
+        stepText: 'STAGE 1 / 8',
+        title: '全体像：希釈冷凍機（金色のシャンデリア構造）',
+        desc: '超伝導量子コンピューターの本体は、真空容器の中に吊り下げられた「希釈冷凍機」です。金メッキされた銅の円盤が何段も重なり、上から下へ向かって温度を段階的に下げていきます。',
+        point: 'なぜ金色？：純粋な銅に金メッキを施すことで、酸化（サビ）を防ぎながら熱を素早く逃がし、極低温を保ちます。',
+        ket: '|ψ⟩ = |00⟩ （待機・冷却中）',
+        q0Text: '北極 |0⟩ (基底状態)',
+        q1Text: '北極 |0⟩ (基底状態)',
+        camPos: new THREE.Vector3(0.0, 1.2, 13.8),
+        camTarget: new THREE.Vector3(0.0, 0.3, 0.0),
+        activePinIds: ['pin-300k', 'pin-4k', 'pin-10mk'],
+        circuitActive: ''
+      },
+      {
+        id: 1,
+        start: 6,
+        end: 12,
+        stepText: 'STAGE 2 / 8',
+        title: '段階ごとの冷却：室温(300K)から宇宙より冷たい 10mK へ',
+        desc: '室温(約300K = 約27℃)から、50K段 → 4K段 → 0.8K(スティル段) → 0.1K段 → 0.01K(10mK: 混合室段)へと段階的に冷やします。ヘリウム3とヘリウム4という2種類の同位体が混ざる時の吸熱反応を利用します。',
+        point: '高校生向けポイント：10mK（-273.14℃）では金属の電気抵抗が完全にゼロになる「超伝導」が安定し、熱による誤動作（熱雑音）が消えます。',
+        ket: '冷却段階：300K → 50K → 4K → 0.8K → 0.1K → 10mK',
+        q0Text: '熱雑音を遮断し |0⟩ に安定化',
+        q1Text: '熱雑音を遮断し |0⟩ に安定化',
+        camPos: new THREE.Vector3(4.2, 1.5, 11.2),
+        camTarget: new THREE.Vector3(-1.8, 0.4, 0.0),
+        activePinIds: ['pin-50k', 'pin-800mk', 'pin-100mk', 'pin-mix'],
+        circuitActive: ''
+      },
+      {
+        id: 2,
+        start: 12,
+        end: 18,
+        stepText: 'STAGE 3 / 8',
+        title: '量子ビットのチップの場所：最下段(10mK)と磁気シールド',
+        desc: '一番下の「混合室段 (10mK)」のさらに下に、量子プロセッサ（チップ）が収められています。地磁気や周囲の電磁波ノイズから守るため、磁気シールド缶の内部に厳重に保護されています。',
+        point: '超伝導量子ビットの正体：シリコン基板の上にニオブやアルミニウムで作った小さな「超伝導共振回路（ジョセフソン接合）」が1個の人工原子として働きます。',
+        ket: '超伝導チップ：ジョセフソン接合による人工原子',
+        q0Text: 'チップ上の量子ビット q0',
+        q1Text: 'チップ上の量子ビット q1',
+        camPos: new THREE.Vector3(0.4, -2.5, 7.6),
+        camTarget: new THREE.Vector3(0.0, -3.1, 0.0),
+        activePinIds: ['pin-10mk', 'pin-chip', 'pin-shield'],
+        circuitActive: ''
+      },
+      {
+        id: 3,
+        start: 18,
+        end: 24,
+        stepText: 'STAGE 4 / 8',
+        title: '信号の通り道：同軸ケーブル・減衰器・増幅器',
+        desc: '室温の制御装置から出たマイクロ波パルス（青い光）は、各段の「減衰器」で室温の熱ノイズを落としながらチップへ届きます。計算後の微弱な信号（緑の光）は「アイソレータ」で逆流を防ぎ、「増幅器」で大きくして読み出します。',
+        point: '約4〜5GHz（Wi-Fiに近い周波数）のマイクロ波パルスの「長さ・強さ・位相」を調整することで、量子ビットの向きを自在に回転させます。',
+        ket: 'マイクロ波パルス送受信（入力:青 → 操作:金 → 読出:緑）',
+        q0Text: 'マイクロ波共振器と結合',
+        q1Text: 'マイクロ波共振器と結合',
+        camPos: new THREE.Vector3(-3.2, 0.6, 11.0),
+        camTarget: new THREE.Vector3(-2.0, -0.2, 0.0),
+        activePinIds: ['pin-coax', 'pin-atten', 'pin-amp'],
+        circuitActive: ''
+      },
+      {
+        id: 4,
+        start: 24,
+        end: 30,
+        stepText: 'STAGE 5 / 8',
+        title: '計算準備（初期化）：2つの量子ビットを |00⟩ にそろえる',
+        desc: 'いよいよ量子計算のスタートです。2つの量子ビット q0 と q1 を最もエネルギーが低い基底状態 |0⟩ にそろえます。3Dの「ブロッホ球」では、矢印（状態ベクトル）が真上の北極 |0⟩ を指します。',
+        point: 'ブロッホ球とは？：1つの量子ビットの状態を半径1の球で表したもの。北極が |0⟩、南極が |1⟩、赤道上が0と1の「重ね合わせ状態」です。',
+        ket: '|ψ⟩ = |0⟩ ⊗ |0⟩ = |00⟩',
+        q0Text: '北極 |0⟩ (θ=0°, ベクトル長 r=1.0)',
+        q1Text: '北極 |0⟩ (θ=0°, ベクトル長 r=1.0)',
+        camPos: new THREE.Vector3(1.9, -0.1, 10.2),
+        camTarget: new THREE.Vector3(2.2, -0.2, 0.0),
+        activePinIds: ['pin-chip'],
+        circuitActive: 'svg-node-init'
+      },
+      {
+        id: 5,
+        start: 30,
+        end: 36,
+        stepText: 'STAGE 6 / 8',
+        title: 'Hゲート（アダマールゲート）：q0 を「重ね合わせ」にする',
+        desc: 'q0 にマイクロ波パルスを当てて「Hゲート」を実行します。q0 の矢印が北極 |0⟩ から赤道上の |+⟩（+X軸方向）へ90度倒れ、|0⟩ と |1⟩ が半分ずつ重なり合った状態になります。',
+        point: '物理として重要：Hゲートは「Z軸とX軸の間の180度回転（またはY軸まわり90度回転）」です。この時点では q0 と q1 はまだ独立（積状態）です。',
+        ket: '|ψ⟩ = (|0⟩ + |1⟩)/√2 ⊗ |0⟩ = (|00⟩ + |10⟩)/√2',
+        q0Text: '赤道 |+⟩ = (|0⟩+|1⟩)/√2 (+X方向, r=1.0)',
+        q1Text: '北極 |0⟩ のまま (r=1.0)',
+        camPos: new THREE.Vector3(2.5, 0.2, 9.2),
+        camTarget: new THREE.Vector3(2.6, 0.0, 0.0),
+        activePinIds: ['pin-chip'],
+        circuitActive: 'svg-node-h'
+      },
+      {
+        id: 6,
+        start: 36,
+        end: 42,
+        stepText: 'STAGE 7 / 8',
+        title: 'CNOTゲート：2つの量子ビットに「量子もつれ」を作る',
+        desc: 'q0（制御ビット）が |1⟩ のときだけ q1（標的ビット）を反転させる「CNOTゲート」をかけます。q0 が |0⟩ と |1⟩ の重ね合わせなので、全体が (|00⟩ + |11⟩)/√2 という切り離せない「量子もつれ（ベル状態）」になります。',
+        point: 'ブロッホ球の物理：最大の量子もつれ状態では、各量子ビット単独の状態（部分トレース）は「完全混合状態」になるため、ブロッホベクトルは球の中心（長さ r=0）に縮み、2球を結ぶ相関リングが輝きます！',
+        ket: '|ψ⟩ = (|00⟩ + |11⟩)/√2 （最大もつれ・ベル状態 Φ⁺）',
+        q0Text: '球の中心 (r=0 完全混合：単独では方向不確定)',
+        q1Text: '球の中心 (r=0 完全混合：q0と強い量子相関)',
+        camPos: new THREE.Vector3(2.6, 0.0, 9.0),
+        camTarget: new THREE.Vector3(2.6, -0.1, 0.0),
+        activePinIds: ['pin-chip'],
+        circuitActive: 'svg-node-cnot'
+      },
+      {
+        id: 7,
+        start: 42,
+        end: 48,
+        stepText: 'STAGE 8 / 8',
+        title: '測定と繰り返し統計：状態の収縮（|00⟩ または |11⟩）',
+        desc: '読み出しマイクロ波を送って測定すると、重ね合わせが瞬時に「収縮」し、北極どうしの |00⟩ か南極どうしの |11⟩ のどちらかに確定します。q0 が 0 なら q1 も必ず 0、q0 が 1 なら q1 も必ず 1 になります。',
+        point: '何回も測定を繰り返すと：1回ごとに |00⟩ か |11⟩ がランダムに出ますが、何十回も繰り返すと |00⟩ が約50%、|11⟩ が約50%に収束し、|01⟩ や |10⟩ は0%になります。',
+        ket: '測定で収縮！ |00⟩ (約50%) または |11⟩ (約50%)',
+        q0Text: '測定のたびに北極 |0⟩ か南極 |1⟩ へ収縮 (r=1.0)',
+        q1Text: 'q0と完全に同じ向き（|0⟩ または |1⟩）へ同時に収縮',
+        camPos: new THREE.Vector3(1.2, 0.3, 11.8),
+        camTarget: new THREE.Vector3(0.8, -0.1, 0.0),
+        activePinIds: ['pin-amp', 'pin-chip'],
+        circuitActive: 'svg-node-meas'
+      }
+    ];
+
+    // ============================================================================
+    // 2. Three.js シーン・カメラ・レンダラー初期化
+    // ============================================================================
+    const container = document.getElementById('canvas-container');
+    const labelsContainer = document.getElementById('labels-container');
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x060a12);
+    scene.fog = new THREE.FogExp2(0x060a12, 0.018);
+
+    const camera = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.1, 120);
+    camera.position.set(0.0, 1.2, 13.8);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.15;
+    container.appendChild(renderer.domElement);
+
+    // 金属光沢（金メッキ・銅・ステンレス）をリアルに見せるための環境マップ生成（外部ファイル不要）
+    const pmremGenerator = new THREE.PMREMGenerator(renderer);
+    scene.environment = pmremGenerator.fromScene(new RoomEnvironment(), 0.04).texture;
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.06;
+    controls.maxDistance = 28;
+    controls.minDistance = 3.5;
+    controls.target.set(0.0, 0.3, 0.0);
+
+    // ユーザーがマウス操作した時は少しの間カメラ自動追従を緩める
+    let userInteractingTimer = 0;
+    controls.addEventListener('start', () => {
+      userInteractingTimer = 4.0;
+    });
+
+    // 照明
+    const ambientLight = new THREE.AmbientLight(0xdbeafe, 0.55);
+    scene.add(ambientLight);
+
+    const keyLight = new THREE.DirectionalLight(0xfffbeb, 1.8);
+    keyLight.position.set(8, 12, 10);
+    scene.add(keyLight);
+
+    const rimLight = new THREE.DirectionalLight(0x38bdf8, 1.3);
+    rimLight.position.set(-10, -4, -8);
+    scene.add(rimLight);
+
+    const bottomGlowLight = new THREE.PointLight(0x22d3ee, 1.5, 10);
+    bottomGlowLight.position.set(-2.0, -3.5, 1.5);
+    scene.add(bottomGlowLight);
+
+    // 背景のグリッド床（空間の奥行きとスケール感を出す）
+    const gridHelper = new THREE.GridHelper(32, 32, 0x1e3a8a, 0x0f172a);
+    gridHelper.position.y = -5.2;
+    scene.add(gridHelper);
+
+    // ============================================================================
+    // 3. 材質（マテリアル）定義
+    // ============================================================================
+    const goldPlateMat = new THREE.MeshStandardMaterial({
+      color: 0xf5be38,
+      metalness: 0.92,
+      roughness: 0.16
+    });
+
+    const goldPostMat = new THREE.MeshStandardMaterial({
+      color: 0xeab308,
+      metalness: 0.88,
+      roughness: 0.22
+    });
+
+    const copperMat = new THREE.MeshStandardMaterial({
+      color: 0xd97742,
+      metalness: 0.88,
+      roughness: 0.22
+    });
+
+    const steelMat = new THREE.MeshStandardMaterial({
+      color: 0xcbd5e1,
+      metalness: 0.85,
+      roughness: 0.28
+    });
+
+    const brassMat = new THREE.MeshStandardMaterial({
+      color: 0xfde047,
+      metalness: 0.82,
+      roughness: 0.25
+    });
+
+    const coaxSemiRigidMat = new THREE.MeshStandardMaterial({
+      color: 0xe2e8f0,
+      metalness: 0.75,
+      roughness: 0.3
+    });
+
+    const attenuatorMat = new THREE.MeshStandardMaterial({
+      color: 0x2563eb,
+      metalness: 0.6,
+      roughness: 0.3
+    });
+
+    const isolatorMat = new THREE.MeshStandardMaterial({
+      color: 0x10b981,
+      metalness: 0.6,
+      roughness: 0.3
+    });
+
+    const hemtAmpMat = new THREE.MeshStandardMaterial({
+      color: 0xf59e0b,
+      metalness: 0.75,
+      roughness: 0.25
+    });
+
+    const outerCanMat = new THREE.MeshPhysicalMaterial({
+      color: 0x94a3b8,
+      metalness: 0.2,
+      roughness: 0.15,
+      transparent: true,
+      opacity: 0.13,
+      side: THREE.DoubleSide,
+      depthWrite: false
+    });
+
+    const magShieldMat = new THREE.MeshPhysicalMaterial({
+      color: 0x334155,
+      metalness: 0.65,
+      roughness: 0.25,
+      transparent: true,
+      opacity: 0.32,
+      side: THREE.DoubleSide,
+      depthWrite: false
+    });
+
+    // ============================================================================
+    // 4. 希釈冷凍機（シャンデリア構造）の3Dモデル構築（左側 X = -2.2 中心）
+    // ============================================================================
+    const fridgeGroup = new THREE.Group();
+    fridgeGroup.position.set(-2.2, 0.35, 0.0);
+    scene.add(fridgeGroup);
+
+    // 冷凍機の各段データ
+    const plateStages = [
+      { id: '300K', name: '室温上部フランジ (300K)', y: 3.3, radius: 2.35, thick: 0.18, mat: steelMat, postR: 1.95 },
+      { id: '50K',  name: '50K ステージ',           y: 2.05, radius: 2.05, thick: 0.13, mat: goldPlateMat, postR: 1.68 },
+      { id: '4K',   name: '4K ステージ',            y: 0.75, radius: 1.80, thick: 0.13, mat: goldPlateMat, postR: 1.42 },
+      { id: '800mK',name: 'スティル段 (0.8K)',      y: -0.50, radius: 1.50, thick: 0.11, mat: goldPlateMat, postR: 1.15 },
+      { id: '100mK',name: '中間冷却段 (0.1K)',      y: -1.60, radius: 1.25, thick: 0.10, mat: copperMat, postR: 0.92 },
+      { id: '10mK', name: '混合室段 (10mK)',        y: -2.65, radius: 1.05, thick: 0.11, mat: goldPlateMat, postR: 0.72 }
+    ];
+
+    const stagePlateMeshes = [];
+
+    plateStages.forEach((st, idx) => {
+      // 段プレート本体
+      const plateGeo = new THREE.CylinderGeometry(st.radius, st.radius, st.thick, 48);
+      const plateMesh = new THREE.Mesh(plateGeo, st.mat);
+      plateMesh.position.y = st.y;
+      fridgeGroup.add(plateMesh);
+      stagePlateMeshes.push(plateMesh);
+
+      // 段プレート外周のリム（精密機械らしさを出す段差とボルト穴リング）
+      const rimGeo = new THREE.TorusGeometry(st.radius - 0.03, 0.022, 12, 48);
+      rimGeo.rotateX(Math.PI / 2);
+      const rimMesh = new THREE.Mesh(rimGeo, brassMat);
+      rimMesh.position.y = st.y + st.thick * 0.5;
+      fridgeGroup.add(rimMesh);
+
+      // ボルト頭（円周上に配置）
+      const boltCount = 12;
+      const boltGeo = new THREE.CylinderGeometry(0.03, 0.03, 0.03, 8);
+      for (let b = 0; b < boltCount; b++) {
+        const ang = (b / boltCount) * Math.PI * 2;
+        const bolt = new THREE.Mesh(boltGeo, steelMat);
+        bolt.position.set(
+          Math.cos(ang) * (st.radius - 0.12),
+          st.y + st.thick * 0.5 + 0.015,
+          Math.sin(ang) * (st.radius - 0.12)
+        );
+        fridgeGroup.add(bolt);
+      }
+
+      // 次の段との間の支柱（シャンデリアの支柱）
+      if (idx < plateStages.length - 1) {
+        const nextSt = plateStages[idx + 1];
+        const postHeight = st.y - nextSt.y - (st.thick + nextSt.thick) * 0.5;
+        const postY = (st.y + nextSt.y) * 0.5;
+        const postRadius = nextSt.postR;
+        const numPosts = 6;
+        for (let p = 0; p < numPosts; p++) {
+          const ang = (p / numPosts) * Math.PI * 2 + 0.25;
+          const px = Math.cos(ang) * postRadius;
+          const pz = Math.sin(ang) * postRadius;
+
+          const rodGeo = new THREE.CylinderGeometry(0.042, 0.042, postHeight, 14);
+          const rodMesh = new THREE.Mesh(rodGeo, idx === 0 ? steelMat : goldPostMat);
+          rodMesh.position.set(px, postY, pz);
+          fridgeGroup.add(rodMesh);
+
+          // 支柱上下のナットカラー
+          const collarGeo = new THREE.CylinderGeometry(0.07, 0.07, 0.06, 12);
+          const topCollar = new THREE.Mesh(collarGeo, brassMat);
+          topCollar.position.set(px, st.y - st.thick * 0.5 - 0.03, pz);
+          const botCollar = new THREE.Mesh(collarGeo, brassMat);
+          botCollar.position.set(px, nextSt.y + nextSt.thick * 0.5 + 0.03, pz);
+          fridgeGroup.add(topCollar, botCollar);
+        }
+      }
+    });
+
+    // 室温上部フランジの上にある室温コネクタボックス・真空ポート
+    const topPortGeo = new THREE.CylinderGeometry(0.42, 0.48, 0.45, 24);
+    for (let i = 0; i < 4; i++) {
+      const ang = (i / 4) * Math.PI * 2 + Math.PI / 4;
+      const port = new THREE.Mesh(topPortGeo, steelMat);
+      port.position.set(Math.cos(ang) * 1.25, 3.6, Math.sin(ang) * 1.25);
+      fridgeGroup.add(port);
+    }
+
+    // パルス管冷凍機（50K〜4Kを冷やす太い冷却シリンダー）
+    const pulseTubeGeo = new THREE.CylinderGeometry(0.28, 0.28, 2.55, 24);
+    const pulseTube = new THREE.Mesh(pulseTubeGeo, steelMat);
+    pulseTube.position.set(-0.65, 2.02, -0.55);
+    fridgeGroup.add(pulseTube);
+
+    // スティル蒸留器チャンバー & 混合室チャンバー（中央の円筒容器）
+    const stillChamber = new THREE.Mesh(new THREE.CylinderGeometry(0.36, 0.36, 0.65, 28), goldPlateMat);
+    stillChamber.position.set(0.15, -0.92, -0.15);
+    fridgeGroup.add(stillChamber);
+
+    // 連続熱交換器（スパイラルチューブ）
+    const spiralPoints = [];
+    for (let i = 0; i <= 60; i++) {
+      const t = i / 60;
+      const a = t * Math.PI * 8;
+      spiralPoints.push(new THREE.Vector3(
+        0.15 + Math.cos(a) * 0.22,
+        -1.25 - t * 1.15,
+        -0.15 + Math.sin(a) * 0.22
+      ));
+    }
+    const spiralCurve = new THREE.CatmullRomCurve3(spiralPoints);
+    const spiralMesh = new THREE.Mesh(new THREE.TubeGeometry(spiralCurve, 90, 0.025, 8, false), copperMat);
+    fridgeGroup.add(spiralMesh);
+
+    // 混合室（Mixing Chamber）円筒
+    const mixingChamber = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.28, 0.48, 28), goldPlateMat);
+    mixingChamber.position.set(0.0, -2.35, 0.0);
+    fridgeGroup.add(mixingChamber);
+
+    // 最下段(10mK)の下に吊り下げられたコールドフィンガーと量子プロセッサ（チップ）
+    const coldFinger = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, 0.65, 20), copperMat);
+    coldFinger.position.set(0.0, -3.02, 0.0);
+    fridgeGroup.add(coldFinger);
+
+    // 量子ビットチップパッケージ（基板＋金色のパッケージ＋ジョセフソン接合の微細パターン）
+    const chipGroup = new THREE.Group();
+    chipGroup.position.set(0.0, -3.42, 0.0);
+    fridgeGroup.add(chipGroup);
+
+    const chipMount = new THREE.Mesh(new THREE.BoxGeometry(0.92, 0.08, 0.92), goldPlateMat);
+    chipGroup.add(chipMount);
+
+    const siliconDie = new THREE.Mesh(
+      new THREE.BoxGeometry(0.62, 0.04, 0.62),
+      new THREE.MeshStandardMaterial({ color: 0x0f172a, metalness: 0.9, roughness: 0.1 })
+    );
+    siliconDie.position.y = 0.05;
+    chipGroup.add(siliconDie);
+
+    // チップ上の2つの超伝導量子ビット（q0, q1）と読み出し共振器の光るパターン
+    const qubitPadMat0 = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
+    const qubitPadMat1 = new THREE.MeshBasicMaterial({ color: 0xc084fc });
+    const couplerMat = new THREE.MeshBasicMaterial({ color: 0xfbbf24 });
+
+    const q0ChipMarker = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.02, 0.14), qubitPadMat0);
+    q0ChipMarker.position.set(-0.14, 0.075, 0.0);
+    const q1ChipMarker = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.02, 0.14), qubitPadMat1);
+    q1ChipMarker.position.set(0.14, 0.075, 0.0);
+    const chipCoupler = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.015, 0.04), couplerMat);
+    chipCoupler.position.set(0.0, 0.075, 0.0);
+    chipGroup.add(q0ChipMarker, q1ChipMarker, chipCoupler);
+
+    // チップの周囲を囲む多層磁気シールド（半透明で内部のチップが見える）
+    const magShieldCan = new THREE.Mesh(new THREE.CylinderGeometry(0.68, 0.68, 1.15, 36, 1, true), magShieldMat);
+    magShieldCan.position.set(0.0, -3.32, 0.0);
+    fridgeGroup.add(magShieldCan);
+
+    const magShieldBottom = new THREE.Mesh(new THREE.CircleGeometry(0.68, 36), magShieldMat);
+    magShieldBottom.rotation.x = Math.PI / 2;
+    magShieldBottom.position.set(0.0, -3.895, 0.0);
+    fridgeGroup.add(magShieldBottom);
+
+    // 外側の真空容器・熱シールド（半透明シリンダー、ボタンでON/OFF切り替え可能）
+    const outerShieldGroup = new THREE.Group();
+    const vacuumCan = new THREE.Mesh(new THREE.CylinderGeometry(2.38, 2.38, 7.5, 48, 1, true), outerCanMat);
+    vacuumCan.position.y = -0.5;
+    outerShieldGroup.add(vacuumCan);
+    fridgeGroup.add(outerShieldGroup);
+
+    // ============================================================================
+    // 5. 同軸ケーブル・減衰器・アイソレータ・HEMT増幅器と信号パルスの通り道
+    // ============================================================================
+    const inputSignalCurves = [];
+    const outputSignalCurves = [];
+
+    // 入力線（4本：上から各段の減衰器を通ってチップへ降りるセミリジッド同軸ケーブル）
+    const inputAngles = [-0.65, -0.22, 0.22, 0.65];
+    inputAngles.forEach((ang, idx) => {
+      const pts = [];
+      plateStages.forEach((st, sIdx) => {
+        const r = st.radius * 0.62;
+        const x = Math.cos(ang) * r;
+        const z = Math.sin(ang) * r;
+        // 段と段の間で特徴的なセミリジッドのループ（熱収縮対策のベンド）を入れる
+        if (sIdx > 0) {
+          const prevSt = plateStages[sIdx - 1];
+          const midY = (prevSt.y + st.y) * 0.5;
+          const bendR = ((prevSt.radius + st.radius) * 0.5) * 0.72;
+          pts.push(new THREE.Vector3(Math.cos(ang + 0.14) * bendR, midY + 0.15, Math.sin(ang + 0.14) * bendR));
+          pts.push(new THREE.Vector3(Math.cos(ang - 0.12) * bendR, midY - 0.15, Math.sin(ang - 0.12) * bendR));
+        }
+        pts.push(new THREE.Vector3(x, st.y, z));
+
+        // 各段に青い「減衰器 (Attenuator)」を取り付ける
+        if (sIdx >= 1 && sIdx <= 5) {
+          const atten = new THREE.Mesh(new THREE.CylinderGeometry(0.048, 0.048, 0.22, 12), attenuatorMat);
+          atten.position.set(x, st.y - 0.14, z);
+          fridgeGroup.add(atten);
+        }
+      });
+      // 最下段から量子チップへ接続
+      pts.push(new THREE.Vector3(Math.cos(ang) * 0.28, -3.15, Math.sin(ang) * 0.28));
+      pts.push(new THREE.Vector3((idx - 1.5) * 0.08, -3.38, 0.0));
+
+      const curve = new THREE.CatmullRomCurve3(pts);
+      inputSignalCurves.push(curve);
+
+      const cableMesh = new THREE.Mesh(new THREE.TubeGeometry(curve, 110, 0.018, 8, false), coaxSemiRigidMat);
+      fridgeGroup.add(cableMesh);
+    });
+
+    // 出力・読み出し線（2本：チップからアイソレータ・4K段のHEMT増幅器を通って上へ戻る）
+    const outputAngles = [2.35, 2.85];
+    outputAngles.forEach((ang, idx) => {
+      const pts = [
+        new THREE.Vector3((idx === 0 ? -0.12 : 0.12), -3.38, -0.05),
+        new THREE.Vector3(Math.cos(ang) * 0.35, -3.1, Math.sin(ang) * 0.35)
+      ];
+
+      for (let sIdx = plateStages.length - 1; sIdx >= 0; sIdx--) {
+        const st = plateStages[sIdx];
+        const r = st.radius * 0.64;
+        const x = Math.cos(ang) * r;
+        const z = Math.sin(ang) * r;
+        pts.push(new THREE.Vector3(x, st.y, z));
+
+        // 10mK段と100mK段に緑色の「アイソレータ／サーキュレータ」
+        if (sIdx === 5 || sIdx === 4) {
+          const iso = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.22, 0.12), isolatorMat);
+          iso.position.set(x, st.y + 0.18, z);
+          fridgeGroup.add(iso);
+        }
+        // 4K段に金・オレンジ色の「低雑音HEMT増幅器」
+        if (sIdx === 2) {
+          const amp = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.28, 0.16), hemtAmpMat);
+          amp.position.set(x, st.y + 0.20, z);
+          fridgeGroup.add(amp);
+        }
+      }
+
+      const curve = new THREE.CatmullRomCurve3(pts);
+      outputSignalCurves.push(curve);
+
+      const cableMesh = new THREE.Mesh(new THREE.TubeGeometry(curve, 100, 0.02, 8, false), copperMat);
+      fridgeGroup.add(cableMesh);
+    });
+
+    // ケーブルを流れるマイクロ波信号パルス球（入力：水色、出力：緑色）
+    const pulsePackets = [];
+    const inPulseGeo = new THREE.SphereGeometry(0.065, 12, 12);
+    const inPulseMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
+    const outPulseMat = new THREE.MeshBasicMaterial({ color: 0x4ade80 });
+
+    inputSignalCurves.forEach((curve, cIdx) => {
+      for (let p = 0; p < 3; p++) {
+        const mesh = new THREE.Mesh(inPulseGeo, inPulseMat);
+        fridgeGroup.add(mesh);
+        pulsePackets.push({ mesh, curve, speed: 0.26, offset: (p / 3) + cIdx * 0.08, type: 'in' });
+      }
+    });
+
+    outputSignalCurves.forEach((curve, cIdx) => {
+      for (let p = 0; p < 3; p++) {
+        const mesh = new THREE.Mesh(inPulseGeo, outPulseMat);
+        fridgeGroup.add(mesh);
+        pulsePackets.push({ mesh, curve, speed: 0.26, offset: (p / 3) + cIdx * 0.15, type: 'out' });
+      }
+    });
+
+    // ============================================================================
+    // 6. 3D ブロッホ球（q0 と q1）および量子もつれエフェクトの構築（右側 X = +2.6）
+    // ============================================================================
+    const quantumStageGroup = new THREE.Group();
+    quantumStageGroup.position.set(2.65, -0.05, 0.0);
+    scene.add(quantumStageGroup);
+
+    // 量子チップからブロッホ球ステージへ繋がるホログラム引き出しライン
+    const bridgePoints = [
+      new THREE.Vector3(-2.2, -3.07, 0.0),
+      new THREE.Vector3(0.2, -2.5, 0.5),
+      new THREE.Vector3(2.65, -1.65, 0.0)
+    ];
+    const bridgeCurve = new THREE.CatmullRomCurve3(bridgePoints);
+    const bridgeLineGeo = new THREE.BufferGeometry().setFromPoints(bridgeCurve.getPoints(50));
+    const bridgeLineMat = new THREE.LineBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.45 });
+    const bridgeLine = new THREE.Line(bridgeLineGeo, bridgeLineMat);
+    scene.add(bridgeLine);
+
+    /**
+     * ブロッホ球の3Dオブジェクト一式を生成するヘルパー
+     */
+    function createBlochSphereUnit(labelColorHex, posY) {
+      const unit = new THREE.Group();
+      unit.position.set(0, posY, 0);
+
+      const radius = 1.18;
+
+      // 半透明の球面
+      const sphereGeo = new THREE.SphereGeometry(radius, 36, 36);
+      const sphereMat = new THREE.MeshPhysicalMaterial({
+        color: 0x1e293b,
+        transparent: true,
+        opacity: 0.22,
+        roughness: 0.15,
+        metalness: 0.1,
+        depthWrite: false
+      });
+      const sphereMesh = new THREE.Mesh(sphereGeo, sphereMat);
+      unit.add(sphereMesh);
+
+      // 赤道リング（XY平面）と子午線リング（XZ平面、YZ平面）
+      const eqGeo = new THREE.TorusGeometry(radius, 0.014, 12, 64);
+      eqGeo.rotateX(Math.PI / 2);
+      const eqMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.65 });
+      unit.add(new THREE.Mesh(eqGeo, eqMat));
+
+      const merGeo1 = new THREE.TorusGeometry(radius, 0.008, 8, 64);
+      const merMat = new THREE.MeshBasicMaterial({ color: 0x64748b, transparent: true, opacity: 0.38 });
+      unit.add(new THREE.Mesh(merGeo1, merMat));
+
+      const merGeo2 = new THREE.TorusGeometry(radius, 0.008, 8, 64);
+      merGeo2.rotateY(Math.PI / 2);
+      unit.add(new THREE.Mesh(merGeo2, merMat));
+
+      // X, Y, Z 座標軸ライン
+      // Three.js空間との対応:
+      // ブロッホ球の +Z軸(|0⟩) = Three.jsの +Y
+      // ブロッホ球の -Z軸(|1⟩) = Three.jsの -Y
+      // ブロッホ球の +X軸(|+⟩) = Three.jsの +Z (手前向きで見やすい角度) または +X
+      // 視認性を最大化するため：
+      //   Bloch Z (+|0⟩ / -|1⟩) -> 3D Y軸 (上下)
+      //   Bloch X (+|+⟩ / -|-⟩) -> 3D Z軸手前やや右 (カメラから見て斜め手前)
+      //   Bloch Y (+|i⟩)        -> 3D X軸右
+      const axisMat = new THREE.LineBasicMaterial({ color: 0x94a3b8, transparent: true, opacity: 0.5 });
+      const zAxisGeo = new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(0, -radius * 1.15, 0),
+        new THREE.Vector3(0, radius * 1.15, 0)
+      ]);
+      const xAxisGeo = new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(0, 0, -radius * 1.15),
+        new THREE.Vector3(0, 0, radius * 1.15)
+      ]);
+      const yAxisGeo = new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(-radius * 1.15, 0, 0),
+        new THREE.Vector3(radius * 1.15, 0, 0)
+      ]);
+      unit.add(new THREE.Line(zAxisGeo, axisMat));
+      unit.add(new THREE.Line(xAxisGeo, axisMat));
+      unit.add(new THREE.Line(yAxisGeo, axisMat));
+
+      // 北極 |0⟩ と南極 |1⟩ の小さなマーカー球
+      const northPole = new THREE.Mesh(new THREE.SphereGeometry(0.055, 12, 12), new THREE.MeshBasicMaterial({ color: 0x60a5fa }));
+      northPole.position.set(0, radius, 0);
+      const southPole = new THREE.Mesh(new THREE.SphereGeometry(0.055, 12, 12), new THREE.MeshBasicMaterial({ color: 0xf87171 }));
+      southPole.position.set(0, -radius, 0);
+      const plusPole = new THREE.Mesh(new THREE.SphereGeometry(0.05, 12, 12), new THREE.MeshBasicMaterial({ color: 0xfbbf24 }));
+      plusPole.position.set(0, 0, radius);
+      unit.add(northPole, southPole, plusPole);
+
+      // 状態ベクトル矢印（シャフト＋コーン先端）
+      const arrowGroup = new THREE.Group();
+      const shaftGeo = new THREE.CylinderGeometry(0.032, 0.032, 1.0, 16);
+      shaftGeo.translate(0, 0.5, 0);
+      const arrowMat = new THREE.MeshStandardMaterial({
+        color: labelColorHex,
+        emissive: labelColorHex,
+        emissiveIntensity: 0.45,
+        roughness: 0.2
+      });
+      const shaftMesh = new THREE.Mesh(shaftGeo, arrowMat);
+
+      const headGeo = new THREE.ConeGeometry(0.095, 0.24, 20);
+      headGeo.translate(0, 1.0, 0);
+      const headMesh = new THREE.Mesh(headGeo, arrowMat);
+
+      arrowGroup.add(shaftMesh, headMesh);
+      unit.add(arrowGroup);
+
+      // 量子もつれ（最大混合状態 r=0）のときに中心で輝くコア球と不確定性クラウド
+      const mixedCoreGeo = new THREE.SphereGeometry(0.24, 24, 24);
+      const mixedCoreMat = new THREE.MeshBasicMaterial({
+        color: 0xc084fc,
+        transparent: true,
+        opacity: 0.0
+      });
+      const mixedCoreMesh = new THREE.Mesh(mixedCoreGeo, mixedCoreMat);
+      unit.add(mixedCoreMesh);
+
+      const mixedHaloGeo = new THREE.SphereGeometry(radius * 0.85, 24, 24);
+      const mixedHaloMat = new THREE.MeshBasicMaterial({
+        color: 0xc084fc,
+        transparent: true,
+        opacity: 0.0,
+        wireframe: true
+      });
+      const mixedHaloMesh = new THREE.Mesh(mixedHaloGeo, mixedHaloMat);
+      unit.add(mixedHaloMesh);
+
+      return {
+        group: unit,
+        radius,
+        arrowGroup,
+        shaftMesh,
+        headMesh,
+        mixedCoreMesh,
+        mixedCoreMat,
+        mixedHaloMesh,
+        mixedHaloMat,
+        northPole,
+        southPole,
+        plusPole
+      };
+    }
+
+    const blochQ0 = createBlochSphereUnit(0x38bdf8, 1.55);
+    const blochQ1 = createBlochSphereUnit(0x22d3ee, -1.55);
+    quantumStageGroup.add(blochQ0.group, blochQ1.group);
+
+    // 量子もつれ（CNOT後）を表す、q0とq1を結ぶ二重らせん・相関リング
+    const entangleGroup = new THREE.Group();
+    quantumStageGroup.add(entangleGroup);
+
+    const entangleRings = [];
+    for (let i = 0; i < 5; i++) {
+      const rGeo = new THREE.TorusGeometry(0.45 + Math.abs(i - 2) * 0.12, 0.018, 12, 48);
+      rGeo.rotateX(Math.PI / 2);
+      const rMat = new THREE.MeshBasicMaterial({
+        color: i % 2 === 0 ? 0xc084fc : 0x38bdf8,
+        transparent: true,
+        opacity: 0.0
+      });
+      const rMesh = new THREE.Mesh(rGeo, rMat);
+      rMesh.position.y = (i - 2) * 0.55;
+      entangleGroup.add(rMesh);
+      entangleRings.push({ mesh: rMesh, mat: rMat, baseY: rMesh.position.y, phase: i * 0.9 });
+    }
+
+    /**
+     * ブロッホベクトル (bx, by, bz) を3Dの矢印に反映する関数
+     * 物理的に正しい定義:
+     *   純粋状態では |(bx, by, bz)| = 1 (球面上)
+     *   最大量子もつれ状態（ベル状態）の部分系では (bx, by, bz) = (0, 0, 0) (球の中心、ベクトル長 r = 0)
+     */
+    function updateBlochUnitVisual(unit, bx, by, bz, timeSec) {
+      // ブロッホ座標 (bx, by, bz) -> Three.js ローカル座標 (vx, vy, vz)
+      // bz (+1が|0⟩北極, -1が|1⟩南極) -> vy
+      // bx (+1が|+⟩手前) -> vz
+      // by (+1が|i⟩右) -> vx
+      const vx = by;
+      const vy = bz;
+      const vz = bx;
+
+      const rLen = Math.sqrt(vx * vx + vy * vy + vz * vz);
+      const maxLen = unit.radius * 0.92;
+
+      if (rLen < 0.04) {
+        unit.arrowGroup.visible = false;
+      } else {
+        unit.arrowGroup.visible = true;
+        const dir = new THREE.Vector3(vx, vy, vz).normalize();
+        const up = new THREE.Vector3(0, 1, 0);
+        unit.arrowGroup.quaternion.setFromUnitVectors(up, dir);
+
+        const actualLen = Math.max(0.05, rLen * maxLen);
+        unit.shaftMesh.scale.set(1, actualLen, 1);
+        unit.headMesh.position.y = actualLen - 0.95;
+      }
+
+      // 混合状態度合い (1 - rLen) に応じて中心コアと量子もつれホログラムを発光させる
+      const mixedness = Math.max(0, Math.min(1, 1.0 - rLen));
+      unit.mixedCoreMat.opacity = mixedness * (0.65 + 0.25 * Math.sin(timeSec * 6));
+      unit.mixedCoreMesh.scale.setScalar(0.8 + 0.35 * Math.sin(timeSec * 5));
+      unit.mixedHaloMat.opacity = mixedness * 0.28;
+      unit.mixedHaloMesh.rotation.y = timeSec * 1.2;
+      unit.mixedHaloMesh.rotation.x = timeSec * 0.7;
+    }
+
+    // ============================================================================
+    // 7. 3D 部品ピンラベル & ブロッホ球極ラベル（画面重なり防止機能つき）
+    // ============================================================================
+    const partPinDefs = [
+      {
+        id: 'pin-300k',
+        title: '室温フランジ',
+        temp: '約 300 K (27℃)',
+        desc: '室温の制御装置からマイクロ波ケーブルを引き込む最上部',
+        localPos: new THREE.Vector3(-2.1, 3.35, 0.6),
+        jumpStage: 0
+      },
+      {
+        id: 'pin-50k',
+        title: '50K ステージ',
+        temp: '50 K (-223℃)',
+        desc: '外からの赤外線や熱の侵入を最初にブロックする段',
+        localPos: new THREE.Vector3(1.9, 2.05, 0.5),
+        jumpStage: 1
+      },
+      {
+        id: 'pin-4k',
+        title: '4K ステージ & 増幅器',
+        temp: '4 K (-269℃)',
+        desc: '液体ヘリウム温度。微弱な読み出し信号を増幅するHEMT増幅器を設置',
+        localPos: new THREE.Vector3(-1.75, 0.80, 0.55),
+        jumpStage: 1
+      },
+      {
+        id: 'pin-800mk',
+        title: 'スティル段 (蒸留器)',
+        temp: '0.8 K (-272.4℃)',
+        desc: 'ヘリウム3を減圧蒸発させて1ケルビン以下の極低温を作る段',
+        localPos: new THREE.Vector3(1.45, -0.50, 0.45),
+        jumpStage: 1
+      },
+      {
+        id: 'pin-100mk',
+        title: '中間冷却段・熱交換器',
+        temp: '0.1 K (100mK)',
+        desc: 'らせん状の熱交換器でヘリウムをさらに冷やす中継段',
+        localPos: new THREE.Vector3(-1.25, -1.60, 0.45),
+        jumpStage: 1
+      },
+      {
+        id: 'pin-10mk',
+        title: '混合室段 (最下段)',
+        temp: '0.01 K (10mK)',
+        desc: 'ヘリウム3と4が混ざる吸熱反応で宇宙空間より冷たい10mKを実現',
+        localPos: new THREE.Vector3(1.05, -2.65, 0.4),
+        jumpStage: 2
+      },
+      {
+        id: 'pin-chip',
+        title: '超伝導量子チップ & 磁気シールド',
+        temp: '10 mK (-273.14℃)',
+        desc: '超伝導回路（ジョセフソン接合）の量子ビット。磁気シールド缶で保護',
+        localPos: new THREE.Vector3(0.0, -3.55, 0.65),
+        jumpStage: 2
+      },
+      {
+        id: 'pin-coax',
+        title: '同軸ケーブル・減衰器・アイソレータ',
+        temp: '信号の通り道',
+        desc: '青(減衰器)で熱ノイズを消し、緑(アイソレータ)で逆流を防いで測定',
+        localPos: new THREE.Vector3(-1.35, -0.05, 1.15),
+        jumpStage: 3
+      }
+    ];
+
+    const partPinElements = [];
+    partPinDefs.forEach((def) => {
+      const el = document.createElement('div');
+      el.className = 'part-label';
+      el.id = def.id;
+      el.innerHTML = `
+        <div class="pin-title">
+          <span>${def.title}</span>
+          <span class="pin-temp">${def.temp}</span>
+        </div>
+        <div class="pin-desc">${def.desc}</div>
+      `;
+      el.addEventListener('click', () => {
+        jumpToStage(def.jumpStage);
+      });
+      labelsContainer.appendChild(el);
+      partPinElements.push({ def, el });
+    });
+
+    // ブロッホ球のフローティングタグ
+    const blochFloatingDefs = [
+      { text: 'q0 ブロッホ球 | 北極 |0⟩', worldPos: () => new THREE.Vector3(2.65, 2.86, 0) },
+      { text: 'q0 南極 |1⟩', worldPos: () => new THREE.Vector3(2.65, 0.22, 0) },
+      { text: '|+⟩ 重ね合わせ', worldPos: () => new THREE.Vector3(2.65, 1.50, 1.34) },
+      { text: 'q1 ブロッホ球 | 北極 |0⟩', worldPos: () => new THREE.Vector3(2.65, -0.24, 0) },
+      { text: 'q1 南極 |1⟩', worldPos: () => new THREE.Vector3(2.65, -2.86, 0) }
+    ];
+
+    const blochFloatingEls = blochFloatingDefs.map((d) => {
+      const el = document.createElement('div');
+      el.className = 'floating-tag';
+      el.textContent = d.text;
+      labelsContainer.appendChild(el);
+      return { def: d, el };
+    });
+
+    // ============================================================================
+    // 8. 繰り返し測定の統計シミュレーション（ベル状態 |00⟩ 50%, |11⟩ 50%）
+    // ============================================================================
+    const measurementStats = {
+      counts: { '00': 0, '01': 0, '10': 0, '11': 0 },
+      totalShots: 0,
+      lastOutcome: '00',
+      lastShotIndex: -1
+    };
+
+    // 決定論的かつ自然なランダム列（約50%ずつ |00⟩ と |11⟩ が出現し、|01⟩ と |10⟩ は 0回）
+    function sampleBellOutcome(shotIdx) {
+      // 黄金比ハッシュで偏りのない 0 / 1 列を生成
+      const frac = (shotIdx * 0.61803398875 + 0.31) % 1;
+      return frac < 0.5 ? '00' : '11';
+    }
+
+    function resetMeasurementStats() {
+      measurementStats.counts['00'] = 0;
+      measurementStats.counts['01'] = 0;
+      measurementStats.counts['10'] = 0;
+      measurementStats.counts['11'] = 0;
+      measurementStats.totalShots = 0;
+      measurementStats.lastShotIndex = -1;
+      updateHistogramDOM();
+    }
+
+    const elShotBadge = document.getElementById('shot-counter-badge');
+    const elBar00 = document.getElementById('bar-00');
+    const elBar01 = document.getElementById('bar-01');
+    const elBar10 = document.getElementById('bar-10');
+    const elBar11 = document.getElementById('bar-11');
+    const elCnt00 = document.getElementById('cnt-00');
+    const elCnt01 = document.getElementById('cnt-01');
+    const elCnt10 = document.getElementById('cnt-10');
+    const elCnt11 = document.getElementById('cnt-11');
+
+    function updateHistogramDOM() {
+      const total = measurementStats.totalShots;
+      elShotBadge.textContent = `試行回数: ${total} 回`;
+
+      const keys = ['00', '01', '10', '11'];
+      const bars = { '00': elBar00, '01': elBar01, '10': elBar10, '11': elBar11 };
+      const cnts = { '00': elCnt00, '01': elCnt01, '10': elCnt10, '11': elCnt11 };
+
+      keys.forEach((k) => {
+        const c = measurementStats.counts[k];
+        const pct = total > 0 ? Math.round((c / total) * 100) : 0;
+        bars[k].style.width = `${pct}%`;
+        cnts[k].textContent = `${c}回 (${pct}%)`;
+      });
+    }
+
+    // 初期状態でもベル状態の測定統計の意味がすぐ分かるようサンプル20回分を入れておき、
+    // ステージ8（測定）に入ると0回からリアルタイムに1回ずつ積み上がるアニメーションを見せる
+    function seedInitialDemoStats() {
+      measurementStats.counts['00'] = 20;
+      measurementStats.counts['01'] = 0;
+      measurementStats.counts['10'] = 0;
+      measurementStats.counts['11'] = 20;
+      measurementStats.totalShots = 40;
+      updateHistogramDOM();
+    }
+    seedInitialDemoStats();
+
+    // ============================================================================
+    // 9. UI 操作とタイムライン制御
+    // ============================================================================
+    let elapsedLoopTime = 0.0;
+    let isPlaying = true;
+    let currentStageIdx = -1;
+    let shieldVisibleMode = 1; // 1: 半透明, 0: 非表示
+
+    const elStageStep = document.getElementById('current-stage-step');
+    const elStageTitle = document.getElementById('current-stage-title');
+    const elStageDesc = document.getElementById('stage-description-box');
+    const elStagePoint = document.getElementById('stage-point-box');
+    const elStateKet = document.getElementById('quantum-state-ket');
+    const elQ0BlochText = document.getElementById('q0-bloch-text');
+    const elQ1BlochText = document.getElementById('q1-bloch-text');
+    const elProgressFill = document.getElementById('progress-fill');
+    const elTimerText = document.getElementById('timer-text');
+
+    const stepTabs = Array.from(document.querySelectorAll('.step-tab'));
+    const tempRows = Array.from(document.querySelectorAll('.temp-row'));
+    const gateNodes = Array.from(document.querySelectorAll('.gate-node'));
+
+    function jumpToStage(stageIndex) {
+      const idx = (stageIndex + STAGES.length) % STAGES.length;
+      elapsedLoopTime = STAGES[idx].start + 0.01;
+      userInteractingTimer = 0; // カメラを該当ステージへスムーズに移動
+      if (idx === 7) {
+        resetMeasurementStats();
+      }
+      applyStageUI(idx);
+    }
+
+    function applyStageUI(idx) {
+      if (currentStageIdx === idx) return;
+      currentStageIdx = idx;
+      const st = STAGES[idx];
+
+      elStageStep.textContent = st.stepText;
+      elStageTitle.textContent = st.title;
+      elStageDesc.textContent = st.desc;
+      elStagePoint.textContent = st.point;
+      elStateKet.textContent = st.ket;
+      elQ0BlochText.textContent = st.q0Text;
+      elQ1BlochText.textContent = st.q1Text;
+
+      stepTabs.forEach((tab, i) => {
+        tab.classList.toggle('active', i === idx);
+      });
+
+      tempRows.forEach((row) => {
+        const targetSt = Number(row.dataset.stage);
+        row.classList.toggle('active', targetSt === idx);
+      });
+
+      gateNodes.forEach((node) => {
+        node.classList.toggle('active-gate', node.id === st.circuitActive);
+      });
+
+      partPinElements.forEach(({ def, el }) => {
+        const isHighlighted = st.activePinIds.includes(def.id);
+        el.classList.toggle('active-pin', isHighlighted);
+      });
+
+      if (idx === 7) {
+        resetMeasurementStats();
+      } else if (measurementStats.totalShots === 0) {
+        seedInitialDemoStats();
+      }
+    }
+
+    // ボタンイベント
+    const btnPlayPause = document.getElementById('btn-play-pause');
+    btnPlayPause.addEventListener('click', () => {
+      isPlaying = !isPlaying;
+      btnPlayPause.textContent = isPlaying ? '一時停止' : '再生再開';
+      document.getElementById('left-panel-sub').textContent = isPlaying ? '自動ツアー進行中' : '一時停止中';
+    });
+
+    document.getElementById('btn-prev').addEventListener('click', () => {
+      jumpToStage((currentStageIdx <= 0 ? STAGES.length - 1 : currentStageIdx - 1));
+    });
+
+    document.getElementById('btn-next').addEventListener('click', () => {
+      jumpToStage((currentStageIdx + 1) % STAGES.length);
+    });
+
+    const btnToggleShield = document.getElementById('btn-toggle-shield');
+    btnToggleShield.addEventListener('click', () => {
+      shieldVisibleMode = (shieldVisibleMode + 1) % 2;
+      outerShieldGroup.visible = shieldVisibleMode === 1;
+      btnToggleShield.textContent = shieldVisibleMode === 1 ? '真空容器: 半透明' : '真空容器: 非表示';
+    });
+
+    document.getElementById('btn-reset-cam').addEventListener('click', () => {
+      userInteractingTimer = 0;
+      const st = STAGES[Math.max(0, currentStageIdx)];
+      camera.position.copy(st.camPos);
+      controls.target.copy(st.camTarget);
+    });
+
+    stepTabs.forEach((tab) => {
+      tab.addEventListener('click', () => {
+        jumpToStage(Number(tab.dataset.stage));
+      });
+    });
+
+    tempRows.forEach((row) => {
+      row.addEventListener('click', () => {
+        jumpToStage(Number(row.dataset.stage));
+      });
+    });
+
+    gateNodes.forEach((node) => {
+      node.addEventListener('click', () => {
+        jumpToStage(Number(node.dataset.jump));
+      });
+    });
+
+    // ============================================================================
+    // 10. 3D ラベルのスクリーン座標変換と重なり防止レイアウト更新
+    // ============================================================================
+    function rectsOverlap(a, b, pad = 4) {
+      return (
+        a.left - pad < b.right &&
+        a.right + pad > b.left &&
+        a.top - pad < b.bottom &&
+        a.bottom + pad > b.top
+      );
+    }
+
+    function update2DLabels() {
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+
+      const leftPanelRect = document.getElementById('left-panel').getBoundingClientRect();
+      const rightPanelRect = document.getElementById('right-panel').getBoundingClientRect();
+      const topBarRect = document.getElementById('top-bar').getBoundingClientRect();
+      const bottomBarRect = document.getElementById('bottom-bar').getBoundingClientRect();
+
+      const safeLeft = leftPanelRect.right + 10;
+      const safeRight = rightPanelRect.left - 10;
+      const safeTop = topBarRect.bottom + 8;
+      const safeBottom = bottomBarRect.top - 8;
+
+      const activePinIds = STAGES[Math.max(0, currentStageIdx)].activePinIds;
+      const isQuantumFocus = currentStageIdx >= 4 && currentStageIdx <= 6;
+
+      // 1) 各ピンの希望スクリーン座標を計算し、優先度（アクティブピン優先）でソート
+      const pinCandidates = partPinElements.map(({ def, el }) => {
+        const worldPos = def.localPos.clone();
+        fridgeGroup.localToWorld(worldPos);
+        const projected = worldPos.clone().project(camera);
+        const sx = (projected.x * 0.5 + 0.5) * width;
+        const sy = (-projected.y * 0.5 + 0.5) * height;
+        const w = el.offsetWidth || 185;
+        const h = el.offsetHeight || 52;
+        const isActive = activePinIds.includes(def.id);
+        return { def, el, sx, sy, w, h, z: projected.z, isActive };
+      });
+
+      // アクティブピンを先に配置し、次に上から下へ配置
+      pinCandidates.sort((a, b) => {
+        if (a.isActive !== b.isActive) return a.isActive ? -1 : 1;
+        return a.sy - b.sy;
+      });
+
+      const occupiedRects = [];
+
+      for (const item of pinCandidates) {
+        const { el, w, h, z, isActive } = item;
+
+        if (z > 1.0 || z < -1.0 || (isQuantumFocus && !isActive)) {
+          el.style.opacity = '0';
+          el.style.pointerEvents = 'none';
+          continue;
+        }
+
+        const halfW = w * 0.5;
+        const halfH = h * 0.5;
+        const minCx = safeLeft + halfW;
+        const maxCx = safeRight - halfW;
+        const minCy = safeTop + halfH;
+        const maxCy = safeBottom - halfH;
+
+        if (minCx > maxCx || minCy > maxCy) {
+          el.style.opacity = '0';
+          el.style.pointerEvents = 'none';
+          continue;
+        }
+
+        const baseCx = Math.max(minCx, Math.min(maxCx, item.sx));
+        const baseCy = Math.max(minCy, Math.min(maxCy, item.sy));
+
+        // 重ならないY位置を探索（ベース位置から上下に少しずつずらす）
+        let chosenRect = null;
+        const offsets = [0, 28, -28, 56, -56, 84, -84, 112, -112, 140, -140, 168, -168];
+        for (const dy of offsets) {
+          const cy = Math.max(minCy, Math.min(maxCy, baseCy + dy));
+          const cand = {
+            left: baseCx - halfW,
+            right: baseCx + halfW,
+            top: cy - halfH,
+            bottom: cy + halfH,
+            cx: baseCx,
+            cy
+          };
+          const hit = occupiedRects.some((r) => rectsOverlap(cand, r, 5));
+          if (!hit) {
+            chosenRect = cand;
+            break;
+          }
+        }
+
+        if (!chosenRect) {
+          // どのオフセットでも既存ラベルと重なる場合は非表示にして文字重なりを確実に防ぐ
+          el.style.opacity = '0';
+          el.style.pointerEvents = 'none';
+          continue;
+        }
+
+        occupiedRects.push(chosenRect);
+        el.style.left = `${chosenRect.cx}px`;
+        el.style.top = `${chosenRect.cy}px`;
+        el.style.opacity = isActive ? '0.98' : '0.82';
+        el.style.pointerEvents = 'auto';
+      }
+
+      // 2) ブロッホ球のフローティングタグ更新（パネル・既存ピン・他タグとの重なりチェック付き）
+      blochFloatingEls.forEach(({ def, el }) => {
+        const wp = def.worldPos();
+        const proj = wp.project(camera);
+        if (proj.z > 1.0 || proj.z < -1.0) {
+          el.style.opacity = '0';
+          return;
+        }
+        const sx = (proj.x * 0.5 + 0.5) * width;
+        const sy = (-proj.y * 0.5 + 0.5) * height;
+        const w = el.offsetWidth || 120;
+        const h = el.offsetHeight || 24;
+        const halfW = w * 0.5;
+        const halfH = h * 0.5;
+
+        const cand = {
+          left: sx - halfW,
+          right: sx + halfW,
+          top: sy - halfH,
+          bottom: sy + halfH
+        };
+
+        if (
+          cand.left < safeLeft ||
+          cand.right > safeRight ||
+          cand.top < safeTop ||
+          cand.bottom > safeBottom ||
+          occupiedRects.some((r) => rectsOverlap(cand, r, 4))
+        ) {
+          el.style.opacity = '0';
+        } else {
+          occupiedRects.push(cand);
+          el.style.left = `${sx}px`;
+          el.style.top = `${sy}px`;
+          el.style.opacity = currentStageIdx >= 4 ? '0.95' : '0.75';
+        }
+      });
+    }
+
+    // ============================================================================
+    // 11. メインアニメーションループ（物理状態・ゲート回転・測定収縮の計算）
+    // ============================================================================
+    const clock = new THREE.Clock();
+
+    function animate() {
+      requestAnimationFrame(animate);
+
+      const dt = Math.min(clock.getDelta(), 0.1);
+      const totalElapsed = clock.getElapsedTime();
+
+      if (userInteractingTimer > 0) {
+        userInteractingTimer = Math.max(0, userInteractingTimer - dt);
+      }
+
+      if (isPlaying) {
+        elapsedLoopTime += dt;
+        if (elapsedLoopTime >= LOOP_DURATION) {
+          elapsedLoopTime = elapsedLoopTime % LOOP_DURATION;
+        }
+      }
+
+      // 現在のステージを判定
+      let activeIdx = 0;
+      for (let i = 0; i < STAGES.length; i++) {
+        if (elapsedLoopTime >= STAGES[i].start && elapsedLoopTime < STAGES[i].end) {
+          activeIdx = i;
+          break;
+        }
+      }
+      applyStageUI(activeIdx);
+
+      const activeStage = STAGES[activeIdx];
+      const stageLocalTime = elapsedLoopTime - activeStage.start;
+      const stageProgress = Math.max(0, Math.min(1, stageLocalTime / (activeStage.end - activeStage.start)));
+
+      // プログレスバー更新
+      const loopPct = (elapsedLoopTime / LOOP_DURATION) * 100;
+      elProgressFill.style.width = `${loopPct.toFixed(1)}%`;
+      elTimerText.textContent = `自動ループ: ${elapsedLoopTime.toFixed(1)} / ${LOOP_DURATION.toFixed(0)} 秒`;
+
+      // カメラの滑らかな自動補間（ユーザーがドラッグしていないとき）
+      if (userInteractingTimer <= 0) {
+        const camOrbitOffset = Math.sin(totalElapsed * 0.45) * 0.35;
+        const desiredPos = activeStage.camPos.clone();
+        desiredPos.x += camOrbitOffset;
+        camera.position.lerp(desiredPos, Math.min(1, dt * 2.4));
+        controls.target.lerp(activeStage.camTarget, Math.min(1, dt * 2.8));
+      }
+      controls.update();
+
+      // 1) 同軸ケーブルのマイクロ波パルスアニメーション
+      pulsePackets.forEach((pkt) => {
+        const u = (totalElapsed * pkt.speed + pkt.offset) % 1.0;
+        const pos = pkt.curve.getPointAt(u);
+        pkt.mesh.position.copy(pos);
+
+        // 信号経路ステージ(Stage 4)やゲート操作時に特に明るく光らせる
+        const scaleBoost = (activeIdx === 3 || activeIdx >= 5) ? 1.35 : 0.9;
+        pkt.mesh.scale.setScalar(scaleBoost);
+      });
+
+      // 2) 各 단계でのブロッホ球 (q0, q1) の物理状態計算
+      // ブロッホベクトル (bx, by, bz):
+      //   |0⟩ (北極) -> (0, 0, +1)
+      //   |1⟩ (南極) -> (0, 0, -1)
+      //   |+⟩ (赤道+X) -> (+1, 0, 0)
+      //   最大もつれ状態 (|00⟩+|11⟩)/√2 の部分トレース -> (0, 0, 0) (球の中心、ベクトル長 0)
+      let q0_bx = 0, q0_by = 0, q0_bz = 1;
+      let q1_bx = 0, q1_by = 0, q1_bz = 1;
+      let entangleStrength = 0.0;
+
+      if (activeIdx <= 4) {
+        // Stage 1〜5: 初期状態 |00⟩ (両方とも北極 |0⟩)
+        q0_bx = 0; q0_by = 0; q0_bz = 1;
+        q1_bx = 0; q1_by = 0; q1_bz = 1;
+        entangleStrength = 0.0;
+      } else if (activeIdx === 5) {
+        // Stage 6: Hゲートを q0 に適用
+        // 0〜2.2秒で北極(0,0,1)から赤道|+⟩(1,0,0)へ滑らかに90度回転
+        const rotT = Math.min(1.0, stageLocalTime / 2.2);
+        const smoothT = rotT * rotT * (3 - 2 * rotT);
+        const theta = smoothT * (Math.PI / 2);
+        q0_bx = Math.sin(theta);
+        q0_by = 0;
+        q0_bz = Math.cos(theta);
+
+        q1_bx = 0; q1_by = 0; q1_bz = 1;
+        entangleStrength = 0.0;
+      } else if (activeIdx === 6) {
+        // Stage 7: CNOTゲートで量子もつれ (|00⟩ + |11⟩)/√2 を生成
+        // 単独の還元密度行列は ρ = I/2 となるため、ブロッホベクトルは中心 (0,0,0) へ収縮し、2球間の相関リングが出現
+        const entT = Math.min(1.0, stageLocalTime / 2.2);
+        const smoothT = entT * entT * (3 - 2 * entT);
+        q0_bx = 1.0 - smoothT;
+        q0_by = 0;
+        q0_bz = 0;
+
+        q1_bx = 0;
+        q1_by = 0;
+        q1_bz = 1.0 - smoothT;
+
+        entangleStrength = smoothT;
+      } else if (activeIdx === 7) {
+        // Stage 8: 測定を何回も繰り返す（約 0.25 秒ごとに1ショットずつ計24回測定）
+        const shotInterval = 0.24;
+        const shotIdx = Math.floor(stageLocalTime / shotInterval);
+        const subPhase = (stageLocalTime % shotInterval) / shotInterval;
+
+        if (shotIdx !== measurementStats.lastShotIndex && shotIdx < 24) {
+          measurementStats.lastShotIndex = shotIdx;
+          const outcome = sampleBellOutcome(shotIdx);
+          measurementStats.lastOutcome = outcome;
+          measurementStats.counts[outcome] += 1;
+          measurementStats.totalShots += 1;
+          updateHistogramDOM();
+
+          // 最新の測定結果を状態式表示にも反映
+          elStateKet.textContent = `測定#${measurementStats.totalShots} 結果: |${outcome}⟩ へ収縮！`;
+        }
+
+        // 各ショットの前半25%はもつれ状態(r=0)、後半75%は測定で |00⟩(両方+Z) または |11⟩(両方-Z) に瞬時に収縮！
+        const targetZ = measurementStats.lastOutcome === '00' ? 1.0 : -1.0;
+        if (subPhase < 0.22) {
+          const buildUp = subPhase / 0.22;
+          q0_bx = 0; q0_by = 0; q0_bz = 0;
+          q1_bx = 0; q1_by = 0; q1_bz = 0;
+          entangleStrength = 1.0 - buildUp * 0.3;
+        } else {
+          const collapseT = Math.min(1.0, (subPhase - 0.22) / 0.25);
+          q0_bx = 0; q0_by = 0; q0_bz = targetZ * collapseT;
+          q1_bx = 0; q1_by = 0; q1_bz = targetZ * collapseT;
+          entangleStrength = (1.0 - collapseT) * 0.5;
+        }
+      }
+
+      updateBlochUnitVisual(blochQ0, q0_bx, q0_by, q0_bz, totalElapsed);
+      updateBlochUnitVisual(blochQ1, q1_bx, q1_by, q1_bz, totalElapsed);
+
+      // 量子もつれリングのアニメーション更新
+      entangleRings.forEach((er) => {
+        er.mat.opacity = entangleStrength * (0.45 + 0.25 * Math.sin(totalElapsed * 5 + er.phase));
+        er.mesh.rotation.z = totalElapsed * 1.5 + er.phase;
+        const scaleWave = 1.0 + 0.12 * Math.sin(totalElapsed * 4 + er.phase);
+        er.mesh.scale.set(scaleWave, scaleWave, 1);
+      });
+
+      // 量子チップ上の発光アニメーション
+      const chipPulse = 0.6 + 0.4 * Math.sin(totalElapsed * 6);
+      q0ChipMarker.scale.y = 1 + chipPulse;
+      q1ChipMarker.scale.y = 1 + chipPulse;
+
+      // 3D画面と2Dラベルの同期
+      update2DLabels();
+
+      renderer.render(scene, camera);
+    }
+
+    // リサイズ対応（1280×720 / 1920×1080 ほか任意の画面サイズ）
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      update2DLabels();
+    });
+
+    // 初回実行
+    applyStageUI(0);
+    animate();
+  </script>
+</body>
+</html>
